@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary colors -->
+    <color name="primary_40">#667eea</color>
+    <color name="primary_80">#8a9bf7</color>
+    <color name="primary_20">#4d5fd6</color>
+    
+    <!-- Secondary colors -->
+    <color name="secondary_40">#764ba2</color>
+    <color name="secondary_80">#9d7bc4</color>
+    <color name="secondary_20">#5d3a7f</color>
+    
+    <!-- Basic colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    
+    <!-- Success, Warning, Error colors -->
+    <color name="success">#28a745</color>
+    <color name="warning">#ffc107</color>
+    <color name="error">#dc3545</color>
+</resources>
+
+
