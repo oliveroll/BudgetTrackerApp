@@ -1,6 +1,5 @@
 package com.budgettracker.core.domain.model
 
-import com.google.firebase.Timestamp
 import java.util.Date
 
 /**
