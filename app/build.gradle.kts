@@ -1,8 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("kotlin-kapt")
-    id("dagger.hilt.android.plugin")
+    // id("kotlin-kapt") // Temporarily disabled for Java 21 compatibility
+    // id("dagger.hilt.android.plugin") // Temporarily disabled
     id("com.google.gms.google-services")
     id("kotlin-parcelize")
 }
@@ -74,24 +74,27 @@ dependencies {
     
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.5")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    // implementation("androidx.hilt:hilt-navigation-compose:1.1.0") // Disabled with Hilt
 
-    // Firebase
+    // Firebase - Re-enabled with proper configuration (excluding Crashlytics)
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    // implementation("com.google.firebase:firebase-crashlytics-ktx") // Disabled - was causing crash
+    
+    // Google Sign-In
+    implementation("com.google.android.gms:play-services-auth:20.7.0")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
+    // kapt("androidx.room:room-compiler:2.6.1") // Temporarily disabled
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-compiler:2.48")
+    // implementation("com.google.dagger:hilt-android:2.48") // Temporarily disabled
+    // kapt("com.google.dagger:hilt-compiler:2.48") // Temporarily disabled
 
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
