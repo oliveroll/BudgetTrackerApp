@@ -1,13 +1,13 @@
 package com.budgettracker
 
 import android.app.Application
-// import dagger.hilt.android.HiltAndroidApp // Temporarily disabled
+import dagger.hilt.android.HiltAndroidApp
 
 /**
  * Application class for Budget Tracker app
  * Annotated with @HiltAndroidApp to enable Hilt dependency injection
  */
-// @HiltAndroidApp // Temporarily disabled
+@HiltAndroidApp
 class BudgetTrackerApplication : Application() {
     
     override fun onCreate() {

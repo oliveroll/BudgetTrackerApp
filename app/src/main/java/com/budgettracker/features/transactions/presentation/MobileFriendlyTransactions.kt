@@ -28,7 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.domain.model.TransactionCategory
-import com.budgettracker.core.utils.PDFParser
+import com.budgettracker.core.utils.RegionsBankPDFParser
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
 import java.text.SimpleDateFormat
@@ -44,7 +44,7 @@ fun MobileFriendlyTransactions(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val pdfParser = remember { PDFParser(context) }
+    val pdfParser = remember { RegionsBankPDFParser(context) }
     
     // Use static demo data to prevent ANR issues (same as dashboard)
     var transactions by remember { mutableStateOf(getSampleTransactionsDetailed()) }
@@ -64,7 +64,7 @@ fun MobileFriendlyTransactions(
                 processingMessage = "Processing PDF..."
                 
                 try {
-                    val result = pdfParser.parseBankStatement(uri)
+                    val result = pdfParser.parseRegionsBankStatement(uri)
                     if (result.isSuccess) {
                         val parsedTransactions = result.getOrNull() ?: emptyList()
                         if (parsedTransactions.isNotEmpty()) {
