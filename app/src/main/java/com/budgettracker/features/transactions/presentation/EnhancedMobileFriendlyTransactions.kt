@@ -37,6 +37,7 @@ import kotlin.math.abs
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.domain.model.TransactionCategory
+import com.budgettracker.core.data.repository.TransactionRepository
 import com.budgettracker.core.utils.RegionsBankPDFParser
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
@@ -54,9 +55,10 @@ fun EnhancedMobileFriendlyTransactions(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfParser = remember { RegionsBankPDFParser(context) }
+    val transactionRepository = remember { TransactionRepository() }
     
-    // Simplified state management to fix freeze issue
-    var transactions by remember { mutableStateOf(getSampleTransactionsForTesting()) }
+    // Firebase state management - persists across navigation
+    val transactions by transactionRepository.getTransactionsFlow().collectAsState(initial = emptyList())
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
@@ -86,8 +88,13 @@ fun EnhancedMobileFriendlyTransactions(
                     if (result.isSuccess) {
                         val parsedTransactions = result.getOrNull() ?: emptyList()
                         if (parsedTransactions.isNotEmpty()) {
-                            transactions = transactions + parsedTransactions
-                            processingMessage = "Successfully parsed ${parsedTransactions.size} transactions from Regions Bank!"
+                            // Save to Firebase
+                            val saveResult = transactionRepository.saveTransactions(parsedTransactions)
+                            if (saveResult.isSuccess) {
+                                processingMessage = "Successfully parsed and saved ${parsedTransactions.size} transactions to Firebase!"
+                            } else {
+                                processingMessage = "Parsed ${parsedTransactions.size} transactions but failed to save to Firebase"
+                            }
                         } else {
                             processingMessage = "No transactions found in the statement"
                         }
@@ -243,8 +250,8 @@ fun EnhancedMobileFriendlyTransactions(
             transaction = transaction,
             onDismiss = { editingTransaction = null },
             onSave = { updatedTransaction ->
-                transactions = transactions.map { 
-                    if (it.id == updatedTransaction.id) updatedTransaction else it 
+                scope.launch {
+                    transactionRepository.updateTransaction(updatedTransaction)
                 }
                 editingTransaction = null
             }
@@ -262,7 +269,9 @@ fun EnhancedMobileFriendlyTransactions(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        transactions = transactions.filter { it.id != transaction.id }
+                        scope.launch {
+                            transactionRepository.deleteTransaction(transaction.id)
+                        }
                         transactionToDelete = null
                     }
                 ) {
@@ -365,13 +374,21 @@ private fun EnhancedMonthlySummaryHeader(
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = Color.White
-                        )
+                        ),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
                     
                     Text(
                         text = "${transactions.size} transactions",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
+                        color = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.widthIn(min = 80.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
                 
@@ -1076,59 +1093,3 @@ private fun getMonthName(month: Int): String {
     return months.getOrNull(month) ?: "Unknown"
 }
 
-// Sample data function for testing
-private fun getSampleTransactionsForTesting(): List<Transaction> {
-    return listOf(
-        Transaction(
-            id = "1",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - Ixana Quasistatics",
-            date = Date(),
-            notes = "Bi-weekly salary deposit"
-        ),
-        Transaction(
-            id = "2",
-            userId = "demo_user",
-            amount = 475.0,
-            category = TransactionCategory.LOAN_PAYMENT,
-            type = TransactionType.EXPENSE,
-            description = "German Student Loan Payment",
-            date = Date(System.currentTimeMillis() - 86400000),
-            notes = "€450 monthly payment"
-        ),
-        Transaction(
-            id = "3",
-            userId = "demo_user",
-            amount = 75.50,
-            category = TransactionCategory.GROCERIES,
-            type = TransactionType.EXPENSE,
-            description = "Grocery Shopping - Walmart",
-            date = Date(System.currentTimeMillis() - 3600000),
-            notes = "Weekly groceries"
-        ),
-        Transaction(
-            id = "4",
-            userId = "demo_user",
-            amount = 1200.0,
-            category = TransactionCategory.RENT,
-            type = TransactionType.EXPENSE,
-            description = "Monthly Rent Payment",
-            date = Date(System.currentTimeMillis() - 172800000),
-            notes = "Apartment rent"
-        ),
-        // Add some transactions from previous months for testing
-        Transaction(
-            id = "5",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - August",
-            date = Date(System.currentTimeMillis() - 86400000L * 30), // Last month
-            notes = "Previous month salary"
-        )
-    )
-}
