@@ -1,38 +1,43 @@
 # Cursor MCP Setup for Budget Tracker App
 
-## Option 1: Specific Repository MCP Server
+## Official Cursor Configuration
 
-Add this to your Cursor settings.json:
+According to the official GitMCP documentation, add this to your Cursor configuration file at `~/.cursor/mcp.json`:
+
+### Option 1: Specific Repository MCP Server
 
 ```json
 {
-  "mcp": {
-    "mcpServers": {
-      "budget-tracker": {
-        "command": "mcp-remote",
-        "args": [
-          "https://gitmcp.io/oliveroll/BudgetTrackerApp"
-        ]
-      }
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
     }
   }
 }
 ```
 
-## Option 2: Generic MCP Server (Dynamic Repository Access)
-
-Add this to your Cursor settings.json:
+### Option 2: Generic MCP Server (Dynamic Repository Access)
 
 ```json
 {
-  "mcp": {
-    "mcpServers": {
-      "gitmcp-docs": {
-        "command": "mcp-remote", 
-        "args": [
-          "https://gitmcp.io/docs"
-        ]
-      }
+  "mcpServers": {
+    "gitmcp-docs": {
+      "url": "https://gitmcp.io/docs"
+    }
+  }
+}
+```
+
+### Option 3: Both Servers Combined
+
+```json
+{
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+    },
+    "gitmcp-docs": {
+      "url": "https://gitmcp.io/docs"
     }
   }
 }
@@ -40,16 +45,18 @@ Add this to your Cursor settings.json:
 
 ## How to Use
 
-1. **Access Cursor Settings**:
-   - Open Cursor
-   - Go to File → Preferences → Settings (or Cmd/Ctrl + ,)
-   - Search for "mcp" 
-   - Edit the settings.json file
+1. **Create/Edit Cursor MCP Configuration**:
+   - Create or edit the file: `~/.cursor/mcp.json`
+   - On Windows: `%USERPROFILE%\.cursor\mcp.json`
+   - On macOS/Linux: `~/.cursor/mcp.json`
 
 2. **Add MCP Configuration**:
    - Copy one of the configurations above
-   - Paste it into your settings.json
+   - Paste it into your `mcp.json` file
    - Save the file
+
+3. **Restart Cursor**:
+   - Close and reopen Cursor for changes to take effect
 
 3. **Test the Setup**:
    - Open your Budget Tracker project in Cursor

@@ -48,10 +48,11 @@ After adding the MCP configuration to Cursor:
 3. Wait a few minutes for GitMCP to index your repository
 
 ### If Cursor MCP isn't working:
-1. Check that your settings.json syntax is correct
+1. Check that your ~/.cursor/mcp.json file exists and has correct syntax
 2. Restart Cursor after adding MCP configuration
 3. Ensure you have an internet connection
 4. Try the generic endpoint first: `https://gitmcp.io/docs`
+5. Check Cursor's MCP logs in the output panel
 
 ### If documentation seems incomplete:
 1. Push your latest changes to GitHub (especially llms.txt and README.md)
@@ -75,7 +76,8 @@ After adding the MCP configuration to Cursor:
    ```
 
 2. **Configure Your IDE**:
-   - Add MCP configuration to Cursor settings
+   - Create/edit `~/.cursor/mcp.json` with GitMCP configuration
+   - Restart Cursor
    - Test with the verification prompts above
 
 3. **Start Using**:
