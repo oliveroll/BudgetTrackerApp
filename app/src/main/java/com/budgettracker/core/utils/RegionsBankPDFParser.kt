@@ -49,6 +49,7 @@ class RegionsBankPDFParser(private val context: Context) {
     
     /**
      * Extract transactions specifically from Regions Bank statement format
+     * Handles separate sections for Deposits/Credits vs Withdrawals
      */
     private fun extractRegionsTransactions(text: String): List<Transaction> {
         val transactions = mutableListOf<Transaction>()
@@ -56,9 +57,14 @@ class RegionsBankPDFParser(private val context: Context) {
         
         android.util.Log.d("RegionsBankParser", "Processing ${lines.size} lines")
         
-        // Regions Bank transaction patterns based on your actual statement:
-        // Format: "07/21 Card Credit  Venmo*ollesch O  4829  New York City Ny 10014    5595 104.49"
-        // Format: "08/14 Monthly Fee 8.00"
+        // Track which section we're in
+        var currentSection = ""
+        var isInDepositsSection = false
+        var isInWithdrawalsSection = false
+        
+        // Regions Bank statement sections:
+        // "Deposits & Credits" section contains income transactions
+        // "Withdrawals" section contains expense transactions
         
         val patterns = listOf(
             // Pattern 1: Date Transaction_Type Description ... Amount
@@ -77,8 +83,36 @@ class RegionsBankPDFParser(private val context: Context) {
         for ((lineIndex, line) in lines.withIndex()) {
             val cleanLine = line.trim()
             
+            // Detect section headers
+            when {
+                cleanLine.contains("Deposits & Credits", ignoreCase = true) ||
+                cleanLine.contains("DEPOSITS & CREDITS", ignoreCase = true) -> {
+                    isInDepositsSection = true
+                    isInWithdrawalsSection = false
+                    currentSection = "DEPOSITS"
+                    android.util.Log.d("RegionsBankParser", "Entering Deposits & Credits section")
+                    continue
+                }
+                cleanLine.contains("Withdrawals", ignoreCase = true) && 
+                !cleanLine.contains("&") -> {
+                    isInDepositsSection = false
+                    isInWithdrawalsSection = true
+                    currentSection = "WITHDRAWALS"
+                    android.util.Log.d("RegionsBankParser", "Entering Withdrawals section")
+                    continue
+                }
+                cleanLine.contains("Fees", ignoreCase = true) ||
+                cleanLine.contains("Service Charges", ignoreCase = true) -> {
+                    isInDepositsSection = false
+                    isInWithdrawalsSection = false
+                    currentSection = "FEES"
+                    android.util.Log.d("RegionsBankParser", "Entering Fees section")
+                    continue
+                }
+            }
+            
             // Skip short lines or headers
-            if (cleanLine.length < 15) continue
+            if (cleanLine.length < 10) continue
             
             // Skip lines that are clearly not transactions
             if (cleanLine.startsWith("ACCOUNT") || 
@@ -88,10 +122,8 @@ class RegionsBankPDFParser(private val context: Context) {
                 cleanLine.startsWith("Ending") ||
                 cleanLine.contains("Balance") ||
                 cleanLine.startsWith("SUMMARY") ||
-                cleanLine.startsWith("Deposits") ||
-                cleanLine.startsWith("Withdrawals") ||
-                cleanLine.startsWith("Fees") ||
-                cleanLine.startsWith("Automatic")) {
+                cleanLine.startsWith("Automatic") ||
+                cleanLine.contains("Total")) {
                 continue
             }
             
@@ -101,10 +133,18 @@ class RegionsBankPDFParser(private val context: Context) {
                 val matcher = pattern.matcher(cleanLine)
                 if (matcher.find()) {
                     try {
-                        val transaction = parseRegionsTransaction(matcher, cleanLine, lineIndex, patternIndex)
+                        val transaction = parseRegionsTransaction(
+                            matcher, 
+                            cleanLine, 
+                            lineIndex, 
+                            patternIndex,
+                            isInDepositsSection,
+                            isInWithdrawalsSection,
+                            currentSection
+                        )
                         if (transaction != null) {
                             transactions.add(transaction)
-                            android.util.Log.d("RegionsBankParser", "✅ Parsed: ${transaction.description} - $${transaction.amount}")
+                            android.util.Log.d("RegionsBankParser", "✅ Parsed: ${transaction.description} - $${transaction.amount} (${transaction.type})")
                             break
                         }
                     } catch (e: Exception) {
@@ -120,13 +160,16 @@ class RegionsBankPDFParser(private val context: Context) {
     }
     
     /**
-     * Parse a specific Regions Bank transaction
+     * Parse a specific Regions Bank transaction with section context
      */
     private fun parseRegionsTransaction(
         matcher: java.util.regex.Matcher, 
         line: String, 
         lineIndex: Int,
-        patternIndex: Int
+        patternIndex: Int,
+        isInDepositsSection: Boolean,
+        isInWithdrawalsSection: Boolean,
+        currentSection: String
     ): Transaction? {
         return try {
             val dateStr = matcher.group(1) ?: return null
@@ -184,12 +227,30 @@ class RegionsBankPDFParser(private val context: Context) {
             // Clean up description
             val cleanDescription = cleanRegionsDescription(description, transactionType)
             
-            // Determine transaction type
-            val type = if (transactionType.contains("Credit", ignoreCase = true) || 
-                          cleanDescription.uppercase().contains("DEPOSIT")) {
-                TransactionType.INCOME
-            } else {
-                TransactionType.EXPENSE
+            // Determine transaction type based on section and transaction details
+            val type = when {
+                // If in Deposits & Credits section, it's income
+                isInDepositsSection -> {
+                    android.util.Log.d("RegionsBankParser", "Deposits section -> INCOME")
+                    TransactionType.INCOME
+                }
+                // If in Withdrawals section, it's expense
+                isInWithdrawalsSection -> {
+                    android.util.Log.d("RegionsBankParser", "Withdrawals section -> EXPENSE") 
+                    TransactionType.EXPENSE
+                }
+                // If not in specific section, use transaction type hints
+                transactionType.contains("Credit", ignoreCase = true) || 
+                cleanDescription.uppercase().contains("DEPOSIT") ||
+                cleanDescription.uppercase().contains("PAYROLL") -> {
+                    android.util.Log.d("RegionsBankParser", "Credit/Deposit detected -> INCOME")
+                    TransactionType.INCOME
+                }
+                // Default to expense for purchases, fees, etc.
+                else -> {
+                    android.util.Log.d("RegionsBankParser", "Default/Purchase -> EXPENSE")
+                    TransactionType.EXPENSE
+                }
             }
             
             // Categorize transaction
