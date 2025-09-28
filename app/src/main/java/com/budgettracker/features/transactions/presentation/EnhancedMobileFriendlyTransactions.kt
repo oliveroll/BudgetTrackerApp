@@ -59,8 +59,9 @@ fun EnhancedMobileFriendlyTransactions(
     // Use singleton data store for persistence across tab navigation
     var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
     
-    // Refresh transactions when screen is loaded
+    // Initialize Firebase data on first load
     LaunchedEffect(Unit) {
+        TransactionDataStore.initializeFromFirebase()
         transactions = TransactionDataStore.getTransactions()
     }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }

@@ -1,34 +1,112 @@
 package com.budgettracker.core.data.local
 
+import android.content.Context
+import android.content.SharedPreferences
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.*
 
 /**
- * Singleton data store for transactions that persists across navigation
+ * Singleton data store with Firebase persistence
  */
 object TransactionDataStore {
     
     private var _transactions = mutableListOf<Transaction>()
     private val parsedDocuments = mutableSetOf<String>()
+    private var isInitialized = false
+    
+    private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    
+    private fun getCurrentUserId(): String {
+        return auth.currentUser?.uid ?: "demo_user"
+    }
+    
+    /**
+     * Initialize and load transactions from Firebase
+     */
+    suspend fun initializeFromFirebase() {
+        if (isInitialized) return
+        
+        try {
+            val userId = getCurrentUserId()
+            android.util.Log.d("TransactionDataStore", "Loading transactions from Firebase for user: $userId")
+            
+            val snapshot = firestore.collection("transactions")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("isDeleted", false)
+                .get()
+                .await()
+            
+            val firebaseTransactions = snapshot.documents.mapNotNull { doc ->
+                try {
+                    val data = doc.data ?: return@mapNotNull null
+                    Transaction(
+                        id = doc.id,
+                        userId = data["userId"] as? String ?: userId,
+                        amount = (data["amount"] as? Number)?.toDouble() ?: 0.0,
+                        category = TransactionCategory.valueOf(
+                            data["category"] as? String ?: "MISCELLANEOUS"
+                        ),
+                        type = TransactionType.valueOf(
+                            data["type"] as? String ?: "EXPENSE"
+                        ),
+                        description = data["description"] as? String ?: "",
+                        date = (data["date"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+                        notes = data["notes"] as? String,
+                        isRecurring = data["isRecurring"] as? Boolean ?: false
+                    )
+                } catch (e: Exception) {
+                    android.util.Log.e("TransactionDataStore", "Error parsing Firebase transaction: ${e.message}")
+                    null
+                }
+            }
+            
+            if (firebaseTransactions.isNotEmpty()) {
+                _transactions.clear()
+                _transactions.addAll(firebaseTransactions)
+                android.util.Log.d("TransactionDataStore", "Loaded ${firebaseTransactions.size} transactions from Firebase")
+            } else {
+                android.util.Log.d("TransactionDataStore", "No Firebase transactions found, initializing with demo data")
+                initializeWithDemoData()
+                // Save demo data to Firebase
+                saveDemoDataToFirebase()
+            }
+            
+            isInitialized = true
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error loading from Firebase: ${e.message}")
+            initializeWithDemoData()
+            isInitialized = true
+        }
+    }
     
     /**
      * Get all transactions sorted by date (newest first)
      */
     fun getTransactions(): List<Transaction> {
-        if (_transactions.isEmpty()) {
-            initializeWithDemoData()
-        }
         return _transactions.sortedByDescending { it.date }
     }
     
     /**
-     * Add a single transaction
+     * Add a single transaction and save to Firebase
      */
     fun addTransaction(transaction: Transaction) {
         _transactions.add(transaction)
         android.util.Log.d("TransactionDataStore", "Added transaction: ${transaction.description} - ${transaction.amount}")
+        
+        // Save to Firebase in background
+        CoroutineScope(Dispatchers.IO).launch {
+            saveTransactionToFirebase(transaction)
+        }
     }
     
     /**
@@ -61,27 +139,44 @@ object TransactionDataStore {
             parsedDocuments.add(documentHash)
         }
         
+        // Save new transactions to Firebase in background
+        if (addedCount > 0) {
+            CoroutineScope(Dispatchers.IO).launch {
+                saveTransactionsToFirebase(transactions.takeLast(addedCount))
+            }
+        }
+        
         android.util.Log.d("TransactionDataStore", "Added $addedCount new transactions out of ${transactions.size}")
         return addedCount
     }
     
     /**
-     * Update existing transaction
+     * Update existing transaction and save to Firebase
      */
     fun updateTransaction(updatedTransaction: Transaction) {
         val index = _transactions.indexOfFirst { it.id == updatedTransaction.id }
         if (index != -1) {
             _transactions[index] = updatedTransaction
             android.util.Log.d("TransactionDataStore", "Updated transaction: ${updatedTransaction.description}")
+            
+            // Update in Firebase
+            CoroutineScope(Dispatchers.IO).launch {
+                updateTransactionInFirebase(updatedTransaction)
+            }
         }
     }
     
     /**
-     * Delete transaction
+     * Delete transaction and remove from Firebase
      */
     fun deleteTransaction(transactionId: String) {
         _transactions.removeAll { it.id == transactionId }
         android.util.Log.d("TransactionDataStore", "Deleted transaction: $transactionId")
+        
+        // Delete from Firebase
+        CoroutineScope(Dispatchers.IO).launch {
+            deleteTransactionFromFirebase(transactionId)
+        }
     }
     
     /**
@@ -180,5 +275,105 @@ object TransactionDataStore {
             )
         )
         android.util.Log.d("TransactionDataStore", "Initialized with ${_transactions.size} demo transactions")
+    }
+    
+    /**
+     * Save single transaction to Firebase
+     */
+    private suspend fun saveTransactionToFirebase(transaction: Transaction) {
+        try {
+            val transactionData = mapOf(
+                "userId" to getCurrentUserId(),
+                "amount" to transaction.amount,
+                "category" to transaction.category.name,
+                "type" to transaction.type.name,
+                "description" to transaction.description,
+                "date" to com.google.firebase.Timestamp(transaction.date),
+                "notes" to transaction.notes,
+                "isRecurring" to transaction.isRecurring,
+                "isDeleted" to false,
+                "createdAt" to com.google.firebase.Timestamp.now(),
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            
+            firestore.collection("transactions")
+                .document(transaction.id)
+                .set(transactionData)
+                .await()
+            
+            android.util.Log.d("TransactionDataStore", "Saved transaction to Firebase: ${transaction.id}")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error saving transaction to Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Save multiple transactions to Firebase
+     */
+    private suspend fun saveTransactionsToFirebase(transactions: List<Transaction>) {
+        for (transaction in transactions) {
+            saveTransactionToFirebase(transaction)
+        }
+    }
+    
+    /**
+     * Update transaction in Firebase
+     */
+    private suspend fun updateTransactionInFirebase(transaction: Transaction) {
+        try {
+            val updateData = mapOf(
+                "amount" to transaction.amount,
+                "category" to transaction.category.name,
+                "type" to transaction.type.name,
+                "description" to transaction.description,
+                "notes" to transaction.notes,
+                "updatedAt" to com.google.firebase.Timestamp.now()
+            )
+            
+            firestore.collection("transactions")
+                .document(transaction.id)
+                .update(updateData)
+                .await()
+            
+            android.util.Log.d("TransactionDataStore", "Updated transaction in Firebase: ${transaction.id}")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error updating transaction in Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Delete transaction from Firebase (soft delete)
+     */
+    private suspend fun deleteTransactionFromFirebase(transactionId: String) {
+        try {
+            firestore.collection("transactions")
+                .document(transactionId)
+                .update(
+                    mapOf(
+                        "isDeleted" to true,
+                        "updatedAt" to com.google.firebase.Timestamp.now()
+                    )
+                )
+                .await()
+            
+            android.util.Log.d("TransactionDataStore", "Deleted transaction from Firebase: $transactionId")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error deleting transaction from Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Save demo data to Firebase on first run
+     */
+    private suspend fun saveDemoDataToFirebase() {
+        try {
+            android.util.Log.d("TransactionDataStore", "Saving demo data to Firebase")
+            saveTransactionsToFirebase(_transactions)
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error saving demo data to Firebase: ${e.message}")
+        }
     }
 }
