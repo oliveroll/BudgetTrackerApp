@@ -30,8 +30,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -51,18 +49,16 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedMobileFriendlyTransactions(
-    onNavigateToAddTransaction: () -> Unit = {},
-    viewModel: TransactionsViewModel = hiltViewModel()
+    onNavigateToAddTransaction: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfParser = remember { RegionsBankPDFParser(context) }
     
-    // ViewModel state - persists across navigation
-    val transactions by viewModel.transactions.collectAsState()
-    val selectedMonth by viewModel.selectedMonth.collectAsState()
-    val selectedYear by viewModel.selectedYear.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
+    // Simplified state management to fix freeze issue
+    var transactions by remember { mutableStateOf(getSampleTransactionsForTesting()) }
+    var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
+    var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
     
     // PDF upload state
@@ -90,7 +86,7 @@ fun EnhancedMobileFriendlyTransactions(
                     if (result.isSuccess) {
                         val parsedTransactions = result.getOrNull() ?: emptyList()
                         if (parsedTransactions.isNotEmpty()) {
-                            viewModel.addParsedTransactions(parsedTransactions)
+                            transactions = transactions + parsedTransactions
                             processingMessage = "Successfully parsed ${parsedTransactions.size} transactions from Regions Bank!"
                         } else {
                             processingMessage = "No transactions found in the statement"
@@ -108,9 +104,13 @@ fun EnhancedMobileFriendlyTransactions(
         }
     }
     
-    // Filter transactions by selected month/year using ViewModel
+    // Filter transactions by selected month/year
     val filteredTransactions = remember(selectedMonth, selectedYear, transactions) {
-        viewModel.getTransactionsForMonth(selectedMonth, selectedYear)
+        transactions.filter { transaction ->
+            val calendar = Calendar.getInstance().apply { time = transaction.date }
+            calendar.get(Calendar.MONTH) == selectedMonth && 
+            calendar.get(Calendar.YEAR) == selectedYear
+        }
     }
     
     Scaffold(
@@ -202,7 +202,8 @@ fun EnhancedMobileFriendlyTransactions(
             currentYear = selectedYear,
             onDismiss = { showMonthPicker = false },
             onMonthSelected = { month, year ->
-                viewModel.setSelectedMonth(month, year)
+                selectedMonth = month
+                selectedYear = year
                 showMonthPicker = false
             }
         )
@@ -242,7 +243,9 @@ fun EnhancedMobileFriendlyTransactions(
             transaction = transaction,
             onDismiss = { editingTransaction = null },
             onSave = { updatedTransaction ->
-                viewModel.updateTransaction(updatedTransaction)
+                transactions = transactions.map { 
+                    if (it.id == updatedTransaction.id) updatedTransaction else it 
+                }
                 editingTransaction = null
             }
         )
@@ -259,7 +262,7 @@ fun EnhancedMobileFriendlyTransactions(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        viewModel.deleteTransaction(transaction.id)
+                        transactions = transactions.filter { it.id != transaction.id }
                         transactionToDelete = null
                     }
                 ) {
@@ -1073,3 +1076,59 @@ private fun getMonthName(month: Int): String {
     return months.getOrNull(month) ?: "Unknown"
 }
 
+// Sample data function for testing
+private fun getSampleTransactionsForTesting(): List<Transaction> {
+    return listOf(
+        Transaction(
+            id = "1",
+            userId = "demo_user",
+            amount = 2523.88,
+            category = TransactionCategory.SALARY,
+            type = TransactionType.INCOME,
+            description = "Salary Deposit - Ixana Quasistatics",
+            date = Date(),
+            notes = "Bi-weekly salary deposit"
+        ),
+        Transaction(
+            id = "2",
+            userId = "demo_user",
+            amount = 475.0,
+            category = TransactionCategory.LOAN_PAYMENT,
+            type = TransactionType.EXPENSE,
+            description = "German Student Loan Payment",
+            date = Date(System.currentTimeMillis() - 86400000),
+            notes = "€450 monthly payment"
+        ),
+        Transaction(
+            id = "3",
+            userId = "demo_user",
+            amount = 75.50,
+            category = TransactionCategory.GROCERIES,
+            type = TransactionType.EXPENSE,
+            description = "Grocery Shopping - Walmart",
+            date = Date(System.currentTimeMillis() - 3600000),
+            notes = "Weekly groceries"
+        ),
+        Transaction(
+            id = "4",
+            userId = "demo_user",
+            amount = 1200.0,
+            category = TransactionCategory.RENT,
+            type = TransactionType.EXPENSE,
+            description = "Monthly Rent Payment",
+            date = Date(System.currentTimeMillis() - 172800000),
+            notes = "Apartment rent"
+        ),
+        // Add some transactions from previous months for testing
+        Transaction(
+            id = "5",
+            userId = "demo_user",
+            amount = 2523.88,
+            category = TransactionCategory.SALARY,
+            type = TransactionType.INCOME,
+            description = "Salary Deposit - August",
+            date = Date(System.currentTimeMillis() - 86400000L * 30), // Last month
+            notes = "Previous month salary"
+        )
+    )
+}
