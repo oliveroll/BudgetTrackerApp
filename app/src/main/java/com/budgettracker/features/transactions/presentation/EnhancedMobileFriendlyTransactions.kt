@@ -37,12 +37,13 @@ import kotlin.math.abs
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.domain.model.TransactionCategory
-import com.budgettracker.core.data.repository.TransactionRepository
+import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.utils.RegionsBankPDFParser
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
 import java.text.SimpleDateFormat
 import java.util.*
+import java.security.MessageDigest
 
 /**
  * Enhanced mobile-friendly transactions screen with month selection and swipe actions
@@ -55,8 +56,13 @@ fun EnhancedMobileFriendlyTransactions(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfParser = remember { RegionsBankPDFParser(context) }
-    // Stable state management to prevent infinite recomposition
-    var transactions by remember { mutableStateOf(getStableTransactionsData()) }
+    // Use singleton data store for persistence across tab navigation
+    var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
+    
+    // Refresh transactions when screen is loaded
+    LaunchedEffect(Unit) {
+        transactions = TransactionDataStore.getTransactions()
+    }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
@@ -72,7 +78,7 @@ fun EnhancedMobileFriendlyTransactions(
     // Delete confirmation state
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     
-    // PDF picker launcher
+    // PDF picker launcher with duplicate prevention
     val pdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -82,13 +88,31 @@ fun EnhancedMobileFriendlyTransactions(
                 processingMessage = "Processing Regions Bank statement..."
                 
                 try {
+                    // Create document hash to prevent duplicate parsing
+                    val documentHash = generateDocumentHash(uri.toString())
+                    
+                    // Check if already parsed
+                    if (TransactionDataStore.isDocumentParsed(documentHash)) {
+                        processingMessage = "This document has already been parsed!"
+                        isProcessing = false
+                        showUploadDialog = false
+                        return@launch
+                    }
+                    
                     val result = pdfParser.parseRegionsBankStatement(uri)
                     if (result.isSuccess) {
                         val parsedTransactions = result.getOrNull() ?: emptyList()
                         if (parsedTransactions.isNotEmpty()) {
-                            // Add to local state for immediate UI update
-                            transactions = transactions + parsedTransactions
-                            processingMessage = "Successfully parsed ${parsedTransactions.size} transactions!"
+                            // Add to persistent data store
+                            val addedCount = TransactionDataStore.addTransactions(parsedTransactions, documentHash)
+                            
+                            if (addedCount > 0) {
+                                // Update local state to trigger UI refresh
+                                transactions = TransactionDataStore.getTransactions()
+                                processingMessage = "Successfully added $addedCount new transactions! (${parsedTransactions.size - addedCount} duplicates skipped)"
+                            } else {
+                                processingMessage = "All ${parsedTransactions.size} transactions were duplicates and skipped"
+                            }
                         } else {
                             processingMessage = "No transactions found in the statement"
                         }
@@ -244,9 +268,8 @@ fun EnhancedMobileFriendlyTransactions(
             transaction = transaction,
             onDismiss = { editingTransaction = null },
             onSave = { updatedTransaction ->
-                transactions = transactions.map { 
-                    if (it.id == updatedTransaction.id) updatedTransaction else it 
-                }
+                TransactionDataStore.updateTransaction(updatedTransaction)
+                transactions = TransactionDataStore.getTransactions()
                 editingTransaction = null
             }
         )
@@ -263,7 +286,8 @@ fun EnhancedMobileFriendlyTransactions(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        transactions = transactions.filter { it.id != transaction.id }
+                        TransactionDataStore.deleteTransaction(transaction.id)
+                        transactions = TransactionDataStore.getTransactions()
                         transactionToDelete = null
                     }
                 ) {
@@ -1085,60 +1109,15 @@ private fun getMonthName(month: Int): String {
     return months.getOrNull(month) ?: "Unknown"
 }
 
-// Stable transactions data to prevent infinite recomposition
-private fun getStableTransactionsData(): List<Transaction> {
-    return listOf(
-        Transaction(
-            id = "stable_1",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - Ixana Quasistatics",
-            date = Date(),
-            notes = "Bi-weekly salary deposit"
-        ),
-        Transaction(
-            id = "stable_2",
-            userId = "demo_user",
-            amount = 475.0,
-            category = TransactionCategory.LOAN_PAYMENT,
-            type = TransactionType.EXPENSE,
-            description = "German Student Loan Payment",
-            date = Date(System.currentTimeMillis() - 86400000),
-            notes = "€450 monthly payment"
-        ),
-        Transaction(
-            id = "stable_3",
-            userId = "demo_user",
-            amount = 75.50,
-            category = TransactionCategory.GROCERIES,
-            type = TransactionType.EXPENSE,
-            description = "Grocery Shopping - Walmart",
-            date = Date(System.currentTimeMillis() - 3600000),
-            notes = "Weekly groceries"
-        ),
-        Transaction(
-            id = "stable_4",
-            userId = "demo_user",
-            amount = 1200.0,
-            category = TransactionCategory.RENT,
-            type = TransactionType.EXPENSE,
-            description = "Monthly Rent Payment",
-            date = Date(System.currentTimeMillis() - 172800000),
-            notes = "Apartment rent"
-        ),
-        // Add some from previous months
-        Transaction(
-            id = "stable_5",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - August",
-            date = Date(System.currentTimeMillis() - 86400000L * 30),
-            notes = "Previous month salary"
-        )
-    )
+// Generate document hash to prevent duplicate parsing
+private fun generateDocumentHash(uriString: String): String {
+    return try {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hashBytes = digest.digest(uriString.toByteArray())
+        hashBytes.joinToString("") { "%02x".format(it) }.take(16)
+    } catch (e: Exception) {
+        "unknown_${System.currentTimeMillis()}"
+    }
 }
+
 
