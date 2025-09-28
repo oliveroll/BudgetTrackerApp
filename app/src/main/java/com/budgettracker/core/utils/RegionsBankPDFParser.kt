@@ -67,23 +67,24 @@ class RegionsBankPDFParser(private val context: Context) {
         // "Withdrawals" section contains expense transactions
         
         val patterns = listOf(
-            // Pattern 1: Date Transaction_Type Description ... Amount (for withdrawals)
-            Pattern.compile("(\\d{2}/\\d{2})\\s+(Card\\s+Credit|Card\\s+Purchase|Recurring\\s+Card\\s+Transaction)\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            // Pattern 1: DEPOSITS section format - Date Payee Description Amount
+            // Example: "08/26    Oliver Ollesch  Payments Oliver Ollesch 281475400133133                    90.93"
+            Pattern.compile("(\\d{2}/\\d{2})\\s+([^\\d]+?)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$"),
             
-            // Pattern 2: Date Fee_Type Amount
-            Pattern.compile("(\\d{2}/\\d{2})\\s+(Monthly\\s+Fee|Service\\s+Fee|ATM\\s+Fee)\\s+(\\d+\\.\\d{2})$"),
+            // Pattern 2: Card Credit format
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(Card\\s+Credit)\\s+(.+?)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$"),
             
-            // Pattern 3: Deposit patterns (for DEPOSITS & CREDITS section)
-            Pattern.compile("(\\d{2}/\\d{2})\\s+(Deposit|Direct\\s+Deposit|ACH\\s+Credit|Wire\\s+Transfer|Credit)\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            // Pattern 3: Withdrawals - Card Purchase/Transaction format
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(Card\\s+Purchase|Recurring\\s+Card\\s+Transaction)\\s+(.+?)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$"),
             
-            // Pattern 4: Simple date description amount format
-            Pattern.compile("(\\d{2}/\\d{2})\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            // Pattern 4: Fees format
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(Monthly\\s+Fee|Service\\s+Fee|ATM\\s+Fee)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$"),
             
-            // Pattern 5: Date with full year format
-            Pattern.compile("(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            // Pattern 5: Gusto/Payroll specific format
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(Gusto|Wise\\s+Inc)\\s+(.+?)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$"),
             
-            // Pattern 6: Amount-only lines (for summary sections)
-            Pattern.compile("\\s*(\\d+\\.\\d{2})\\s*$")
+            // Pattern 6: General fallback with amount at end
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(.+?)\\s+(\\d+(?:,\\d+)*\\.\\d{2})$")
         )
         
         for ((lineIndex, line) in lines.withIndex()) {

@@ -38,7 +38,7 @@ import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.data.local.TransactionDataStore
-import com.budgettracker.core.utils.RegionsBankPDFParser
+import com.budgettracker.core.utils.FixedRegionsBankPDFParser
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
 import java.text.SimpleDateFormat
@@ -55,7 +55,7 @@ fun EnhancedMobileFriendlyTransactions(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val pdfParser = remember { RegionsBankPDFParser(context) }
+    val pdfParser = remember { FixedRegionsBankPDFParser(context) }
     // Use singleton data store for persistence across tab navigation
     var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
     
