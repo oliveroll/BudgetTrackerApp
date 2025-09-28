@@ -7,6 +7,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -14,7 +15,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.budgettracker.core.data.repository.FirebaseRepository
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.DisplayMode
+import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
@@ -31,16 +36,19 @@ fun AddTransactionScreen(
     onNavigateBack: () -> Unit = {},
     onSaveTransaction: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> }
 ) {
-    val context = LocalContext.current
-    val repository = remember { FirebaseRepository(context) }
     val scope = rememberCoroutineScope()
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(TransactionCategory.MISCELLANEOUS) }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var notes by remember { mutableStateOf("") }
+    var selectedDate by remember { mutableStateOf(Date()) }
     var showCategoryDropdown by remember { mutableStateOf(false) }
-    var showTypeDropdown by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.time
+    )
     
     Scaffold(
         topBar = {
@@ -60,18 +68,18 @@ fun AddTransactionScreen(
                     IconButton(
                         onClick = {
                             if (amount.isNotBlank() && description.isNotBlank()) {
-                                scope.launch {
-                                    val transaction = Transaction(
-                                        amount = amount.toDoubleOrNull() ?: 0.0,
-                                        description = description,
-                                        category = selectedCategory,
-                                        type = selectedType,
-                                        notes = notes.ifBlank { null },
-                                        date = Date()
-                                    )
-                                    repository.saveTransaction(transaction)
-                                    onNavigateBack()
-                                }
+                                val transaction = Transaction(
+                                    id = UUID.randomUUID().toString(),
+                                    userId = "demo_user",
+                                    amount = amount.toDoubleOrNull() ?: 0.0,
+                                    description = description,
+                                    category = selectedCategory,
+                                    type = selectedType,
+                                    notes = notes.ifBlank { null },
+                                    date = selectedDate
+                                )
+                                TransactionDataStore.addTransaction(transaction)
+                                onNavigateBack()
                             }
                         }
                     ) {
@@ -206,8 +214,9 @@ fun AddTransactionScreen(
                 maxLines = 4
             )
             
-            // Date Display (current date for now)
+            // Date Selection
             Card(
+                onClick = { showDatePicker = true },
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -219,11 +228,18 @@ fun AddTransactionScreen(
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Date")
-                    Text(
-                        text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date()),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text("Transaction Date")
+                    Row {
+                        Text(
+                            text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(selectedDate),
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = "Select Date"
+                        )
+                    }
                 }
             }
             
@@ -231,18 +247,18 @@ fun AddTransactionScreen(
             Button(
                 onClick = {
                     if (amount.isNotBlank() && description.isNotBlank()) {
-                        scope.launch {
-                            val transaction = Transaction(
-                                amount = amount.toDoubleOrNull() ?: 0.0,
-                                description = description,
-                                category = selectedCategory,
-                                type = selectedType,
-                                notes = notes.ifBlank { null },
-                                date = Date()
-                            )
-                            repository.saveTransaction(transaction)
-                            onNavigateBack()
-                        }
+                        val transaction = Transaction(
+                            id = UUID.randomUUID().toString(),
+                            userId = "demo_user",
+                            amount = amount.toDoubleOrNull() ?: 0.0,
+                            description = description,
+                            category = selectedCategory,
+                            type = selectedType,
+                            notes = notes.ifBlank { null },
+                            date = selectedDate
+                        )
+                        TransactionDataStore.addTransaction(transaction)
+                        onNavigateBack()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -252,6 +268,40 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Save Transaction")
             }
+        }
+    }
+    
+    // Date Picker Dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            selectedDate = Date(millis)
+                        }
+                        showDatePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
+                }
+            }
+        ) {
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text(
+                        text = "Select Transaction Date",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            )
         }
     }
 }
