@@ -302,12 +302,57 @@ object TransactionDataStore {
     }
     
     /**
-     * Clear all data (for testing)
+     * Clear all data locally and from Firebase
      */
     fun clearAllData() {
         _transactions.clear()
         parsedDocuments.clear()
-        android.util.Log.d("TransactionDataStore", "Cleared all data")
+        isInitialized = false
+        android.util.Log.d("TransactionDataStore", "Cleared all local data")
+        
+        // Also clear Firebase data
+        CoroutineScope(Dispatchers.IO).launch {
+            clearAllFirebaseData()
+        }
+    }
+    
+    /**
+     * Completely clear all transactions from Firebase
+     */
+    private suspend fun clearAllFirebaseData() {
+        try {
+            val userId = getCurrentUserId()
+            android.util.Log.d("TransactionDataStore", "🗑️ Clearing ALL Firebase data for user: $userId")
+            
+            // Get all transactions for the user
+            val snapshot = firestore.collection("transactions")
+                .whereEqualTo("userId", userId)
+                .get()
+                .await()
+            
+            var deletedCount = 0
+            
+            // Delete each transaction document completely
+            for (document in snapshot.documents) {
+                try {
+                    firestore.collection("transactions")
+                        .document(document.id)
+                        .delete()
+                        .await()
+                    
+                    deletedCount++
+                    android.util.Log.d("TransactionDataStore", "🗑️ Permanently deleted: ${document.id}")
+                    
+                } catch (e: Exception) {
+                    android.util.Log.e("TransactionDataStore", "Error deleting ${document.id}: ${e.message}")
+                }
+            }
+            
+            android.util.Log.d("TransactionDataStore", "✅ FIREBASE CLEARED: Deleted $deletedCount transactions")
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TransactionDataStore", "Error clearing Firebase: ${e.message}")
+        }
     }
     
     /**

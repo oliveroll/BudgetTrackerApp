@@ -151,6 +151,16 @@ fun EnhancedMobileFriendlyTransactions(
                     IconButton(onClick = { showUploadDialog = true }) {
                         Icon(Icons.Default.Upload, contentDescription = "Upload Statement")
                     }
+                    IconButton(
+                        onClick = { 
+                            scope.launch {
+                                TransactionDataStore.clearAllData()
+                                transactions = TransactionDataStore.getTransactions()
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = "Clear All Data")
+                    }
                     IconButton(onClick = { /* TODO: Search */ }) {
                         Icon(Icons.Default.Search, contentDescription = "Search")
                     }
