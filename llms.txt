@@ -269,3 +269,83 @@ app/src/main/java/com/budgettracker/
 - Emergency fund planning for visa transitions
 
 This app is designed to help international students on OPT/H1B visas manage their finances effectively while navigating the complexities of US financial systems.
+
+## 📚 External Documentation & Resources
+
+### Core Android Development
+- **Kotlin Language**: https://kotlinlang.org/docs/
+- **Android Developer Docs**: https://developer.android.com/docs
+- **Android Architecture Components**: https://developer.android.com/topic/architecture
+- **Android App Architecture Guide**: https://developer.android.com/topic/architecture/recommendations
+
+### UI Framework & Design
+- **Jetpack Compose**: https://developer.android.com/jetpack/compose
+- **Compose UI Documentation**: https://developer.android.com/jetpack/compose/documentation
+- **Material Design 3**: https://m3.material.io/
+- **Material Components for Compose**: https://developer.android.com/jetpack/compose/designsystems/material3
+
+### Navigation & Lifecycle
+- **Navigation Compose**: https://developer.android.com/jetpack/compose/navigation
+- **Lifecycle Components**: https://developer.android.com/topic/libraries/architecture/lifecycle
+- **ViewModel**: https://developer.android.com/topic/libraries/architecture/viewmodel
+
+### Database & Data Persistence
+- **Room Database**: https://developer.android.com/training/data-storage/room
+- **Room with Kotlin Coroutines**: https://developer.android.com/training/data-storage/room/async-queries
+- **Type Converters**: https://developer.android.com/training/data-storage/room/referencing-data
+
+### Firebase & Cloud Services
+- **Firebase Documentation**: https://firebase.google.com/docs
+- **Firebase Android Setup**: https://firebase.google.com/docs/android/setup
+- **Firestore Database**: https://firebase.google.com/docs/firestore
+- **Firebase Authentication**: https://firebase.google.com/docs/auth
+- **Firebase Storage**: https://firebase.google.com/docs/storage
+- **Firebase Analytics**: https://firebase.google.com/docs/analytics
+- **Firebase Crashlytics**: https://firebase.google.com/docs/crashlytics
+
+### Dependency Injection
+- **Hilt (Dagger)**: https://developer.android.com/training/dependency-injection/hilt-android
+- **Dagger Documentation**: https://dagger.dev/
+- **Hilt with Compose**: https://developer.android.com/jetpack/compose/libraries#hilt
+
+### Networking & APIs
+- **Retrofit**: https://square.github.io/retrofit/
+- **OkHttp**: https://square.github.io/okhttp/
+- **Gson**: https://github.com/google/gson
+
+### Charts & Data Visualization
+- **Vico Charts**: https://github.com/patrykandpatrick/vico
+- **Vico Compose Integration**: https://github.com/patrykandpatrick/vico/tree/main/vico/compose
+
+### Image Loading & Media
+- **Coil for Compose**: https://coil-kt.github.io/coil/compose/
+- **Android Camera2 API**: https://developer.android.com/training/camera2
+
+### Async Programming & Coroutines
+- **Kotlin Coroutines**: https://kotlinlang.org/docs/coroutines-overview.html
+- **Coroutines with Android**: https://developer.android.com/kotlin/coroutines
+- **StateFlow & SharedFlow**: https://developer.android.com/kotlin/flow/stateflow-and-sharedflow
+
+### Background Processing
+- **WorkManager**: https://developer.android.com/topic/libraries/architecture/workmanager
+- **Background Tasks**: https://developer.android.com/guide/background
+
+### Security & Authentication
+- **Android Biometric**: https://developer.android.com/jetpack/androidx/releases/biometric
+- **Android Security**: https://developer.android.com/topic/security
+- **Keystore System**: https://developer.android.com/training/articles/keystore
+
+### Testing Framework
+- **Android Testing**: https://developer.android.com/training/testing
+- **JUnit**: https://junit.org/junit4/
+- **Mockito**: https://mockito.org/
+- **Espresso**: https://developer.android.com/training/testing/espresso
+
+### Build System & Tools
+- **Gradle for Android**: https://developer.android.com/build
+- **Kotlin DSL**: https://docs.gradle.org/current/userguide/kotlin_dsl.html
+- **Android Gradle Plugin**: https://developer.android.com/build/releases/gradle-plugin
+
+### Date & Time Handling
+- **Kotlinx DateTime**: https://github.com/Kotlin/kotlinx-datetime
+- **Java Time API**: https://developer.android.com/reference/java/time/package-summary

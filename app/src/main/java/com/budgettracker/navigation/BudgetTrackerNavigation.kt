@@ -95,6 +95,9 @@ fun BudgetTrackerNavigation(
                 },
                 onNavigateToGoals = {
                     navController.navigate(BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(BudgetTrackerDestinations.SETTINGS_ROUTE)
                 }
             )
         }
@@ -189,6 +192,9 @@ fun BudgetTrackerNavigation(
                     navController.navigate(BudgetTrackerDestinations.LOGIN_ROUTE) {
                         popUpTo(BudgetTrackerDestinations.DASHBOARD_ROUTE) { inclusive = true }
                     }
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

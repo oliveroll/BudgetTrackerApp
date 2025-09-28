@@ -374,3 +374,41 @@ fun TransactionList(
 - Efficient image loading with Coil
 
 This architecture ensures scalability, maintainability, and excellent user experience for international students managing their finances on OPT/H1B visas.
+
+## 📚 External Architecture Resources
+
+### Clean Architecture & MVVM
+- **Clean Architecture by Uncle Bob**: https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html
+- **Android Architecture Guide**: https://developer.android.com/topic/architecture
+- **MVVM with Android**: https://developer.android.com/topic/libraries/architecture/viewmodel
+- **Android App Architecture**: https://developer.android.com/topic/architecture/recommendations
+
+### Jetpack Compose Architecture
+- **Compose Architecture**: https://developer.android.com/jetpack/compose/architecture
+- **State Management in Compose**: https://developer.android.com/jetpack/compose/state
+- **Compose Navigation**: https://developer.android.com/jetpack/compose/navigation
+- **Compose UI Architecture**: https://developer.android.com/jetpack/compose/mental-model
+
+### Repository Pattern & Data Layer
+- **Repository Pattern**: https://developer.android.com/codelabs/android-room-with-a-view-kotlin#7
+- **Room Architecture Components**: https://developer.android.com/topic/libraries/architecture/room
+- **Data Layer Architecture**: https://developer.android.com/topic/architecture/data-layer
+- **Offline-First Architecture**: https://developer.android.com/topic/architecture/data-layer/offline-first
+
+### Dependency Injection with Hilt
+- **Hilt Fundamentals**: https://developer.android.com/training/dependency-injection/hilt-android
+- **Hilt in Multi-module Apps**: https://developer.android.com/training/dependency-injection/hilt-multi-module
+- **Dagger Fundamentals**: https://dagger.dev/dev-guide/
+- **Dependency Injection Principles**: https://developer.android.com/training/dependency-injection
+
+### Firebase Architecture Integration
+- **Firebase with MVVM**: https://firebase.google.com/docs/android/setup
+- **Firestore Architecture Best Practices**: https://firebase.google.com/docs/firestore/best-practices
+- **Firebase Auth Architecture**: https://firebase.google.com/docs/auth/android/start
+- **Real-time Data with Architecture Components**: https://firebase.google.com/docs/firestore/query-data/listen
+
+### Testing Architecture
+- **Android Testing Strategy**: https://developer.android.com/training/testing/fundamentals
+- **Testing Room Database**: https://developer.android.com/training/data-storage/room/testing-db
+- **Testing ViewModels**: https://developer.android.com/codelabs/android-room-with-a-view-kotlin#10
+- **UI Testing with Compose**: https://developer.android.com/jetpack/compose/testing

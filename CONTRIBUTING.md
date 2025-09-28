@@ -191,3 +191,41 @@ docs: update API documentation
 - Email: For security or privacy concerns
 
 Thank you for contributing to a tool that helps international students achieve financial stability! 🚀
+
+## 📚 External Development Resources
+
+### Android Development Learning
+- **Android Developer Fundamentals**: https://developer.android.com/courses/fundamentals-training/overview-v2
+- **Kotlin for Android Developers**: https://developer.android.com/kotlin/get-started
+- **Jetpack Compose Tutorial**: https://developer.android.com/jetpack/compose/tutorial
+- **Android Architecture Codelabs**: https://developer.android.com/codelabs#architecture
+
+### Best Practices & Guidelines
+- **Android API Guidelines**: https://developer.android.com/guide
+- **Kotlin Coding Conventions**: https://kotlinlang.org/docs/coding-conventions.html
+- **Material Design Guidelines**: https://m3.material.io/foundations
+- **Android Performance Best Practices**: https://developer.android.com/topic/performance
+
+### Firebase Development
+- **Firebase Codelabs**: https://firebase.google.com/codelabs
+- **Firestore Best Practices**: https://firebase.google.com/docs/firestore/best-practices
+- **Firebase Security**: https://firebase.google.com/docs/rules
+- **Firebase Performance**: https://firebase.google.com/docs/perf-mon/get-started-android
+
+### Testing & Quality Assurance
+- **Android Testing Codelabs**: https://developer.android.com/codelabs#testing
+- **Test-Driven Development**: https://developer.android.com/training/testing/fundamentals
+- **UI Testing with Espresso**: https://developer.android.com/training/testing/espresso
+- **Code Coverage**: https://developer.android.com/studio/test/code-coverage
+
+### Open Source Contribution
+- **GitHub Flow**: https://guides.github.com/introduction/flow/
+- **Git Best Practices**: https://www.atlassian.com/git/tutorials/comparing-workflows
+- **Code Review Best Practices**: https://google.github.io/eng-practices/review/
+- **Semantic Versioning**: https://semver.org/
+
+### Accessibility & Internationalization
+- **Android Accessibility**: https://developer.android.com/guide/topics/ui/accessibility
+- **Internationalization**: https://developer.android.com/guide/topics/resources/localization
+- **RTL Support**: https://developer.android.com/training/basics/supporting-devices/languages
+- **Material Design Accessibility**: https://m3.material.io/foundations/accessible-design/overview

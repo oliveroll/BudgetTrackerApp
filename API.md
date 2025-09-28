@@ -461,3 +461,59 @@ object TestData {
 ```
 
 This API documentation provides comprehensive interfaces for building and extending the Budget Tracker app, specifically designed for international students on OPT/H1B visas.
+
+## 📚 External API & Development Resources
+
+### Kotlin Language References
+- **Kotlin Documentation**: https://kotlinlang.org/docs/
+- **Kotlin for Android**: https://developer.android.com/kotlin
+- **Kotlin Coroutines Guide**: https://kotlinlang.org/docs/coroutines-overview.html
+- **Kotlin Collections**: https://kotlinlang.org/docs/collections-overview.html
+
+### Android Development APIs
+- **Android API Reference**: https://developer.android.com/reference
+- **Android Jetpack**: https://developer.android.com/jetpack
+- **Android Architecture Components**: https://developer.android.com/topic/libraries/architecture
+- **Android KTX Extensions**: https://developer.android.com/kotlin/ktx
+
+### Jetpack Compose APIs
+- **Compose API Guidelines**: https://developer.android.com/jetpack/compose/api-guidelines
+- **Compose Runtime**: https://developer.android.com/reference/kotlin/androidx/compose/runtime/package-summary
+- **Compose UI**: https://developer.android.com/reference/kotlin/androidx/compose/ui/package-summary
+- **Material3 Components**: https://developer.android.com/reference/kotlin/androidx/compose/material3/package-summary
+
+### Room Database APIs
+- **Room API Reference**: https://developer.android.com/reference/androidx/room/package-summary
+- **Room Annotations**: https://developer.android.com/training/data-storage/room/defining-data
+- **Room with Coroutines**: https://developer.android.com/training/data-storage/room/async-queries
+- **Room Migration**: https://developer.android.com/training/data-storage/room/migrating-db-versions
+
+### Firebase APIs
+- **Firebase Android SDK**: https://firebase.google.com/docs/reference/android
+- **Firestore API**: https://firebase.google.com/docs/reference/android/com/google/firebase/firestore/package-summary
+- **Firebase Auth API**: https://firebase.google.com/docs/reference/android/com/google/firebase/auth/package-summary
+- **Firebase Storage API**: https://firebase.google.com/docs/reference/android/com/google/firebase/storage/package-summary
+
+### Dependency Injection APIs
+- **Hilt API Reference**: https://dagger.dev/hilt/
+- **Dagger API**: https://dagger.dev/api/latest/
+- **Hilt Annotations**: https://developer.android.com/training/dependency-injection/hilt-android#hilt-annotations
+
+### Testing APIs & Frameworks
+- **JUnit 4**: https://junit.org/junit4/javadoc/latest/
+- **Mockito**: https://javadoc.io/doc/org.mockito/mockito-core/latest/org/mockito/Mockito.html
+- **Android Testing**: https://developer.android.com/reference/androidx/test/package-summary
+- **Compose Testing**: https://developer.android.com/reference/kotlin/androidx/compose/ui/test/package-summary
+
+### Third-Party Library APIs
+- **Retrofit**: https://square.github.io/retrofit/
+- **OkHttp**: https://square.github.io/okhttp/4.x/okhttp/okhttp3/
+- **Gson**: https://www.javadoc.io/doc/com.google.code.gson/gson/latest/index.html
+- **Coil**: https://coil-kt.github.io/coil/
+- **Vico Charts**: https://github.com/patrykandpatrick/vico/wiki
+
+### Financial & Domain-Specific Resources
+- **US Tax Code for International Students**: https://www.irs.gov/individuals/international-taxpayers/students-and-scholars
+- **OPT Regulations**: https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students
+- **H1B Visa Information**: https://www.uscis.gov/working-in-the-united-states/temporary-workers/h-1b-specialty-occupations
+- **Personal Finance for International Students**: https://www.investopedia.com/personal-finance-4427760

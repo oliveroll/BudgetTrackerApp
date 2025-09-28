@@ -43,6 +43,30 @@ According to the official GitMCP documentation, add this to your Cursor configur
 }
 ```
 
+### Option 4: Extended Configuration with Related Technologies
+
+```json
+{
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+    },
+    "android-jetpack-compose": {
+      "url": "https://gitmcp.io/android/compose-samples"
+    },
+    "firebase-android": {
+      "url": "https://gitmcp.io/firebase/quickstart-android"
+    },
+    "kotlin-examples": {
+      "url": "https://gitmcp.io/JetBrains/kotlin"
+    },
+    "gitmcp-generic": {
+      "url": "https://gitmcp.io/docs"
+    }
+  }
+}
+```
+
 ## How to Use
 
 1. **Create/Edit Cursor MCP Configuration**:

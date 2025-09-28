@@ -221,3 +221,20 @@ Managing finances while navigating visa requirements and building financial stab
 ---
 
 **Built with ❤️ for the international student community**
+
+## 📚 External Resources
+
+### Technology Documentation
+- **Kotlin**: https://kotlinlang.org/docs/
+- **Android Development**: https://developer.android.com/
+- **Jetpack Compose**: https://developer.android.com/jetpack/compose
+- **Material Design 3**: https://m3.material.io/
+- **Firebase**: https://firebase.google.com/docs
+- **Room Database**: https://developer.android.com/training/data-storage/room
+- **Hilt Dependency Injection**: https://developer.android.com/training/dependency-injection/hilt-android
+
+### Financial Resources for International Students
+- **OPT Guidelines**: https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students
+- **H1B Information**: https://www.uscis.gov/working-in-the-united-states/temporary-workers/h-1b-specialty-occupations
+- **Tax Information for International Students**: https://www.irs.gov/individuals/international-taxpayers/students-and-scholars
+- **Personal Finance Basics**: https://www.investopedia.com/personal-finance-4427760

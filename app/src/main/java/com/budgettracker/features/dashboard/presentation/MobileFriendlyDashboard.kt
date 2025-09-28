@@ -18,11 +18,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.budgettracker.core.data.repository.FirebaseRepository
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
 
@@ -35,15 +34,14 @@ fun MobileFriendlyDashboard(
     onNavigateToAddTransaction: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToBudget: () -> Unit = {},
-    onNavigateToGoals: () -> Unit = {}
+    onNavigateToGoals: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
-    val context = LocalContext.current
-    val repository = remember { FirebaseRepository(context) }
-    
-    // Real-time data
-    val transactions by repository.getTransactionsFlow().collectAsState(initial = emptyList())
-    val savingsGoals by repository.getSavingsGoalsFlow().collectAsState(initial = emptyList())
-    val fixedExpenses by repository.getFixedExpensesFlow().collectAsState(initial = emptyList())
+    // Use static demo data to prevent ANR issues
+    // TODO: Replace with proper repository pattern with Hilt injection
+    val transactions = remember { getSampleTransactions() }
+    val savingsGoals = remember { getSampleSavingsGoals() }
+    val fixedExpenses = remember { getSampleFixedExpenses() }
     
     Scaffold(
         floatingActionButton = {
@@ -69,12 +67,20 @@ fun MobileFriendlyDashboard(
         ) {
             // Beautiful Header with Gradient
             item {
-                ModernHeaderCard()
+                ModernHeaderCard(onNavigateToSettings = onNavigateToSettings)
             }
             
             // Financial Overview Cards
             item {
                 FinancialOverviewSection(
+                    transactions = transactions,
+                    fixedExpenses = fixedExpenses
+                )
+            }
+            
+            // Visual Charts Section
+            item {
+                VisualChartsSection(
                     transactions = transactions,
                     fixedExpenses = fixedExpenses
                 )
@@ -112,7 +118,9 @@ fun MobileFriendlyDashboard(
 }
 
 @Composable
-private fun ModernHeaderCard() {
+private fun ModernHeaderCard(
+    onNavigateToSettings: () -> Unit = {}
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -128,65 +136,85 @@ private fun ModernHeaderCard() {
                         colors = listOf(Primary40, Secondary40)
                     )
                 )
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Column {
-                        Text(
-                            text = "Welcome back! 👋",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.9f)
-                        )
-                        
-                        Text(
-                            text = "Oliver Ryan Ollesch",
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        )
-                        
-                        Spacer(modifier = Modifier.height(4.dp))
-                        
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.2f)
-                            )
-                        ) {
-                            Text(
-                                text = "Ixana Quasistatics • OPT Status",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White,
-                                modifier = Modifier.padding(8.dp),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
+                    Text(
+                        text = "Welcome back! 👋",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
                     
-                    // Profile Avatar
+                    Text(
+                        text = "Oliver Ryan",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        maxLines = 1
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
                     Card(
-                        modifier = Modifier.size(60.dp),
-                        shape = CircleShape,
                         colors = CardDefaults.cardColors(
                             containerColor = Color.White.copy(alpha = 0.2f)
-                        )
+                        ),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "O",
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Text(
+                            text = "Ixana • OPT Status",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                // Settings Icon
+                IconButton(
+                    onClick = onNavigateToSettings,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Profile Avatar
+                Card(
+                    modifier = Modifier.size(50.dp),
+                    shape = CircleShape,
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White.copy(alpha = 0.2f)
+                    )
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "O",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -465,10 +493,11 @@ private fun ModernTransactionItem(
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Icon and details section
         Row(
+            modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Card(
@@ -487,41 +516,56 @@ private fun ModernTransactionItem(
                 ) {
                     Text(
                         text = transaction.category.icon,
-                        fontSize = 18.sp
+                        fontSize = 16.sp
                     )
                 }
             }
             
             Spacer(modifier = Modifier.width(12.dp))
             
-            Column {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
                 Text(
                     text = transaction.description,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 
                 Text(
                     text = transaction.category.displayName,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
         
-        Text(
-            text = if (transaction.type == com.budgettracker.core.domain.model.TransactionType.INCOME)
-                "+$${String.format("%.2f", transaction.amount)}"
-            else
-                "-$${String.format("%.2f", transaction.amount)}",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = if (transaction.type == com.budgettracker.core.domain.model.TransactionType.INCOME)
-                    Color(0xFF28a745)
+        Spacer(modifier = Modifier.width(8.dp))
+        
+        // Amount section - fixed width to prevent squeezing
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.widthIn(min = 80.dp)
+        ) {
+            Text(
+                text = if (transaction.type == com.budgettracker.core.domain.model.TransactionType.INCOME)
+                    "+$${String.format("%.0f", transaction.amount)}"
                 else
-                    Color(0xFFdc3545)
+                    "-$${String.format("%.0f", transaction.amount)}",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (transaction.type == com.budgettracker.core.domain.model.TransactionType.INCOME)
+                        Color(0xFF28a745)
+                    else
+                        Color(0xFFdc3545)
+                ),
+                maxLines = 1
             )
-        )
+        }
     }
 }
 
@@ -665,6 +709,434 @@ private fun MonthlyInsightsCard(
             }
         }
     }
+}
+
+@Composable
+private fun VisualChartsSection(
+    transactions: List<com.budgettracker.core.domain.model.Transaction>,
+    fixedExpenses: List<com.budgettracker.core.domain.model.FixedExpense>
+) {
+    val monthlyExpenses = remember(fixedExpenses) { 
+        fixedExpenses.sumOf { it.amount } 
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+    ) {
+        Text(
+            text = "Financial Overview",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // Income vs Expenses Chart
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Text(
+                    text = "Income vs Expenses",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                IncomeExpenseChart(
+                    monthlyIncome = 5470.0,
+                    monthlyExpenses = monthlyExpenses
+                )
+            }
+        }
+        
+        // Spending by Category Chart
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp)
+            ) {
+                Text(
+                    text = "Spending by Category",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                SpendingCategoryChart(transactions = transactions)
+            }
+        }
+    }
+}
+
+@Composable
+private fun IncomeExpenseChart(
+    monthlyIncome: Double,
+    monthlyExpenses: Double
+) {
+    val remaining = monthlyIncome - monthlyExpenses
+    
+    // Prevent division by zero and infinite recomposition
+    val safeIncome = if (monthlyIncome <= 0) 1.0 else monthlyIncome
+    val safeExpenses = if (monthlyExpenses < 0) 0.0 else monthlyExpenses.coerceAtMost(safeIncome)
+    val safeRemaining = safeIncome - safeExpenses
+    
+    val incomePercentage = 1f
+    val expensePercentage = (safeExpenses / safeIncome).toFloat().coerceIn(0f, 1f)
+    val remainingPercentage = (safeRemaining / safeIncome).toFloat().coerceIn(0f, 1f)
+    
+    Column {
+        // Visual Bar Chart
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Income Bar
+            Card(
+                modifier = Modifier
+                    .weight(incomePercentage)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF28a745)
+                ),
+                shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Income",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            // Expenses Bar
+            Card(
+                modifier = Modifier
+                    .weight(expensePercentage)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFdc3545)
+                ),
+                shape = RoundedCornerShape(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Expenses",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+            
+            // Remaining Bar
+            Card(
+                modifier = Modifier
+                    .weight(remainingPercentage)
+                    .fillMaxHeight(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF007bff)
+                ),
+                shape = RoundedCornerShape(topEnd = 8.dp, bottomEnd = 8.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Saved",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Legend with values
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            ChartLegendItem(
+                color = Color(0xFF28a745),
+                label = "Income",
+                value = "$${String.format("%.0f", safeIncome)}"
+            )
+            ChartLegendItem(
+                color = Color(0xFFdc3545),
+                label = "Expenses",
+                value = "$${String.format("%.0f", safeExpenses)}"
+            )
+            ChartLegendItem(
+                color = Color(0xFF007bff),
+                label = "Remaining",
+                value = "$${String.format("%.0f", safeRemaining)}"
+            )
+        }
+    }
+}
+
+@Composable
+private fun SpendingCategoryChart(
+    transactions: List<com.budgettracker.core.domain.model.Transaction>
+) {
+    val expenseTransactions = transactions.filter { 
+        it.type == com.budgettracker.core.domain.model.TransactionType.EXPENSE 
+    }
+    
+    if (expenseTransactions.isEmpty()) {
+        Text(
+            text = "No expense data available",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(16.dp)
+        )
+        return
+    }
+    
+    val categoryTotals = expenseTransactions
+        .groupBy { it.category.displayName }
+        .mapValues { (_, transactions) -> transactions.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
+        .take(5)
+    
+    val total = categoryTotals.sumOf { it.second }
+    val colors = listOf(
+        Color(0xFF007bff),
+        Color(0xFF28a745),
+        Color(0xFFffc107),
+        Color(0xFFdc3545),
+        Color(0xFF6f42c1)
+    )
+    
+    Column {
+        // Simple Pie Chart representation using bars
+        categoryTotals.forEachIndexed { index, (category, amount) ->
+            val percentage = (amount / total * 100).toFloat()
+            
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Color indicator
+                Card(
+                    modifier = Modifier.size(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = colors[index % colors.size]
+                    ),
+                    shape = CircleShape
+                ) {}
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                // Category name
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                    fontWeight = FontWeight.Medium
+                )
+                
+                // Percentage and amount
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = "${String.format("%.1f", percentage)}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = colors[index % colors.size]
+                    )
+                    Text(
+                        text = "$${String.format("%.0f", amount)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            // Progress bar
+            LinearProgressIndicator(
+                progress = percentage / 100f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = colors[index % colors.size],
+                trackColor = Color.LightGray.copy(alpha = 0.3f)
+            )
+            
+            if (index < categoryTotals.size - 1) {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartLegendItem(
+    color: Color,
+    label: String,
+    value: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Card(
+                modifier = Modifier.size(12.dp),
+                colors = CardDefaults.cardColors(containerColor = color),
+                shape = CircleShape
+            ) {}
+            
+            Spacer(modifier = Modifier.width(4.dp))
+            
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+    }
+}
+
+// Sample data functions to prevent ANR
+private fun getSampleTransactions(): List<com.budgettracker.core.domain.model.Transaction> {
+    return listOf(
+        com.budgettracker.core.domain.model.Transaction(
+            id = "1",
+            userId = "demo_user",
+            amount = 2523.88,
+            category = com.budgettracker.core.domain.model.TransactionCategory.SALARY,
+            type = com.budgettracker.core.domain.model.TransactionType.INCOME,
+            description = "Salary Deposit - Ixana Quasistatics",
+            date = java.util.Date(),
+            notes = "Bi-weekly salary"
+        ),
+        com.budgettracker.core.domain.model.Transaction(
+            id = "2",
+            userId = "demo_user",
+            amount = 475.0,
+            category = com.budgettracker.core.domain.model.TransactionCategory.LOAN_PAYMENT,
+            type = com.budgettracker.core.domain.model.TransactionType.EXPENSE,
+            description = "German Student Loan Payment",
+            date = java.util.Date(System.currentTimeMillis() - 86400000), // Yesterday
+            notes = "€450 monthly payment"
+        ),
+        com.budgettracker.core.domain.model.Transaction(
+            id = "3",
+            userId = "demo_user",
+            amount = 75.50,
+            category = com.budgettracker.core.domain.model.TransactionCategory.GROCERIES,
+            type = com.budgettracker.core.domain.model.TransactionType.EXPENSE,
+            description = "Grocery Shopping - Walmart",
+            date = java.util.Date(System.currentTimeMillis() - 3600000), // 1 hour ago
+            notes = "Weekly groceries"
+        )
+    )
+}
+
+private fun getSampleSavingsGoals(): List<com.budgettracker.core.domain.model.SavingsGoal> {
+    return listOf(
+        com.budgettracker.core.domain.model.SavingsGoal(
+            id = "goal_1",
+            userId = "demo_user",
+            name = "Emergency Fund",
+            description = "6 months of expenses for OPT visa security",
+            targetAmount = 16000.0,
+            currentAmount = 5200.0,
+            deadline = java.util.Date(System.currentTimeMillis() + 15552000000L), // 6 months
+            priority = com.budgettracker.core.domain.model.Priority.CRITICAL,
+            monthlyContribution = 800.0,
+            category = com.budgettracker.core.domain.model.GoalCategory.EMERGENCY_FUND
+        ),
+        com.budgettracker.core.domain.model.SavingsGoal(
+            id = "goal_2",
+            userId = "demo_user",
+            name = "Roth IRA 2025",
+            description = "Tax-free retirement savings",
+            targetAmount = 7000.0,
+            currentAmount = 1400.0,
+            deadline = java.util.Date(System.currentTimeMillis() + 31104000000L), // 12 months
+            priority = com.budgettracker.core.domain.model.Priority.HIGH,
+            monthlyContribution = 583.0,
+            category = com.budgettracker.core.domain.model.GoalCategory.RETIREMENT
+        )
+    )
+}
+
+private fun getSampleFixedExpenses(): List<com.budgettracker.core.domain.model.FixedExpense> {
+    return listOf(
+        com.budgettracker.core.domain.model.FixedExpense(
+            id = "exp_1",
+            userId = "demo_user",
+            category = "Housing",
+            description = "Rent",
+            amount = 1200.0,
+            dueDate = "1st"
+        ),
+        com.budgettracker.core.domain.model.FixedExpense(
+            id = "exp_2",
+            userId = "demo_user",
+            category = "Debt",
+            description = "German Student Loan",
+            amount = 475.0,
+            dueDate = "20th"
+        ),
+        com.budgettracker.core.domain.model.FixedExpense(
+            id = "exp_3",
+            userId = "demo_user",
+            category = "Insurance",
+            description = "Car Insurance",
+            amount = 150.0,
+            dueDate = "15th"
+        ),
+        com.budgettracker.core.domain.model.FixedExpense(
+            id = "exp_4",
+            userId = "demo_user",
+            category = "Utilities",
+            description = "Phone Plan",
+            amount = 45.0,
+            dueDate = "10th"
+        )
+    )
 }
 
 // Data classes

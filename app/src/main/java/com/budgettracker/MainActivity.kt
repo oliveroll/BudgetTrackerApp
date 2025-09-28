@@ -52,8 +52,7 @@ fun BudgetTrackerApp() {
         BudgetTrackerDestinations.DASHBOARD_ROUTE,
         BudgetTrackerDestinations.TRANSACTIONS_ROUTE,
         BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE,
-        BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE,
-        BudgetTrackerDestinations.SETTINGS_ROUTE
+        BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE
     )
     
     Surface(

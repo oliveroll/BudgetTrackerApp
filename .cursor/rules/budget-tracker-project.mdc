@@ -1,0 +1,104 @@
+---
+alwaysApply: true
+description: Budget Tracker Android App project structure and development guidelines
+---
+
+# Budget Tracker Android App - Development Context
+
+## Project Overview
+This is a **Kotlin Android app** using **Clean Architecture with MVVM** pattern, built with **Jetpack Compose** and **Material Design 3**.
+
+**Key Details:**
+- Target SDK: 34 (Android 14)
+- Min SDK: 24 (Android 7.0)
+- Package: `com.budgettracker`
+- Architecture: Clean Architecture with MVVM
+- UI: Jetpack Compose with Material Design 3
+
+## Current Project Status
+
+### ✅ COMPLETED
+- Project structure setup
+- Domain models ([Transaction.kt](mdc:app/src/main/java/com/budgettracker/core/domain/model/Transaction.kt), [Budget.kt](mdc:app/src/main/java/com/budgettracker/core/domain/model/Budget.kt), etc.)
+- Room entities ([TransactionEntity.kt](mdc:app/src/main/java/com/budgettracker/core/data/local/entities/TransactionEntity.kt))
+- Constants and configuration ([Constants.kt](mdc:app/src/main/java/com/budgettracker/core/utils/Constants.kt))
+- Build configuration with dependencies
+- Application class ([BudgetTrackerApplication.kt](mdc:app/src/main/java/com/budgettracker/BudgetTrackerApplication.kt))
+
+### ❌ TO BE IMPLEMENTED
+- Repository layer (interfaces and implementations)
+- Use cases/Interactors
+- ViewModels
+- Compose UI screens
+- Navigation setup
+- Firebase configuration
+- Room database setup (DAOs, Database class)
+- Dependency injection modules (Hilt)
+- Testing framework
+
+## Architecture Structure
+
+```
+app/src/main/java/com/budgettracker/
+├── BudgetTrackerApplication.kt     # Application class with Hilt
+├── core/
+│   ├── data/
+│   │   └── local/entities/         # Room entities (✅ Done)
+│   ├── domain/
+│   │   └── model/                  # Domain models (✅ Done)
+│   └── utils/                      # Constants & extensions (✅ Done)
+├── feature/                        # Feature modules (❌ To implement)
+│   ├── transaction/
+│   ├── budget/
+│   ├── analytics/
+│   └── profile/
+└── ui/                            # Compose UI components (❌ To implement)
+```
+
+## Key Domain Models
+
+### Transaction
+- 37+ categories (Income, Fixed/Variable Expenses, Savings, Visa-specific)
+- Recurring transaction support
+- Attachment and location tracking
+- Soft delete functionality
+
+### Budget
+- Monthly budget planning
+- Category-wise allocation
+- Templates: 50/30/20 rule, Zero-based, OPT Student
+- Real-time tracking and status monitoring
+
+## Technology Stack
+- **DI:** Hilt (Dagger)
+- **Database:** Room (local) + Firebase Firestore (cloud)
+- **Auth:** Firebase Auth
+- **Charts:** Vico Charts
+- **Image Loading:** Coil
+- **Networking:** Retrofit + OkHttp
+- **Async:** Kotlinx Coroutines
+- **Background:** WorkManager
+
+## Development Guidelines
+
+1. **Follow Clean Architecture:** Domain → Data → Presentation layers
+2. **Use MVVM Pattern:** ViewModels for UI state management
+3. **Compose First:** All UI in Jetpack Compose
+4. **Hilt for DI:** Dependency injection throughout
+5. **Room + Firebase:** Local-first with cloud sync
+6. **OPT/Visa Focus:** Include specific features for international students
+
+## Constants & Defaults
+- Monthly Income: $5,470
+- Base Salary: $80,000
+- Default Company: "Ixana Quasistatics"
+- Emergency Fund: 6 months
+- Roth IRA Limit: $7,000 (2024)
+- 401K Limit: $23,000 (2024)
+
+When implementing new features, always consider:
+1. Offline-first approach
+2. Clean Architecture principles
+3. Comprehensive error handling
+4. Material Design 3 guidelines
+5. OPT/visa-specific requirements

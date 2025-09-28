@@ -342,3 +342,4 @@ private data class VariableExpenseItem(
     val notes: String
 )
 
+

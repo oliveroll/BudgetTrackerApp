@@ -58,7 +58,7 @@ data class BottomNavItem(
 )
 
 /**
- * Bottom navigation items
+ * Bottom navigation items (Settings moved to header)
  */
 val bottomNavItems = listOf(
     BottomNavItem(
@@ -80,10 +80,5 @@ val bottomNavItems = listOf(
         route = BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE,
         icon = Icons.Default.Savings,
         label = "Goals"
-    ),
-    BottomNavItem(
-        route = BudgetTrackerDestinations.SETTINGS_ROUTE,
-        icon = Icons.Default.Settings,
-        label = "Settings"
     )
 )

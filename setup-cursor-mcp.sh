@@ -24,8 +24,29 @@ if [ -f "$MCP_FILE" ]; then
     cp "$MCP_FILE" "$MCP_FILE.backup"
 fi
 
-# Create the MCP configuration
-cat > "$MCP_FILE" << 'EOF'
+# Ask user for configuration type
+echo "Choose MCP configuration:"
+echo "1) Basic (Budget Tracker only)"
+echo "2) Standard (Budget Tracker + Generic)"
+echo "3) Extended (Budget Tracker + Related Technologies)"
+read -p "Enter choice [1-3]: " choice
+
+case $choice in
+    1)
+        # Basic configuration
+        cat > "$MCP_FILE" << 'EOF'
+{
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+    }
+  }
+}
+EOF
+        ;;
+    2)
+        # Standard configuration
+        cat > "$MCP_FILE" << 'EOF'
 {
   "mcpServers": {
     "budget-tracker": {
@@ -37,6 +58,48 @@ cat > "$MCP_FILE" << 'EOF'
   }
 }
 EOF
+        ;;
+    3)
+        # Extended configuration
+        cat > "$MCP_FILE" << 'EOF'
+{
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+    },
+    "android-jetpack-compose": {
+      "url": "https://gitmcp.io/android/compose-samples"
+    },
+    "firebase-android": {
+      "url": "https://gitmcp.io/firebase/quickstart-android"
+    },
+    "kotlin-examples": {
+      "url": "https://gitmcp.io/JetBrains/kotlin"
+    },
+    "gitmcp-generic": {
+      "url": "https://gitmcp.io/docs"
+    }
+  }
+}
+EOF
+        ;;
+    *)
+        echo "Invalid choice. Using standard configuration..."
+        # Default to standard configuration
+        cat > "$MCP_FILE" << 'EOF'
+{
+  "mcpServers": {
+    "budget-tracker": {
+      "url": "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+    },
+    "gitmcp-docs": {
+      "url": "https://gitmcp.io/docs"
+    }
+  }
+}
+EOF
+        ;;
+esac
 
 echo "✅ Created Cursor MCP configuration at: $MCP_FILE"
 echo ""

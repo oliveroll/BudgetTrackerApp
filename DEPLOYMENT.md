@@ -452,3 +452,47 @@ fastlane deploy track:production
 4. Deploy with expedited review
 
 This deployment guide ensures a smooth, secure, and successful launch of the Budget Tracker app for international students.
+
+## 📚 External Deployment Resources
+
+### Android App Publishing
+- **Google Play Console**: https://play.google.com/console/
+- **Publishing on Google Play**: https://developer.android.com/distribute/google-play
+- **App Bundle Guide**: https://developer.android.com/guide/app-bundle
+- **Android App Signing**: https://developer.android.com/studio/publish/app-signing
+
+### Build & Release Management
+- **Gradle Build System**: https://developer.android.com/build
+- **Android Gradle Plugin**: https://developer.android.com/build/releases/gradle-plugin
+- **Build Variants**: https://developer.android.com/build/build-variants
+- **ProGuard**: https://developer.android.com/build/shrink-code
+
+### CI/CD & Automation
+- **GitHub Actions for Android**: https://github.com/actions/setup-java
+- **Fastlane for Android**: https://docs.fastlane.tools/getting-started/android/
+- **Firebase App Distribution**: https://firebase.google.com/docs/app-distribution
+- **Automated Testing**: https://developer.android.com/training/testing/fundamentals
+
+### Firebase Production Setup
+- **Firebase Console**: https://console.firebase.google.com/
+- **Firebase Production Best Practices**: https://firebase.google.com/docs/projects/learn-more#best-practices
+- **Firestore Security Rules**: https://firebase.google.com/docs/firestore/security/rules-structure
+- **Firebase Performance Monitoring**: https://firebase.google.com/docs/perf-mon
+
+### App Store Optimization
+- **Google Play Store Listing**: https://support.google.com/googleplay/android-developer/answer/9866151
+- **App Store Screenshots**: https://developer.android.com/distribute/marketing-tools/store-listing
+- **ASO Best Practices**: https://developer.android.com/distribute/best-practices/grow/store-listing
+- **Play Store Review Guidelines**: https://support.google.com/googleplay/android-developer/answer/4430948
+
+### Security & Compliance
+- **Android Security**: https://developer.android.com/topic/security
+- **App Security Best Practices**: https://developer.android.com/topic/security/best-practices
+- **Data Safety in Play Console**: https://support.google.com/googleplay/android-developer/answer/10787469
+- **GDPR Compliance**: https://developer.android.com/distribute/play-policies/developer-policy-center
+
+### Monitoring & Analytics
+- **Firebase Analytics**: https://firebase.google.com/docs/analytics
+- **Firebase Crashlytics**: https://firebase.google.com/docs/crashlytics
+- **Play Console Reports**: https://support.google.com/googleplay/android-developer/answer/6159928
+- **Performance Monitoring**: https://firebase.google.com/docs/perf-mon/get-started-android
