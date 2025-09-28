@@ -30,6 +30,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -49,18 +51,18 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedMobileFriendlyTransactions(
-    onNavigateToAddTransaction: () -> Unit = {}
+    onNavigateToAddTransaction: () -> Unit = {},
+    viewModel: TransactionsViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val pdfParser = remember { RegionsBankPDFParser(context) }
     
-    // Transaction data
-    var transactions by remember { mutableStateOf(getSampleTransactionsDetailed()) }
-    
-    // Month selection
-    var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
-    var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
+    // ViewModel state - persists across navigation
+    val transactions by viewModel.transactions.collectAsState()
+    val selectedMonth by viewModel.selectedMonth.collectAsState()
+    val selectedYear by viewModel.selectedYear.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var showMonthPicker by remember { mutableStateOf(false) }
     
     // PDF upload state
@@ -88,7 +90,7 @@ fun EnhancedMobileFriendlyTransactions(
                     if (result.isSuccess) {
                         val parsedTransactions = result.getOrNull() ?: emptyList()
                         if (parsedTransactions.isNotEmpty()) {
-                            transactions = transactions + parsedTransactions
+                            viewModel.addParsedTransactions(parsedTransactions)
                             processingMessage = "Successfully parsed ${parsedTransactions.size} transactions from Regions Bank!"
                         } else {
                             processingMessage = "No transactions found in the statement"
@@ -106,11 +108,9 @@ fun EnhancedMobileFriendlyTransactions(
         }
     }
     
-    // Filter transactions by selected month/year
-    val filteredTransactions = transactions.filter { transaction ->
-        val calendar = Calendar.getInstance().apply { time = transaction.date }
-        calendar.get(Calendar.MONTH) == selectedMonth && 
-        calendar.get(Calendar.YEAR) == selectedYear
+    // Filter transactions by selected month/year using ViewModel
+    val filteredTransactions = remember(selectedMonth, selectedYear, transactions) {
+        viewModel.getTransactionsForMonth(selectedMonth, selectedYear)
     }
     
     Scaffold(
@@ -202,8 +202,7 @@ fun EnhancedMobileFriendlyTransactions(
             currentYear = selectedYear,
             onDismiss = { showMonthPicker = false },
             onMonthSelected = { month, year ->
-                selectedMonth = month
-                selectedYear = year
+                viewModel.setSelectedMonth(month, year)
                 showMonthPicker = false
             }
         )
@@ -243,9 +242,7 @@ fun EnhancedMobileFriendlyTransactions(
             transaction = transaction,
             onDismiss = { editingTransaction = null },
             onSave = { updatedTransaction ->
-                transactions = transactions.map { 
-                    if (it.id == updatedTransaction.id) updatedTransaction else it 
-                }
+                viewModel.updateTransaction(updatedTransaction)
                 editingTransaction = null
             }
         )
@@ -262,7 +259,7 @@ fun EnhancedMobileFriendlyTransactions(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        transactions = transactions.filter { it.id != transaction.id }
+                        viewModel.deleteTransaction(transaction.id)
                         transactionToDelete = null
                     }
                 ) {
@@ -415,29 +412,34 @@ private fun EnhancedSummaryItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.widthIn(min = 100.dp)
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = color,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(20.dp)
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         
         Text(
             text = amount,
-            style = MaterialTheme.typography.titleLarge.copy(
+            style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold,
                 color = color
-            )
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = color.copy(alpha = 0.8f)
+            style = MaterialTheme.typography.bodySmall,
+            color = color.copy(alpha = 0.8f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -741,6 +743,7 @@ private fun MonthPickerDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditTransactionDialog(
     transaction: Transaction,
@@ -750,6 +753,10 @@ private fun EditTransactionDialog(
     var description by remember { mutableStateOf(transaction.description) }
     var amount by remember { mutableStateOf(transaction.amount.toString()) }
     var notes by remember { mutableStateOf(transaction.notes ?: "") }
+    var selectedCategory by remember { mutableStateOf(transaction.category) }
+    var selectedType by remember { mutableStateOf(transaction.type) }
+    var showCategoryDropdown by remember { mutableStateOf(false) }
+    var showTypeDropdown by remember { mutableStateOf(false) }
     
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -771,13 +778,90 @@ private fun EditTransactionDialog(
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Amount") },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    prefix = { Text("$") }
-                )
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Amount") },
+                        modifier = Modifier.weight(1f),
+                        prefix = { Text("$") }
+                    )
+                    
+                    // Transaction Type Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = showTypeDropdown,
+                        onExpandedChange = { showTypeDropdown = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = selectedType.name,
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Type") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
+                            modifier = Modifier.menuAnchor()
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = showTypeDropdown,
+                            onDismissRequest = { showTypeDropdown = false }
+                        ) {
+                            TransactionType.values().forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.name) },
+                                    onClick = {
+                                        selectedType = type
+                                        showTypeDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Category Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = showCategoryDropdown,
+                    onExpandedChange = { showCategoryDropdown = it }
+                ) {
+                    OutlinedTextField(
+                        value = "${selectedCategory.icon} ${selectedCategory.displayName}",
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryDropdown) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    
+                    ExposedDropdownMenu(
+                        expanded = showCategoryDropdown,
+                        onDismissRequest = { showCategoryDropdown = false }
+                    ) {
+                        TransactionCategory.values().forEach { category ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = category.icon,
+                                            modifier = Modifier.width(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(category.displayName)
+                                    }
+                                },
+                                onClick = {
+                                    selectedCategory = category
+                                    showCategoryDropdown = false
+                                }
+                            )
+                        }
+                    }
+                }
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
@@ -796,6 +880,8 @@ private fun EditTransactionDialog(
                     val updatedTransaction = transaction.copy(
                         description = description,
                         amount = amount.toDoubleOrNull() ?: transaction.amount,
+                        category = selectedCategory,
+                        type = selectedType,
                         notes = notes.ifBlank { null }
                     )
                     onSave(updatedTransaction)
@@ -987,79 +1073,3 @@ private fun getMonthName(month: Int): String {
     return months.getOrNull(month) ?: "Unknown"
 }
 
-// Sample data function
-private fun getSampleTransactionsDetailed(): List<Transaction> {
-    return listOf(
-        Transaction(
-            id = "1",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - Ixana Quasistatics",
-            date = Date(),
-            notes = "Bi-weekly salary deposit"
-        ),
-        Transaction(
-            id = "2",
-            userId = "demo_user",
-            amount = 475.0,
-            category = TransactionCategory.LOAN_PAYMENT,
-            type = TransactionType.EXPENSE,
-            description = "German Student Loan Payment",
-            date = Date(System.currentTimeMillis() - 86400000),
-            notes = "€450 monthly payment"
-        ),
-        Transaction(
-            id = "3",
-            userId = "demo_user",
-            amount = 75.50,
-            category = TransactionCategory.GROCERIES,
-            type = TransactionType.EXPENSE,
-            description = "Grocery Shopping - Walmart",
-            date = Date(System.currentTimeMillis() - 3600000),
-            notes = "Weekly groceries"
-        ),
-        Transaction(
-            id = "4",
-            userId = "demo_user",
-            amount = 1200.0,
-            category = TransactionCategory.RENT,
-            type = TransactionType.EXPENSE,
-            description = "Monthly Rent Payment",
-            date = Date(System.currentTimeMillis() - 172800000),
-            notes = "Apartment rent"
-        ),
-        Transaction(
-            id = "5",
-            userId = "demo_user",
-            amount = 45.0,
-            category = TransactionCategory.PHONE,
-            type = TransactionType.EXPENSE,
-            description = "Phone Plan - Verizon",
-            date = Date(System.currentTimeMillis() - 259200000),
-            notes = "Monthly phone bill"
-        ),
-        // Add some transactions from previous months for testing
-        Transaction(
-            id = "6",
-            userId = "demo_user",
-            amount = 2523.88,
-            category = TransactionCategory.SALARY,
-            type = TransactionType.INCOME,
-            description = "Salary Deposit - August",
-            date = Date(System.currentTimeMillis() - 86400000L * 30), // Last month
-            notes = "Previous month salary"
-        ),
-        Transaction(
-            id = "7",
-            userId = "demo_user",
-            amount = 150.0,
-            category = TransactionCategory.INSURANCE,
-            type = TransactionType.EXPENSE,
-            description = "Car Insurance - August",
-            date = Date(System.currentTimeMillis() - 86400000L * 32), // Last month
-            notes = "Monthly car insurance"
-        )
-    )
-}
