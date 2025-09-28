@@ -67,38 +67,45 @@ class RegionsBankPDFParser(private val context: Context) {
         // "Withdrawals" section contains expense transactions
         
         val patterns = listOf(
-            // Pattern 1: Date Transaction_Type Description ... Amount
+            // Pattern 1: Date Transaction_Type Description ... Amount (for withdrawals)
             Pattern.compile("(\\d{2}/\\d{2})\\s+(Card\\s+Credit|Card\\s+Purchase|Recurring\\s+Card\\s+Transaction)\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
             
             // Pattern 2: Date Fee_Type Amount
             Pattern.compile("(\\d{2}/\\d{2})\\s+(Monthly\\s+Fee|Service\\s+Fee|ATM\\s+Fee)\\s+(\\d+\\.\\d{2})$"),
             
-            // Pattern 3: General date ... amount at end
+            // Pattern 3: Deposit patterns (for DEPOSITS & CREDITS section)
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(Deposit|Direct\\s+Deposit|ACH\\s+Credit|Wire\\s+Transfer|Credit)\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            
+            // Pattern 4: Simple date description amount format
             Pattern.compile("(\\d{2}/\\d{2})\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
             
-            // Pattern 4: Date with full year format
-            Pattern.compile("(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(\\d+\\.\\d{2})$")
+            // Pattern 5: Date with full year format
+            Pattern.compile("(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            
+            // Pattern 6: Amount-only lines (for summary sections)
+            Pattern.compile("\\s*(\\d+\\.\\d{2})\\s*$")
         )
         
         for ((lineIndex, line) in lines.withIndex()) {
             val cleanLine = line.trim()
             
-            // Detect section headers
+            // Detect section headers (more comprehensive)
             when {
                 cleanLine.contains("Deposits & Credits", ignoreCase = true) ||
-                cleanLine.contains("DEPOSITS & CREDITS", ignoreCase = true) -> {
+                cleanLine.contains("DEPOSITS & CREDITS", ignoreCase = true) ||
+                cleanLine.contains("Deposits and Credits", ignoreCase = true) -> {
                     isInDepositsSection = true
                     isInWithdrawalsSection = false
                     currentSection = "DEPOSITS"
-                    android.util.Log.d("RegionsBankParser", "Entering Deposits & Credits section")
+                    android.util.Log.d("RegionsBankParser", "🔍 Entering Deposits & Credits section at line $lineIndex")
                     continue
                 }
                 cleanLine.contains("Withdrawals", ignoreCase = true) && 
-                !cleanLine.contains("&") -> {
+                !cleanLine.contains("&") && !cleanLine.contains("and") -> {
                     isInDepositsSection = false
                     isInWithdrawalsSection = true
                     currentSection = "WITHDRAWALS"
-                    android.util.Log.d("RegionsBankParser", "Entering Withdrawals section")
+                    android.util.Log.d("RegionsBankParser", "🔍 Entering Withdrawals section at line $lineIndex")
                     continue
                 }
                 cleanLine.contains("Fees", ignoreCase = true) ||
@@ -106,7 +113,15 @@ class RegionsBankPDFParser(private val context: Context) {
                     isInDepositsSection = false
                     isInWithdrawalsSection = false
                     currentSection = "FEES"
-                    android.util.Log.d("RegionsBankParser", "Entering Fees section")
+                    android.util.Log.d("RegionsBankParser", "🔍 Entering Fees section at line $lineIndex")
+                    continue
+                }
+                // End section detection
+                cleanLine.isEmpty() && (isInDepositsSection || isInWithdrawalsSection) -> {
+                    android.util.Log.d("RegionsBankParser", "🔍 Ending section $currentSection at line $lineIndex")
+                    isInDepositsSection = false
+                    isInWithdrawalsSection = false
+                    currentSection = ""
                     continue
                 }
             }
@@ -127,7 +142,14 @@ class RegionsBankPDFParser(private val context: Context) {
                 continue
             }
             
-            android.util.Log.d("RegionsBankParser", "Checking line $lineIndex: $cleanLine")
+            // Enhanced debug logging for section context
+            if (isInDepositsSection) {
+                android.util.Log.d("RegionsBankParser", "📈 DEPOSITS section - line $lineIndex: $cleanLine")
+            } else if (isInWithdrawalsSection) {
+                android.util.Log.d("RegionsBankParser", "📉 WITHDRAWALS section - line $lineIndex: $cleanLine") 
+            } else {
+                android.util.Log.d("RegionsBankParser", "📄 General section - line $lineIndex: $cleanLine")
+            }
             
             for ((patternIndex, pattern) in patterns.withIndex()) {
                 val matcher = pattern.matcher(cleanLine)
@@ -202,13 +224,50 @@ class RegionsBankPDFParser(private val context: Context) {
                     
                     android.util.Log.d("RegionsBankParser", "Pattern 3: date=$dateStr, desc=$description, amount=$amountStr")
                 }
+                2 -> {
+                    // Pattern 3: Deposit patterns
+                    transactionType = matcher.group(2) ?: ""
+                    description = matcher.group(3) ?: ""
+                    amountStr = matcher.group(4) ?: return null
+                    
+                    android.util.Log.d("RegionsBankParser", "Pattern 3 (Deposit): date=$dateStr, type=$transactionType, desc=$description, amount=$amountStr")
+                }
                 3 -> {
-                    // Pattern 4: Full date format
+                    // Pattern 4: Simple date description amount
                     description = matcher.group(2) ?: ""
                     amountStr = matcher.group(3) ?: return null
                     transactionType = ""
                     
                     android.util.Log.d("RegionsBankParser", "Pattern 4: date=$dateStr, desc=$description, amount=$amountStr")
+                }
+                4 -> {
+                    // Pattern 5: Full date format
+                    description = matcher.group(2) ?: ""
+                    amountStr = matcher.group(3) ?: return null
+                    transactionType = ""
+                    
+                    android.util.Log.d("RegionsBankParser", "Pattern 5: date=$dateStr, desc=$description, amount=$amountStr")
+                }
+                5 -> {
+                    // Pattern 6: Amount-only (use previous line for description if in deposits section)
+                    if (isInDepositsSection) {
+                        description = "Deposit"
+                        amountStr = matcher.group(1) ?: return null
+                        transactionType = "Credit"
+                        // Use current date since no date in amount-only lines
+                        return Transaction(
+                            id = UUID.randomUUID().toString(),
+                            userId = "regions_parsed",
+                            amount = amountStr.replace(",", "").toDoubleOrNull() ?: return null,
+                            category = TransactionCategory.OTHER_INCOME,
+                            type = TransactionType.INCOME,
+                            description = "Bank Deposit - $amountStr",
+                            date = Date(),
+                            notes = "Parsed from Deposits & Credits section"
+                        )
+                    } else {
+                        return null
+                    }
                 }
                 else -> return null
             }
