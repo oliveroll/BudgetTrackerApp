@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "budget-tracker-docs": {
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-fetch",
+        "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+      ],
+      "env": {}
+    },
+    "budget-tracker-generic": {
+      "command": "npx", 
+      "args": [
+        "@modelcontextprotocol/server-fetch",
+        "https://gitmcp.io/docs"
+      ],
+      "env": {}
+    }
+  }
+}

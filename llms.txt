@@ -1,0 +1,271 @@
+# Budget Tracker Android App - AI/LLM Documentation
+
+## Overview
+A comprehensive Android budget tracking application built with Kotlin, Jetpack Compose, and Clean Architecture. Designed specifically for international students on OPT/H1B visas to manage their finances effectively.
+
+## Project Structure
+- **Language**: Kotlin
+- **Platform**: Android (Min SDK 24, Target SDK 34)
+- **Architecture**: Clean Architecture with MVVM
+- **UI**: Jetpack Compose with Material Design 3
+- **Database**: Room (local) + Firebase Firestore (cloud)
+- **DI**: Hilt (Dagger)
+- **Package**: com.budgettracker
+
+## Key Features
+
+### Core Functionality
+1. **Transaction Management**: Add, edit, delete transactions with 37+ categories
+2. **Budget Planning**: Monthly budgets with templates (50/30/20, Zero-based, OPT Student)
+3. **Financial Goals**: Savings goals and emergency fund tracking
+4. **Analytics**: Spending analysis and trend visualization
+5. **OPT/Visa Features**: H1B expenses, visa fee tracking
+
+### Transaction Categories
+- **Income**: Salary, Freelance, Investment Returns
+- **Fixed Expenses**: Rent, Utilities, Insurance, Loan Payments
+- **Variable Expenses**: Groceries, Dining, Transportation, Entertainment
+- **Savings**: Emergency Fund, Retirement (401K, Roth IRA), Investments
+- **Visa-Specific**: H1B Application, Visa Fees
+
+## Domain Models
+
+### Transaction
+```kotlin
+data class Transaction(
+    val id: String,
+    val userId: String,
+    val amount: Double,
+    val category: TransactionCategory,
+    val type: TransactionType, // INCOME, EXPENSE
+    val description: String,
+    val date: Date,
+    val isRecurring: Boolean,
+    val recurringPeriod: RecurringPeriod?,
+    val tags: List<String>,
+    val attachmentUrl: String?,
+    val location: String?,
+    val notes: String?,
+    val createdAt: Date,
+    val updatedAt: Date,
+    val isDeleted: Boolean // Soft delete
+)
+```
+
+### Budget
+```kotlin
+data class Budget(
+    val id: String,
+    val userId: String,
+    val month: String,
+    val year: Int,
+    val categories: List<CategoryBudget>,
+    val totalBudget: Double,
+    val totalSpent: Double,
+    val totalIncome: Double,
+    val createdAt: Date,
+    val updatedAt: Date,
+    val isTemplate: Boolean,
+    val templateName: String? // "50/30/20", "Zero-based", "OPT Student"
+)
+```
+
+## Architecture Layers
+
+### 1. Presentation Layer
+- **Compose UI Screens**: Dashboard, Transactions, Budget, Analytics, Settings
+- **ViewModels**: State management with StateFlow/LiveData
+- **Navigation**: Jetpack Navigation Compose
+
+### 2. Domain Layer
+- **Models**: Core business entities (Transaction, Budget, UserProfile, etc.)
+- **Use Cases**: Business logic (GetTransactions, CreateBudget, etc.)
+- **Repository Interfaces**: Abstraction for data access
+
+### 3. Data Layer
+- **Room Database**: Local persistence with entities and DAOs
+- **Firebase**: Cloud sync (Firestore, Auth, Storage)
+- **Repository Implementations**: Data source coordination
+
+## Technology Stack
+
+### Core Dependencies
+```kotlin
+// Core Android
+implementation("androidx.core:core-ktx:1.15.0")
+implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+implementation("androidx.activity:activity-compose:1.9.3")
+
+// Compose BOM
+implementation(platform("androidx.compose:compose-bom:2024.12.01"))
+implementation("androidx.compose.ui:ui")
+implementation("androidx.compose.ui:ui-graphics")
+implementation("androidx.compose.ui:ui-tooling-preview")
+implementation("androidx.compose.material3:material3")
+
+// Navigation
+implementation("androidx.navigation:navigation-compose:2.8.4")
+
+// Hilt DI
+implementation("com.google.dagger:hilt-android:2.52")
+kapt("com.google.dagger:hilt-compiler:2.52")
+implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
+// Room Database
+implementation("androidx.room:room-runtime:2.6.1")
+implementation("androidx.room:room-ktx:2.6.1")
+kapt("androidx.room:room-compiler:2.6.1")
+
+// Firebase
+implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+implementation("com.google.firebase:firebase-firestore-ktx")
+implementation("com.google.firebase:firebase-auth-ktx")
+implementation("com.google.firebase:firebase-storage-ktx")
+implementation("com.google.firebase:firebase-analytics-ktx")
+implementation("com.google.firebase:firebase-crashlytics-ktx")
+
+// Charts
+implementation("com.patrykandpatrick.vico:compose:2.0.0-alpha.28")
+implementation("com.patrykandpatrick.vico:compose-m3:2.0.0-alpha.28")
+
+// Networking
+implementation("com.squareup.retrofit2:retrofit:2.11.0")
+implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+// Image Loading
+implementation("io.coil-kt:coil-compose:2.7.0")
+
+// Utilities
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+implementation("androidx.work:work-runtime-ktx:2.10.0")
+implementation("androidx.biometric:biometric:1.1.0")
+```
+
+## Constants & Configuration
+
+### Default Financial Values (OPT Student Focus)
+```kotlin
+object Constants {
+    // Income
+    const val DEFAULT_MONTHLY_INCOME = 5470.0 // $5,470/month
+    const val DEFAULT_ANNUAL_SALARY = 80000.0 // $80,000/year
+    
+    // Savings
+    const val EMERGENCY_FUND_MONTHS = 6
+    const val ROTH_IRA_ANNUAL_LIMIT_2024 = 7000.0
+    const val TRADITIONAL_401K_LIMIT_2024 = 23000.0
+    
+    // OPT/Visa Specific
+    const val DEFAULT_COMPANY = "Ixana Quasistatics"
+    const val DEFAULT_STATE = "Indiana"
+    
+    // Budget Templates
+    const val TEMPLATE_50_30_20 = "50/30/20 Rule"
+    const val TEMPLATE_ZERO_BASED = "Zero-based Budget"
+    const val TEMPLATE_OPT_STUDENT = "OPT Student Budget"
+}
+```
+
+## Firebase Collections Structure
+```
+/users/{userId}
+  - profile: UserProfile
+  - settings: UserSettings
+
+/transactions/{userId}/{transactionId}
+  - Transaction data
+
+/budgets/{userId}/{budgetId}
+  - Budget data with monthly breakdowns
+
+/goals/{userId}/{goalId}
+  - Savings goals and progress
+
+/loans/{userId}/{loanId}
+  - Debt tracking information
+```
+
+## Development Status
+
+### ✅ Completed
+- Project structure setup
+- Domain models (Transaction, Budget, UserProfile, etc.)
+- Room entities with type converters
+- Constants and configuration
+- Build configuration with all dependencies
+- Application class with Hilt setup
+
+### 🔄 In Progress
+- Repository layer implementation
+- Use cases/Interactors
+- ViewModels with state management
+
+### ❌ TODO
+- Compose UI screens
+- Navigation setup
+- Firebase integration
+- Room database DAOs and setup
+- Dependency injection modules
+- Testing framework
+- PDF parsing for bank statements
+
+## File Locations
+```
+app/src/main/java/com/budgettracker/
+├── BudgetTrackerApplication.kt
+├── core/
+│   ├── data/local/entities/     # Room entities
+│   ├── domain/model/            # Domain models  
+│   └── utils/                   # Constants & extensions
+├── features/                    # Feature modules (TBD)
+│   ├── transaction/
+│   ├── budget/
+│   ├── analytics/
+│   └── profile/
+└── ui/                         # Compose components (TBD)
+```
+
+## Getting Started
+
+### Prerequisites
+- Android Studio Arctic Fox or later
+- Kotlin 1.9+
+- Android SDK 24+ (target 34)
+- Firebase project setup
+
+### Setup
+1. Clone repository
+2. Set up Firebase project and add google-services.json
+3. Configure local.properties with Android SDK path
+4. Sync project dependencies
+5. Run on device/emulator
+
+## Key Design Decisions
+
+### Why Clean Architecture?
+- Separation of concerns
+- Testability 
+- Maintainability
+- Independence from UI and database
+
+### Why Jetpack Compose?
+- Modern declarative UI
+- Better performance
+- Type safety
+- Easier testing
+
+### Why Room + Firebase?
+- Offline-first approach
+- Real-time sync capabilities
+- Scalable cloud backend
+- Local caching for performance
+
+### OPT/Visa Student Focus
+- Specific expense categories for visa costs
+- Income tracking for OPT regulations
+- Budget templates suited for student finances
+- Emergency fund planning for visa transitions
+
+This app is designed to help international students on OPT/H1B visas manage their finances effectively while navigating the complexities of US financial systems.

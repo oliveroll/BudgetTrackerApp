@@ -1,0 +1,86 @@
+# Cursor MCP Setup for Budget Tracker App
+
+## Option 1: Specific Repository MCP Server
+
+Add this to your Cursor settings.json:
+
+```json
+{
+  "mcp": {
+    "mcpServers": {
+      "budget-tracker": {
+        "command": "mcp-remote",
+        "args": [
+          "https://gitmcp.io/oliveroll/BudgetTrackerApp"
+        ]
+      }
+    }
+  }
+}
+```
+
+## Option 2: Generic MCP Server (Dynamic Repository Access)
+
+Add this to your Cursor settings.json:
+
+```json
+{
+  "mcp": {
+    "mcpServers": {
+      "gitmcp-docs": {
+        "command": "mcp-remote", 
+        "args": [
+          "https://gitmcp.io/docs"
+        ]
+      }
+    }
+  }
+}
+```
+
+## How to Use
+
+1. **Access Cursor Settings**:
+   - Open Cursor
+   - Go to File → Preferences → Settings (or Cmd/Ctrl + ,)
+   - Search for "mcp" 
+   - Edit the settings.json file
+
+2. **Add MCP Configuration**:
+   - Copy one of the configurations above
+   - Paste it into your settings.json
+   - Save the file
+
+3. **Test the Setup**:
+   - Open your Budget Tracker project in Cursor
+   - Try prompting with: "How do I add a new transaction in this Budget Tracker app?"
+   - Cursor should use GitMCP to fetch relevant documentation
+
+## Available Tools
+
+Once configured, your AI assistant will have access to:
+
+- `fetch_budget_tracker_documentation`: Get project overview and docs
+- `search_budget_tracker_documentation`: Search through documentation  
+- `search_budget_tracker_code`: Search through the codebase
+- `fetch_url_content`: Get content from referenced links
+
+## Example Prompts
+
+Try these prompts after setup:
+
+- "How is the Transaction model structured in this app?"
+- "What budget templates are available?"
+- "How do I add a new transaction category?"
+- "Explain the Clean Architecture implementation"
+- "What Firebase collections are used?"
+
+## Verification
+
+To verify the setup is working:
+
+1. Open Cursor with your Budget Tracker project
+2. Ask: "What are the main features of this Budget Tracker app?"
+3. The AI should provide detailed information about OPT/visa features, transaction categories, etc.
+
+If it works, you'll see responses that reference your actual project documentation rather than generic budget app information.
