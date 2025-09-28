@@ -449,21 +449,16 @@ object TransactionDataStore {
     }
     
     /**
-     * Delete transaction from Firebase (soft delete)
+     * Delete transaction from Firebase (hard delete - actually removes from database)
      */
     private suspend fun deleteTransactionFromFirebase(transactionId: String) {
         try {
             firestore.collection("transactions")
                 .document(transactionId)
-                .update(
-                    mapOf(
-                        "isDeleted" to true,
-                        "updatedAt" to com.google.firebase.Timestamp.now()
-                    )
-                )
+                .delete()
                 .await()
             
-            android.util.Log.d("TransactionDataStore", "Deleted transaction from Firebase: $transactionId")
+            android.util.Log.d("TransactionDataStore", "Permanently deleted transaction from Firebase: $transactionId")
             
         } catch (e: Exception) {
             android.util.Log.e("TransactionDataStore", "Error deleting transaction from Firebase: ${e.message}")
