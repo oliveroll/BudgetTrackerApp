@@ -104,8 +104,13 @@ class FixedRegionsBankPDFParser(private val context: Context) {
             }
         }
         
-        android.util.Log.d("FixedRegionsParser", "Total transactions found: ${transactions.size}")
-        return transactions.distinctBy { "${it.description.take(30)}_${it.amount}_${it.date.time / 86400000}" }
+        android.util.Log.d("FixedRegionsParser", "Total transactions found before deduplication: ${transactions.size}")
+        
+        // Enhanced deduplication within the same statement
+        val deduplicatedTransactions = deduplicateTransactions(transactions)
+        
+        android.util.Log.d("FixedRegionsParser", "Total transactions after deduplication: ${deduplicatedTransactions.size}")
+        return deduplicatedTransactions
     }
     
     /**
@@ -277,5 +282,46 @@ class FixedRegionsBankPDFParser(private val context: Context) {
             desc.contains("monthly fee") -> TransactionCategory.MISCELLANEOUS
             else -> TransactionCategory.MISCELLANEOUS
         }
+    }
+    
+    /**
+     * Deduplicate transactions within the same statement
+     */
+    private fun deduplicateTransactions(transactions: List<Transaction>): List<Transaction> {
+        val uniqueTransactions = mutableListOf<Transaction>()
+        val duplicatesFound = mutableListOf<String>()
+        
+        for (transaction in transactions) {
+            val isDuplicate = uniqueTransactions.any { existing ->
+                // Check for exact matches within the same statement
+                kotlin.math.abs(existing.amount - transaction.amount) < 0.01 &&
+                kotlin.math.abs(existing.date.time - transaction.date.time) < 3600000 && // Within 1 hour
+                normalizeForComparison(existing.description) == normalizeForComparison(transaction.description)
+            }
+            
+            if (!isDuplicate) {
+                uniqueTransactions.add(transaction)
+                android.util.Log.d("FixedRegionsParser", "✅ Unique: ${transaction.description} - $${transaction.amount}")
+            } else {
+                duplicatesFound.add("${transaction.description} - $${transaction.amount}")
+                android.util.Log.d("FixedRegionsParser", "⚠️ Duplicate in statement: ${transaction.description}")
+            }
+        }
+        
+        if (duplicatesFound.isNotEmpty()) {
+            android.util.Log.d("FixedRegionsParser", "Removed ${duplicatesFound.size} duplicates from statement")
+        }
+        
+        return uniqueTransactions
+    }
+    
+    /**
+     * Normalize description for duplicate comparison
+     */
+    private fun normalizeForComparison(description: String): String {
+        return description
+            .lowercase()
+            .replace(Regex("[^a-z0-9]"), "") // Keep only letters and numbers
+            .replace(Regex("\\d{8,}"), "") // Remove long account numbers
     }
 }

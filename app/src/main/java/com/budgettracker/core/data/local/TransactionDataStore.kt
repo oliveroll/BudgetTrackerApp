@@ -110,7 +110,7 @@ object TransactionDataStore {
     }
     
     /**
-     * Add multiple transactions (from PDF parsing)
+     * Add multiple transactions (from PDF parsing) with enhanced duplicate detection
      */
     fun addTransactions(transactions: List<Transaction>, documentHash: String? = null): Int {
         // Check if document was already parsed
@@ -119,20 +119,38 @@ object TransactionDataStore {
             return 0
         }
         
+        android.util.Log.d("TransactionDataStore", "Checking ${transactions.size} new transactions for duplicates against ${_transactions.size} existing transactions")
+        
         var addedCount = 0
+        val duplicatesSkipped = mutableListOf<String>()
+        val transactionsToAdd = mutableListOf<Transaction>()
+        
         for (transaction in transactions) {
-            // Check for duplicates based on description, amount, and date
-            val isDuplicate = _transactions.any { existing ->
-                existing.description == transaction.description &&
-                existing.amount == transaction.amount &&
-                kotlin.math.abs(existing.date.time - transaction.date.time) < 86400000 // Within 24 hours
-            }
+            // Enhanced duplicate detection
+            val isDuplicate = checkForDuplicate(transaction)
             
             if (!isDuplicate) {
-                _transactions.add(transaction)
-                addedCount++
+                // Also check against other transactions in this same batch
+                val isDuplicateInBatch = transactionsToAdd.any { batchTransaction ->
+                    isSimilarTransaction(transaction, batchTransaction)
+                }
+                
+                if (!isDuplicateInBatch) {
+                    transactionsToAdd.add(transaction)
+                    addedCount++
+                    android.util.Log.d("TransactionDataStore", "✅ Will add: ${transaction.description} - $${transaction.amount}")
+                } else {
+                    duplicatesSkipped.add("${transaction.description} ($${transaction.amount}) - duplicate in batch")
+                    android.util.Log.d("TransactionDataStore", "⚠️ Skipping batch duplicate: ${transaction.description}")
+                }
+            } else {
+                duplicatesSkipped.add("${transaction.description} ($${transaction.amount}) - already exists")
+                android.util.Log.d("TransactionDataStore", "⚠️ Skipping existing duplicate: ${transaction.description}")
             }
         }
+        
+        // Add non-duplicate transactions
+        _transactions.addAll(transactionsToAdd)
         
         // Mark document as parsed
         if (documentHash != null) {
@@ -142,12 +160,99 @@ object TransactionDataStore {
         // Save new transactions to Firebase in background
         if (addedCount > 0) {
             CoroutineScope(Dispatchers.IO).launch {
-                saveTransactionsToFirebase(transactions.takeLast(addedCount))
+                saveTransactionsToFirebase(transactionsToAdd)
             }
         }
         
-        android.util.Log.d("TransactionDataStore", "Added $addedCount new transactions out of ${transactions.size}")
+        android.util.Log.d("TransactionDataStore", "✅ Added $addedCount new transactions, skipped ${duplicatesSkipped.size} duplicates")
+        duplicatesSkipped.forEach { android.util.Log.d("TransactionDataStore", "   Skipped: $it") }
+        
         return addedCount
+    }
+    
+    /**
+     * Enhanced duplicate detection
+     */
+    private fun checkForDuplicate(newTransaction: Transaction): Boolean {
+        return _transactions.any { existing ->
+            isSimilarTransaction(newTransaction, existing)
+        }
+    }
+    
+    /**
+     * Check if two transactions are similar (likely duplicates)
+     */
+    private fun isSimilarTransaction(transaction1: Transaction, transaction2: Transaction): Boolean {
+        // Exact amount match
+        val sameAmount = kotlin.math.abs(transaction1.amount - transaction2.amount) < 0.01
+        
+        // Date within 2 days
+        val dateRange = kotlin.math.abs(transaction1.date.time - transaction2.date.time) < 172800000 // 48 hours
+        
+        // Similar description (normalize and compare)
+        val desc1 = normalizeDescription(transaction1.description)
+        val desc2 = normalizeDescription(transaction2.description)
+        val similarDescription = desc1 == desc2 || 
+                                desc1.contains(desc2) || 
+                                desc2.contains(desc1) ||
+                                calculateSimilarity(desc1, desc2) > 0.8
+        
+        val isDuplicate = sameAmount && dateRange && similarDescription
+        
+        if (isDuplicate) {
+            android.util.Log.d("TransactionDataStore", "🔍 Duplicate detected: ${transaction1.description} ($${transaction1.amount}) vs ${transaction2.description} ($${transaction2.amount})")
+        }
+        
+        return isDuplicate
+    }
+    
+    /**
+     * Normalize description for comparison
+     */
+    private fun normalizeDescription(description: String): String {
+        return description
+            .lowercase()
+            .replace(Regex("[^a-z0-9\\s]"), "") // Remove special characters
+            .replace(Regex("\\s+"), " ") // Normalize whitespace
+            .replace(Regex("\\d{10,}"), "") // Remove long numbers
+            .trim()
+    }
+    
+    /**
+     * Calculate similarity between two strings
+     */
+    private fun calculateSimilarity(str1: String, str2: String): Double {
+        val maxLength = maxOf(str1.length, str2.length)
+        if (maxLength == 0) return 1.0
+        
+        val distance = levenshteinDistance(str1, str2)
+        return (maxLength - distance) / maxLength.toDouble()
+    }
+    
+    /**
+     * Calculate Levenshtein distance
+     */
+    private fun levenshteinDistance(str1: String, str2: String): Int {
+        val len1 = str1.length
+        val len2 = str2.length
+        
+        val matrix = Array(len1 + 1) { IntArray(len2 + 1) }
+        
+        for (i in 0..len1) matrix[i][0] = i
+        for (j in 0..len2) matrix[0][j] = j
+        
+        for (i in 1..len1) {
+            for (j in 1..len2) {
+                val cost = if (str1[i - 1] == str2[j - 1]) 0 else 1
+                matrix[i][j] = minOf(
+                    matrix[i - 1][j] + 1,      // deletion
+                    matrix[i][j - 1] + 1,      // insertion
+                    matrix[i - 1][j - 1] + cost // substitution
+                )
+            }
+        }
+        
+        return matrix[len1][len2]
     }
     
     /**
