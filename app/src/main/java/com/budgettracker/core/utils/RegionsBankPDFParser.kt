@@ -68,7 +68,10 @@ class RegionsBankPDFParser(private val context: Context) {
             Pattern.compile("(\\d{2}/\\d{2})\\s+(Monthly\\s+Fee|Service\\s+Fee|ATM\\s+Fee)\\s+(\\d+\\.\\d{2})$"),
             
             // Pattern 3: General date ... amount at end
-            Pattern.compile("(\\d{2}/\\d{2})\\s+(.+?)\\s+(\\d+\\.\\d{2})$")
+            Pattern.compile("(\\d{2}/\\d{2})\\s+(.+?)\\s+(\\d+\\.\\d{2})$"),
+            
+            // Pattern 4: Date with full year format
+            Pattern.compile("(\\d{2}/\\d{2}/\\d{4})\\s+(.+?)\\s+(\\d+\\.\\d{2})$")
         )
         
         for ((lineIndex, line) in lines.withIndex()) {
@@ -156,6 +159,14 @@ class RegionsBankPDFParser(private val context: Context) {
                     
                     android.util.Log.d("RegionsBankParser", "Pattern 3: date=$dateStr, desc=$description, amount=$amountStr")
                 }
+                3 -> {
+                    // Pattern 4: Full date format
+                    description = matcher.group(2) ?: ""
+                    amountStr = matcher.group(3) ?: return null
+                    transactionType = ""
+                    
+                    android.util.Log.d("RegionsBankParser", "Pattern 4: date=$dateStr, desc=$description, amount=$amountStr")
+                }
                 else -> return null
             }
             
@@ -206,21 +217,54 @@ class RegionsBankPDFParser(private val context: Context) {
     }
     
     /**
-     * Parse Regions Bank date format (MM/dd)
+     * Parse Regions Bank date format (MM/dd or MM/dd/yyyy) with proper year handling
      */
     private fun parseRegionsDate(dateStr: String): Date {
         return try {
-            val format = SimpleDateFormat("MM/dd", Locale.US)
-            val parsed = format.parse(dateStr)
-            if (parsed != null) {
-                val calendar = Calendar.getInstance()
-                calendar.time = parsed
-                calendar.set(Calendar.YEAR, 2025) // Assume 2025 for your statement
-                calendar.time
-            } else {
-                Date()
+            // Try different date formats
+            val formats = listOf(
+                SimpleDateFormat("MM/dd/yyyy", Locale.US),
+                SimpleDateFormat("MM/dd", Locale.US)
+            )
+            
+            for (format in formats) {
+                try {
+                    val parsed = format.parse(dateStr)
+                    if (parsed != null) {
+                        val calendar = Calendar.getInstance()
+                        calendar.time = parsed
+                        
+                        // For MM/dd format, assign year intelligently
+                        if (dateStr.length <= 5) {
+                            val currentCalendar = Calendar.getInstance()
+                            val currentMonth = currentCalendar.get(Calendar.MONTH)
+                            val currentYear = currentCalendar.get(Calendar.YEAR)
+                            val parsedMonth = calendar.get(Calendar.MONTH)
+                            
+                            // If parsed month is in the future compared to current month,
+                            // assume it's from the previous year
+                            if (parsedMonth > currentMonth + 3) {
+                                calendar.set(Calendar.YEAR, currentYear - 1)
+                            } else {
+                                calendar.set(Calendar.YEAR, currentYear)
+                            }
+                        }
+                        
+                        android.util.Log.d("RegionsBankParser", "Parsed date: $dateStr -> ${SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.time)}")
+                        return calendar.time
+                    }
+                } catch (e: Exception) {
+                    // Continue to next format
+                    continue
+                }
             }
+            
+            // Fallback to current date
+            android.util.Log.w("RegionsBankParser", "Could not parse date: $dateStr, using current date")
+            Date()
+            
         } catch (e: Exception) {
+            android.util.Log.e("RegionsBankParser", "Error parsing date $dateStr: ${e.message}")
             Date()
         }
     }

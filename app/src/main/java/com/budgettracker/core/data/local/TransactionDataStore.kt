@@ -14,13 +14,13 @@ object TransactionDataStore {
     private val parsedDocuments = mutableSetOf<String>()
     
     /**
-     * Get all transactions
+     * Get all transactions sorted by date (newest first)
      */
     fun getTransactions(): List<Transaction> {
         if (_transactions.isEmpty()) {
             initializeWithDemoData()
         }
-        return _transactions.toList()
+        return _transactions.sortedByDescending { it.date }
     }
     
     /**
@@ -85,13 +85,13 @@ object TransactionDataStore {
     }
     
     /**
-     * Get transactions for specific month/year
+     * Get transactions for specific month/year sorted by date (newest first)
      */
     fun getTransactionsForMonth(month: Int, year: Int): List<Transaction> {
         return _transactions.filter { transaction ->
             val calendar = Calendar.getInstance().apply { time = transaction.date }
             calendar.get(Calendar.MONTH) == month && calendar.get(Calendar.YEAR) == year
-        }
+        }.sortedByDescending { it.date }
     }
     
     /**

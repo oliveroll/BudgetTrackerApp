@@ -129,13 +129,9 @@ fun EnhancedMobileFriendlyTransactions(
         }
     }
     
-    // Filter transactions by selected month/year
+    // Filter transactions by selected month/year (already sorted by date)
     val filteredTransactions = remember(selectedMonth, selectedYear, transactions) {
-        transactions.filter { transaction ->
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            calendar.get(Calendar.MONTH) == selectedMonth && 
-            calendar.get(Calendar.YEAR) == selectedYear
-        }
+        TransactionDataStore.getTransactionsForMonth(selectedMonth, selectedYear)
     }
     
     Scaffold(
