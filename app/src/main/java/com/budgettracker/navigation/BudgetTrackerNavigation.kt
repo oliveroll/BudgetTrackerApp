@@ -19,6 +19,7 @@ import com.budgettracker.features.transactions.presentation.TransactionListScree
 import com.budgettracker.features.budget.presentation.EnhancedBudgetScreen
 import com.budgettracker.features.savings.presentation.SavingsGoalsScreen
 import com.budgettracker.features.savings.presentation.AddGoalScreen
+import com.budgettracker.features.savings.presentation.GoalsScreen
 import com.budgettracker.features.reports.presentation.ReportsScreen
 import com.budgettracker.features.settings.presentation.SettingsScreen
 
@@ -148,7 +149,7 @@ fun BudgetTrackerNavigation(
         }
         
         composable(BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE) {
-            SavingsGoalsScreen(
+            GoalsScreen(
                 onNavigateToAddGoal = {
                     navController.navigate(BudgetTrackerDestinations.ADD_GOAL_ROUTE)
                 }
