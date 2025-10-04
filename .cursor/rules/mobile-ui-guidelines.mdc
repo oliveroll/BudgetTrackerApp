@@ -1,0 +1,228 @@
+---
+globs: *.kt
+description: Mobile UI design guidelines and responsive layout patterns
+---
+
+# Mobile UI Design Guidelines
+
+## Layout Principles
+
+### Text Handling - Prevent Truncation:
+```kotlin
+// Always use these patterns to prevent "..." truncation
+Text(
+    text = "Your text here",
+    maxLines = 1,
+    overflow = TextOverflow.Ellipsis,
+    modifier = Modifier.weight(1f) // Takes available space
+)
+
+// For fixed-width elements (like amounts)
+modifier = Modifier.widthIn(min = 80.dp)
+```
+
+### Responsive Card Layouts:
+```kotlin
+Row(
+    modifier = Modifier.fillMaxWidth(),
+    verticalAlignment = Alignment.CenterVertically
+) {
+    // Icon and details - flexible width
+    Row(
+        modifier = Modifier.weight(1f),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icon, description, category, date
+    }
+    
+    Spacer(modifier = Modifier.width(8.dp))
+    
+    // Amount - fixed width to prevent squeezing
+    Column(
+        horizontalAlignment = Alignment.End,
+        modifier = Modifier.widthIn(min = 90.dp)
+    ) {
+        // Amount text
+    }
+}
+```
+
+## Dashboard Design Patterns
+
+### Header Cards:
+- **Gradient Backgrounds:** Use Primary40 and Secondary40 colors
+- **Profile Integration:** Settings icon in header (not bottom nav)
+- **Responsive Text:** Weight distribution for mobile screens
+- **Touch Targets:** Minimum 48.dp for interactive elements
+
+### Financial Overview:
+- **Chart Integration:** Visual income vs expenses charts
+- **Category Breakdown:** Spending by category with progress bars
+- **Summary Cards:** Income, expenses, net with proper spacing
+
+## Transactions Screen Patterns
+
+### Month Selection:
+```kotlin
+// Month picker with calendar interface
+Card(onClick = { showMonthPicker = true }) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("${getMonthName(month)} $year")
+        Icon(Icons.Default.Event)
+    }
+}
+```
+
+### Transaction Cards:
+```kotlin
+// Mobile-optimized transaction display
+Card {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        // Icon (48.dp)
+        // Description column (weight = 1f)
+        // Amount column (widthIn(min = 90.dp))
+    }
+}
+```
+
+### Date Display:
+```kotlin
+// Separate category and date for better readability
+Row(horizontalArrangement = Arrangement.SpaceBetween) {
+    Text(
+        text = transaction.category.displayName,
+        modifier = Modifier.weight(1f),
+        overflow = TextOverflow.Ellipsis
+    )
+    Text(
+        text = SimpleDateFormat("MMM dd", Locale.getDefault()).format(transaction.date),
+        fontWeight = FontWeight.Medium
+    )
+}
+```
+
+## Navigation Design
+
+### Bottom Navigation:
+- **4 Tabs Only:** Home, Transactions, Budget, Goals
+- **Settings Moved:** To dashboard header for cleaner design
+- **Clean Layout:** No overcrowding of navigation
+
+### Header Actions:
+```kotlin
+// Settings in dashboard header
+IconButton(onClick = onNavigateToSettings) {
+    Icon(Icons.Default.Settings)
+}
+
+// Action buttons in specific screens
+actions = {
+    IconButton(onClick = { showUploadDialog = true }) {
+        Icon(Icons.Default.Upload)
+    }
+    IconButton(onClick = { clearAllData() }) {
+        Icon(Icons.Default.Delete) // Nuclear option
+    }
+}
+```
+
+## Form Design Patterns
+
+### Add/Edit Transaction Forms:
+```kotlin
+// Transaction type selection
+Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    FilterChip(
+        selected = selectedType == TransactionType.INCOME,
+        label = { Text("Income") },
+        modifier = Modifier.weight(1f)
+    )
+    FilterChip(
+        selected = selectedType == TransactionType.EXPENSE,
+        label = { Text("Expense") },
+        modifier = Modifier.weight(1f)
+    )
+}
+
+// Category dropdown with icons
+ExposedDropdownMenuBox {
+    OutlinedTextField(
+        value = "${selectedCategory.icon} ${selectedCategory.displayName}",
+        readOnly = true,
+        modifier = Modifier.fillMaxWidth().menuAnchor()
+    )
+}
+
+// Date picker integration
+Card(onClick = { showDatePicker = true }) {
+    Row(horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Transaction Date")
+        Text(SimpleDateFormat("MMM dd, yyyy").format(selectedDate))
+    }
+}
+```
+
+## Color Scheme
+
+### Transaction Colors:
+- **Income:** `Color(0xFF28a745)` (Green)
+- **Expenses:** `Color(0xFFdc3545)` (Red)
+- **Primary:** `Primary40` from theme
+- **Secondary:** `Secondary40` from theme
+
+### Status Colors:
+- **Success:** Green for positive actions
+- **Warning:** Orange for caution
+- **Error:** Red for problems
+- **Info:** Blue for information
+
+## Performance Guidelines
+
+### Prevent Infinite Recomposition:
+```kotlin
+// Use remember for expensive operations
+val expensiveData = remember { calculateExpensiveData() }
+
+// Use LaunchedEffect for one-time operations
+LaunchedEffect(Unit) {
+    TransactionDataStore.initializeFromFirebase()
+}
+
+// Avoid creating new objects in Composables
+val repository = remember { TransactionDataStore }
+```
+
+### State Management:
+- **Use TransactionDataStore** for persistent state
+- **Avoid ViewModel** if causing recomposition issues
+- **Use remember** for UI-only state
+- **Use LaunchedEffect** for side effects
+
+## Accessibility
+
+### Content Descriptions:
+```kotlin
+Icon(
+    imageVector = Icons.Default.Upload,
+    contentDescription = "Upload Statement"
+)
+```
+
+### Touch Targets:
+- **Minimum 48.dp** for interactive elements
+- **Proper spacing** between clickable items
+- **Clear visual feedback** for interactions
+
+## Testing Patterns
+
+### UI Testing:
+1. **Different Screen Sizes:** Test on various device sizes
+2. **Text Overflow:** Ensure no truncation with long text
+3. **Touch Targets:** Verify all buttons are easily tappable
+4. **Navigation:** Test tab switching and back navigation
+
+### Data Testing:
+1. **PDF Upload:** Test with actual bank statements
+2. **Manual Entry:** Verify all form fields work
+3. **Edit/Delete:** Test transaction management
+4. **Persistence:** Verify data survives app restarts

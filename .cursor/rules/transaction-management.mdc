@@ -1,0 +1,149 @@
+---
+description: Transaction management, PDF parsing, and data persistence
+---
+
+# Transaction Management System
+
+## Core Transaction Model
+
+### Transaction.kt Structure
+The [Transaction.kt](mdc:app/src/main/java/com/budgettracker/core/domain/model/Transaction.kt) model includes:
+- **id:** Unique identifier (UUID)
+- **userId:** User isolation for multi-user support
+- **amount:** Transaction amount (Double)
+- **category:** TransactionCategory enum (37+ categories)
+- **type:** TransactionType (INCOME/EXPENSE)
+- **description:** Human-readable description
+- **date:** Transaction date (Date)
+- **notes:** Optional additional information
+- **isRecurring:** Recurring transaction flag
+
+## Data Persistence System
+
+### TransactionDataStore (Primary)
+[TransactionDataStore.kt](mdc:app/src/main/java/com/budgettracker/core/data/local/TransactionDataStore.kt) - Singleton for app-wide persistence:
+
+```kotlin
+// Get all transactions (sorted by date)
+val transactions = TransactionDataStore.getTransactions()
+
+// Add single transaction
+TransactionDataStore.addTransaction(transaction)
+
+// Add multiple transactions with duplicate prevention
+val addedCount = TransactionDataStore.addTransactions(transactions, documentHash)
+
+// Update transaction
+TransactionDataStore.updateTransaction(updatedTransaction)
+
+// Delete transaction (hard delete from Firebase)
+TransactionDataStore.deleteTransaction(transactionId)
+
+// Clear all data (nuclear option)
+TransactionDataStore.clearAllData()
+```
+
+### Firebase Integration
+- **Collection:** `transactions`
+- **Auto-sync:** Background Firebase operations
+- **User Isolation:** Filtered by `userId`
+- **Hard Deletes:** Complete removal from database
+
+## PDF Parsing System
+
+### Regions Bank Parser
+[FixedRegionsBankPDFParser.kt](mdc:app/src/main/java/com/budgettracker/core/utils/FixedRegionsBankPDFParser.kt) - Specialized for Regions Bank statements:
+
+#### Supported Sections:
+1. **DEPOSITS & CREDITS** → Income (Green)
+   - Salary deposits (Gusto Pay)
+   - Wire transfers (Wise Inc)
+   - Payment credits (Oliver Ollesch Payments)
+   - Venmo credits
+
+2. **WITHDRAWALS** → Expenses (Red)
+   - Card purchases
+   - ATM withdrawals
+   - Online transactions
+
+3. **FEES** → Expenses (Red)
+   - Monthly fees
+   - Service charges
+
+#### Usage:
+```kotlin
+val parser = FixedRegionsBankPDFParser(context)
+val result = parser.parseRegionsBankStatement(uri)
+if (result.isSuccess) {
+    val transactions = result.getOrNull() ?: emptyList()
+    TransactionDataStore.addTransactions(transactions, documentHash)
+}
+```
+
+## Duplicate Prevention
+
+### Multi-Level Protection:
+1. **Document Hash:** Prevents re-parsing same PDF
+2. **Database Check:** Compares against existing transactions
+3. **Statement Deduplication:** Removes duplicates within same PDF
+4. **Batch Protection:** Prevents duplicates in same upload
+
+### Duplicate Detection Criteria:
+- **Amount Match:** Within $0.01
+- **Date Proximity:** Within 48 hours (database) / 1 hour (statement)
+- **Description Similarity:** Levenshtein distance algorithm (80% threshold)
+- **Normalized Comparison:** Removes special characters and account numbers
+
+## Transaction Management UI
+
+### Main Screens:
+1. **[EnhancedMobileFriendlyTransactions.kt](mdc:app/src/main/java/com/budgettracker/features/transactions/presentation/EnhancedMobileFriendlyTransactions.kt)**
+   - Month selection with calendar picker
+   - Edit/delete functionality
+   - PDF upload integration
+   - Firebase clearing (🗑️ button)
+
+2. **[AddTransactionScreen.kt](mdc:app/src/main/java/com/budgettracker/features/transactions/presentation/AddTransactionScreen.kt)**
+   - Manual transaction entry
+   - Date picker for custom dates
+   - Category selection
+   - TransactionDataStore integration
+
+### Key Features:
+- **Month Navigation:** Calendar-style month/year picker
+- **Edit Transactions:** Tap transaction → Edit/Delete buttons
+- **Date Selection:** Beautiful Material3 DatePicker
+- **Category Management:** 37+ categories with icons
+- **PDF Upload:** Regions Bank statement parsing
+
+## Mobile-Responsive Design
+
+### Layout Principles:
+- **Weight Distribution:** Proper space allocation
+- **Minimum Widths:** Prevent text squeezing
+- **Text Overflow:** Ellipsis for long descriptions
+- **Touch Targets:** Adequate button sizes
+- **Responsive Cards:** Adaptive to screen sizes
+
+### Common Patterns:
+```kotlin
+// Prevent text squeezing
+modifier = Modifier.weight(1f)
+maxLines = 1
+overflow = TextOverflow.Ellipsis
+
+// Fixed minimum widths
+modifier = Modifier.widthIn(min = 80.dp)
+
+// Responsive layouts
+Row(horizontalArrangement = Arrangement.SpaceBetween)
+```
+
+## Development Workflow
+
+1. **Make Changes** to transaction-related files
+2. **Build:** `./gradlew assembleDebug`
+3. **Install:** `adb install -r app-debug.apk`
+4. **Test:** Verify functionality works
+5. **Commit:** `git add . && git commit -m "..."`
+6. **Push:** `git push origin main`

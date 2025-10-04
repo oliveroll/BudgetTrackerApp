@@ -1,0 +1,188 @@
+---
+description: Development workflow, git practices, and deployment procedures
+---
+
+# Development Workflow Guide
+
+## Git Workflow
+
+### Branch Structure:
+- **main** - Production-ready code
+- **develop** - Integration branch (if needed)
+- **feature/** - Feature branches (if needed)
+
+### Commit Message Format:
+```
+feat: Add new feature description
+fix: Fix specific issue description  
+docs: Update documentation
+refactor: Code refactoring
+perf: Performance improvements
+test: Add or update tests
+```
+
+### Recent Commit Examples:
+```
+feat: Fix manual transaction adding with date picker functionality
+fix: Change soft delete to hard delete - transactions actually removed from Firebase
+feat: Enhanced DEPOSITS & CREDITS section parsing for Regions Bank
+feat: Comprehensive duplicate detection - prevents all double entries
+```
+
+## Development Process
+
+### 1. Making Changes:
+```bash
+# Navigate to project
+cd /home/oliver/BudgetTrackerApp
+
+# Make code changes in IDE
+# Test changes locally
+```
+
+### 2. Building:
+```bash
+# Clean previous builds
+./gradlew clean
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Check for compilation errors
+# Fix any Kotlin/Android issues
+```
+
+### 3. Testing:
+```bash
+# Check device connection
+adb devices
+
+# Install APK
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Monitor logs
+adb logcat -s com.budgettracker:*
+
+# Test functionality
+# Verify features work as expected
+```
+
+### 4. Committing:
+```bash
+# Stage changes
+git add .
+
+# Commit with descriptive message
+git commit -m "feat: Description of changes"
+
+# Push to GitHub
+git push origin main
+```
+
+## APK Management
+
+### Version Naming Convention:
+```
+BudgetTracker-v[MAJOR].[MINOR]-[FEATURE].apk
+
+Examples:
+- BudgetTracker-v5.0-MANUAL-TRANSACTIONS.apk
+- BudgetTracker-v4.6-FIREBASE-CLEANER.apk
+- BudgetTracker-v3.3-LOOP-FIXED.apk
+```
+
+### APK Generation:
+```bash
+# Build and copy with version name
+./gradlew assembleDebug
+cp app/build/outputs/apk/debug/app-debug.apk ~/BudgetTracker-v5.0-FEATURE.apk
+
+# Install specific version
+adb install -r ~/BudgetTracker-v5.0-FEATURE.apk
+```
+
+## Testing Procedures
+
+### Pre-Commit Testing:
+1. **Build Successfully:** `./gradlew assembleDebug`
+2. **Install Clean:** Fresh APK installation
+3. **Test Core Features:**
+   - Dashboard loads without crashing
+   - Transactions tab works (no freezing)
+   - PDF upload functionality
+   - Manual transaction adding
+   - Edit/delete operations
+4. **Test Navigation:** Switch between all tabs
+5. **Test Persistence:** Restart app, verify data loads
+
+### Feature Testing Checklist:
+- [ ] App launches without crashes
+- [ ] Dashboard displays properly (no infinite loops)
+- [ ] Transactions tab loads smoothly
+- [ ] Month selection works
+- [ ] PDF upload processes correctly
+- [ ] Manual transaction adding works
+- [ ] Edit functionality with category selection
+- [ ] Delete removes from Firebase
+- [ ] Date picker functions properly
+- [ ] Data persists across app restarts
+
+## Release Process
+
+### Debug Release:
+1. **Test thoroughly** with debug APK
+2. **Fix any issues** found during testing
+3. **Create versioned APK** with descriptive name
+4. **Commit changes** with proper message
+5. **Push to GitHub** for backup
+
+### Production Release (Future):
+1. **Build release APK:** `./gradlew assembleRelease`
+2. **Sign APK** with release keystore
+3. **Test release build** thoroughly
+4. **Deploy to Play Store** (when ready)
+
+## Backup and Recovery
+
+### Code Backup:
+- **GitHub Repository:** https://github.com/oliveroll/BudgetTrackerApp.git
+- **Regular Commits:** After each significant change
+- **Descriptive Messages:** Clear commit descriptions
+
+### APK Backup:
+- **Local Storage:** ~/BudgetTracker-v*.apk files
+- **Version History:** Keep previous working versions
+- **Quick Recovery:** Easy rollback to previous versions
+
+## Emergency Procedures
+
+### App Not Working:
+1. **Check logs:** `adb logcat -s com.budgettracker:*`
+2. **Try clean build:** `./gradlew clean assembleDebug`
+3. **Reinstall APK:** `adb install -r app-debug.apk`
+4. **Clear app data:** Android settings → Apps → Budget Tracker → Clear Data
+
+### Firebase Issues:
+1. **Clear Firebase:** Tap 🗑️ in Transactions tab
+2. **Check network:** Ensure internet connectivity
+3. **Verify config:** Check google-services.json
+4. **Monitor logs:** Look for Firebase errors
+
+### Build Issues:
+1. **Clean project:** `./gradlew clean`
+2. **Check dependencies:** Verify all imports
+3. **Update Gradle:** `./gradlew wrapper --gradle-version=8.11`
+4. **Sync project:** In Android Studio
+
+## Key Files to Monitor
+
+### Critical Files:
+- [BudgetTrackerApplication.kt](mdc:app/src/main/java/com/budgettracker/BudgetTrackerApplication.kt)
+- [TransactionDataStore.kt](mdc:app/src/main/java/com/budgettracker/core/data/local/TransactionDataStore.kt)
+- [EnhancedMobileFriendlyTransactions.kt](mdc:app/src/main/java/com/budgettracker/features/transactions/presentation/EnhancedMobileFriendlyTransactions.kt)
+- [FixedRegionsBankPDFParser.kt](mdc:app/src/main/java/com/budgettracker/core/utils/FixedRegionsBankPDFParser.kt)
+
+### Configuration Files:
+- [app/build.gradle.kts](mdc:app/build.gradle.kts)
+- [google-services.json](mdc:app/google-services.json)
+- [AndroidManifest.xml](mdc:app/src/main/AndroidManifest.xml)

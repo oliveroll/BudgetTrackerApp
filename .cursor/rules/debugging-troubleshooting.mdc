@@ -1,0 +1,222 @@
+---
+description: Debugging guide, common issues, and troubleshooting solutions
+---
+
+# Debugging and Troubleshooting Guide
+
+## Common Issues and Solutions
+
+### 1. App Crashes on Startup
+**Symptoms:** App closes immediately after opening
+**Causes:** 
+- Firebase Crashlytics plugin missing
+- Hilt configuration issues
+- Missing dependencies
+
+**Solutions:**
+```kotlin
+// Ensure Crashlytics plugin in app/build.gradle.kts
+plugins {
+    id("com.google.firebase.crashlytics")
+}
+
+// Check BudgetTrackerApplication.kt has @HiltAndroidApp
+@HiltAndroidApp
+class BudgetTrackerApplication : Application()
+```
+
+### 2. App Freezes at Splash Screen
+**Symptoms:** Splash screen hangs, app becomes unresponsive
+**Causes:**
+- Infinite recomposition loops
+- Firebase operations on main thread
+- StateFlow issues in Compose
+
+**Solutions:**
+```kotlin
+// Use stable state management
+var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
+
+// Avoid StateFlow in Compose
+// Use LaunchedEffect for initialization
+LaunchedEffect(Unit) {
+    TransactionDataStore.initializeFromFirebase()
+}
+```
+
+### 3. Transactions Tab Infinite Color Switching
+**Symptoms:** Transaction cards rapidly switch between green and red
+**Causes:** Infinite recomposition in ViewModel or repository
+**Solutions:**
+- Use TransactionDataStore instead of ViewModel
+- Avoid creating new repository instances in Composables
+- Use remember for expensive operations
+
+### 4. Text Truncation ("..." Issues)
+**Symptoms:** Transaction dates, amounts, or descriptions cut off
+**Solutions:**
+```kotlin
+// Use proper weight distribution
+modifier = Modifier.weight(1f)
+
+// Set minimum widths for important elements
+modifier = Modifier.widthIn(min = 80.dp)
+
+// Handle text overflow
+maxLines = 1
+overflow = TextOverflow.Ellipsis
+```
+
+### 5. Manual Transactions Not Saving
+**Symptoms:** Added transactions disappear after navigation
+**Causes:** 
+- Wrong repository integration
+- Missing TransactionDataStore usage
+
+**Solutions:**
+```kotlin
+// In AddTransactionScreen.kt, use TransactionDataStore
+TransactionDataStore.addTransaction(transaction)
+
+// Not the old FirebaseRepository
+```
+
+### 6. PDF Upload Not Working
+**Symptoms:** "No transactions found in PDF"
+**Causes:**
+- Incorrect regex patterns
+- Section detection failures
+- Permission issues
+
+**Debug Steps:**
+```bash
+# Monitor PDF parsing
+adb logcat -s FixedRegionsParser:*
+
+# Check for section detection
+# Look for "Found DEPOSITS & CREDITS section" logs
+```
+
+## Debugging Tools
+
+### ADB Commands:
+```bash
+# Clear logs
+adb logcat -c
+
+# Monitor app logs
+adb logcat -s com.budgettracker:*
+
+# Monitor specific components
+adb logcat -s TransactionDataStore:* FixedRegionsParser:*
+
+# Monitor crashes
+adb logcat -s AndroidRuntime:E
+
+# Monitor Firebase operations
+adb logcat -s FirebaseCleaner:*
+
+# Check device connection
+adb devices
+```
+
+### Build and Install:
+```bash
+# Clean build
+./gradlew clean
+
+# Build debug APK
+./gradlew assembleDebug
+
+# Install with replacement
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Copy with version name
+cp app/build/outputs/apk/debug/app-debug.apk ~/BudgetTracker-v5.0.apk
+```
+
+## Performance Issues
+
+### Memory Leaks:
+- **Avoid:** Creating repositories in Composables
+- **Use:** remember for expensive objects
+- **Pattern:** Singleton pattern for data stores
+
+### ANR (Application Not Responding):
+- **Cause:** Firebase operations on main thread
+- **Solution:** Use CoroutineScope(Dispatchers.IO)
+- **Pattern:** Background operations with UI updates
+
+### Infinite Loops:
+- **Avoid:** StateFlow with collectAsState in problematic contexts
+- **Use:** Simple mutableStateOf with remember
+- **Debug:** Monitor logcat for repeated log messages
+
+## Firebase Issues
+
+### Authentication Problems:
+```kotlin
+// Always provide fallback for unauthenticated users
+private fun getCurrentUserId(): String {
+    return auth.currentUser?.uid ?: "demo_user"
+}
+```
+
+### Firestore Permission Errors:
+- Check Firebase Console security rules
+- Ensure user authentication is working
+- Use demo_user for development
+
+### Data Not Persisting:
+```kotlin
+// Ensure proper Firebase operations
+firestore.collection("transactions")
+    .document(transaction.id)
+    .set(transactionData) // Use .set() not .add()
+    .await()
+```
+
+## Testing Procedures
+
+### Full App Testing:
+1. **Clean Install:** Uninstall → Install fresh APK
+2. **PDF Upload:** Test with Statement_September.pdf
+3. **Manual Entry:** Add transaction with date picker
+4. **Edit/Delete:** Test transaction management
+5. **Navigation:** Switch tabs, verify data persistence
+6. **Restart App:** Verify Firebase data loads
+
+### Performance Testing:
+1. **Monitor Logs:** Check for infinite loops
+2. **Memory Usage:** Monitor app performance
+3. **UI Responsiveness:** Ensure smooth interactions
+4. **Network Operations:** Test offline scenarios
+
+## Emergency Fixes
+
+### Nuclear Option - Clear Everything:
+```kotlin
+// In app, tap 🗑️ button in Transactions header
+TransactionDataStore.clearAllData()
+// Clears both local data and Firebase completely
+```
+
+### Reset App State:
+1. **Clear app data** in Android settings
+2. **Reinstall APK**
+3. **Clear Firebase** using 🗑️ button
+4. **Fresh start** with clean database
+
+## Version History
+
+### Recent Versions:
+- **v5.0** - Manual transactions with date picker
+- **v4.6** - Firebase clearing functionality  
+- **v4.3** - Fixed deposits section parsing
+- **v3.3** - Infinite loop fixes
+- **v2.1** - PDF parsing implementation
+
+### Breaking Changes:
+- **v4.0+:** Switched to TransactionDataStore
+- **v3.0+:** Enhanced transactions with edit/delete
+- **v2.0+:** PDF parsing integration

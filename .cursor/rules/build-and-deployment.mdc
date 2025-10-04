@@ -1,0 +1,124 @@
+---
+description: Build configuration, APK generation, and deployment guide
+---
+
+# Build and Deployment Guide
+
+## Build Configuration
+
+### Gradle Setup
+- **Gradle Version:** 8.11 (latest)
+- **Android Gradle Plugin:** 8.7.0
+- **Kotlin Version:** 2.0.21
+- **Compile SDK:** 35 (Android 15)
+- **Target SDK:** 35
+- **Min SDK:** 24 (Android 7.0)
+
+### Key Build Files
+- [build.gradle.kts](mdc:build.gradle.kts) - Project-level configuration
+- [app/build.gradle.kts](mdc:app/build.gradle.kts) - App-level dependencies and config
+- [gradle/wrapper/gradle-wrapper.properties](mdc:gradle/wrapper/gradle-wrapper.properties) - Gradle wrapper
+
+## APK Generation and Installation
+
+### Build Commands
+```bash
+# Clean build
+./gradlew clean
+
+# Debug build
+./gradlew assembleDebug
+
+# Release build  
+./gradlew assembleRelease
+
+# Install to connected device
+./gradlew installDebug
+```
+
+### APK Locations
+- **Debug APK:** `app/build/outputs/apk/debug/app-debug.apk`
+- **Release APK:** `app/build/outputs/apk/release/app-release.apk`
+
+### Manual Installation
+```bash
+# Check connected devices
+adb devices
+
+# Install APK directly
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# Copy APK with version name
+cp app/build/outputs/apk/debug/app-debug.apk ~/BudgetTracker-v5.0.apk
+adb install -r ~/BudgetTracker-v5.0.apk
+```
+
+## Version Management
+
+### Current Version Naming Convention
+- **v1.x** - Basic functionality and crash fixes
+- **v2.x** - PDF parsing implementation
+- **v3.x** - Enhanced transactions with edit/delete
+- **v4.x** - Firebase persistence and duplicate prevention
+- **v5.x** - Manual transactions and date picker
+
+### APK Naming Pattern
+```
+BudgetTracker-v[VERSION]-[FEATURE].apk
+
+Examples:
+- BudgetTracker-v5.0-MANUAL-TRANSACTIONS.apk
+- BudgetTracker-v4.6-FIREBASE-CLEANER.apk
+- BudgetTracker-v3.3-LOOP-FIXED.apk
+```
+
+## Debugging and Testing
+
+### ADB Logging
+```bash
+# Clear logs
+adb logcat -c
+
+# Monitor specific tags
+adb logcat -s TransactionDataStore:* FixedRegionsParser:* com.budgettracker:*
+
+# Monitor app crashes
+adb logcat -s AndroidRuntime:E
+```
+
+### Common Issues and Fixes
+1. **App Crashes:** Check Firebase Crashlytics plugin configuration
+2. **Infinite Loops:** Avoid StateFlow in Compose without proper lifecycle
+3. **ANR Issues:** Use background threads for Firebase operations
+4. **Text Truncation:** Use proper weight distribution and minimum widths
+
+## Firebase Configuration
+
+### Required Files
+- [google-services.json](mdc:app/google-services.json) - Firebase configuration
+- [firestore.indexes.json](mdc:firestore.indexes.json) - Firestore indexes
+
+### Firebase Collections
+- **transactions:** Main transaction data
+- **budgets:** Budget information
+- **savingsGoals:** Savings goal tracking
+- **users:** User profile data
+
+## Key Dependencies
+
+### Core Android
+- androidx.core:core-ktx:1.15.0
+- androidx.activity:activity-compose:1.9.3
+- androidx.compose:compose-bom:2024.12.01
+
+### Firebase
+- firebase-bom:33.7.0
+- firebase-auth-ktx
+- firebase-firestore-ktx
+- firebase-crashlytics-ktx
+
+### PDF Processing
+- com.tom-roush:pdfbox-android:2.0.27.0
+
+### Dependency Injection
+- dagger.hilt.android:2.52

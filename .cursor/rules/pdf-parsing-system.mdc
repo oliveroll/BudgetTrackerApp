@@ -1,0 +1,193 @@
+---
+description: PDF parsing system for Regions Bank statements and document processing
+---
+
+# PDF Parsing System for Regions Bank Statements
+
+## Overview
+
+The app includes specialized PDF parsing for **Regions Bank statements** to automatically extract transactions and categorize them as income or expenses.
+
+## Core Parser
+
+### FixedRegionsBankPDFParser
+[FixedRegionsBankPDFParser.kt](mdc:app/src/main/java/com/budgettracker/core/utils/FixedRegionsBankPDFParser.kt) - Optimized for Regions Bank format
+
+#### Key Features:
+- **Section-Aware Parsing:** Detects DEPOSITS & CREDITS vs WITHDRAWALS sections
+- **Accurate Date Extraction:** Handles MM/dd format with smart year assignment
+- **Amount Parsing:** Supports comma-separated amounts (1,514.19)
+- **Duplicate Prevention:** Built-in deduplication within statements
+
+## Statement Structure
+
+### Regions Bank Statement Sections:
+
+#### 1. DEPOSITS & CREDITS Section → Income (Green)
+**Format Examples:**
+```
+08/26    Oliver Ollesch  Payments Oliver Ollesch 281475400133133    90.93
+08/27    Wise Inc        Wise Oliver Ryan Ol                        345.04
+09/03    Card Credit     Venmo*ollesch O 4829 New York City        196.50
+09/15    Gusto Pay 485744 Oliver Ollesch                          1,514.19
+```
+
+**Pattern:** `Date + Description + Amount`
+
+#### 2. WITHDRAWALS Section → Expenses (Red)
+**Format Examples:**
+```
+07/17 Card Purchase  Sp Backfireboar  5941  Backfireboard VA    13.98
+07/21 Card Purchase  Amazon Mark* 3j  5999  Amazon.Com/MA WA    43.20
+08/14 Monthly Fee                                                  8.00
+```
+
+**Pattern:** `Date + Type + Description + Location + Amount`
+
+## Parser Implementation
+
+### Usage in UI:
+```kotlin
+// In EnhancedMobileFriendlyTransactions.kt
+val pdfParser = remember { FixedRegionsBankPDFParser(context) }
+
+val pdfLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.GetContent()
+) { uri ->
+    uri?.let {
+        scope.launch {
+            val result = pdfParser.parseRegionsBankStatement(uri)
+            if (result.isSuccess) {
+                val transactions = result.getOrNull() ?: emptyList()
+                val addedCount = TransactionDataStore.addTransactions(transactions, documentHash)
+                // Show success message
+            }
+        }
+    }
+}
+```
+
+### Section Detection Logic:
+```kotlin
+when {
+    cleanLine.contains("DEPOSITS & CREDITS", ignoreCase = true) -> {
+        isInDepositsSection = true
+        // All following transactions are INCOME
+    }
+    cleanLine.contains("WITHDRAWALS", ignoreCase = true) -> {
+        isInWithdrawalsSection = true
+        // All following transactions are EXPENSES
+    }
+}
+```
+
+## Transaction Categorization
+
+### Income Categories (from DEPOSITS & CREDITS):
+- **Gusto Pay** → `SALARY` (payroll)
+- **Wise Inc** → `OTHER_INCOME` (international transfers)
+- **Venmo Credits** → `OTHER_INCOME` (peer-to-peer)
+- **Oliver Ollesch Payments** → `OTHER_INCOME` (personal transfers)
+
+### Expense Categories (from WITHDRAWALS):
+- **Amazon** → `MISCELLANEOUS` (shopping)
+- **McDonald's, Starbucks** → `DINING_OUT` (food)
+- **Walmart** → `GROCERIES` (food shopping)
+- **Gas stations** → `TRANSPORTATION` (fuel)
+- **Monthly Fee** → `MISCELLANEOUS` (banking)
+
+## Date Handling
+
+### Smart Date Parsing:
+```kotlin
+// MM/dd format with intelligent year assignment
+private fun parseDate(dateStr: String): Date {
+    val format = SimpleDateFormat("MM/dd", Locale.US)
+    val calendar = Calendar.getInstance()
+    
+    // If month is in future, assume previous year
+    if (parsedMonth > currentMonth + 3) {
+        calendar.set(Calendar.YEAR, currentYear - 1)
+    } else {
+        calendar.set(Calendar.YEAR, currentYear)
+    }
+}
+```
+
+### Date Sorting:
+- **Newest First:** All transactions sorted by date descending
+- **Chronological Order:** Within months and across app
+- **Consistent Display:** Same ordering everywhere
+
+## Duplicate Prevention
+
+### Document-Level:
+```kotlin
+// SHA-256 hash prevents re-parsing same PDF
+private fun generateDocumentHash(uriString: String): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    return digest.digest(uriString.toByteArray()).joinToString("") { "%02x".format(it) }
+}
+```
+
+### Transaction-Level:
+```kotlin
+// Smart similarity detection
+private fun isSimilarTransaction(t1: Transaction, t2: Transaction): Boolean {
+    val sameAmount = abs(t1.amount - t2.amount) < 0.01
+    val dateRange = abs(t1.date.time - t2.date.time) < 172800000 // 48 hours
+    val similarDescription = calculateSimilarity(t1.description, t2.description) > 0.8
+    return sameAmount && dateRange && similarDescription
+}
+```
+
+## Error Handling
+
+### PDF Processing Errors:
+- **File Access:** Handle URI permission issues
+- **PDF Corruption:** Graceful failure with user feedback
+- **Parsing Failures:** Fallback to demo data
+- **Network Issues:** Offline parsing capability
+
+### User Feedback:
+- **Processing Dialog:** Shows parsing progress
+- **Success Messages:** "Successfully added X transactions!"
+- **Duplicate Alerts:** "Document already parsed!"
+- **Error Messages:** Clear explanation of failures
+
+## Testing and Debugging
+
+### Debug Logging:
+```bash
+# PDF parsing logs
+adb logcat -s FixedRegionsParser:*
+
+# Data store operations
+adb logcat -s TransactionDataStore:*
+
+# Firebase operations
+adb logcat -s FirebaseCleaner:*
+```
+
+### Test Files:
+- [Statement_September.pdf](mdc:Statement_September.pdf) - Sample Regions Bank statement
+- Expected: 6 deposits + multiple withdrawals
+- All deposits should be classified as Income (green)
+
+## Dependencies
+
+### PDF Processing:
+```kotlin
+implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+```
+
+### Document Picker:
+```kotlin
+implementation("androidx.activity:activity-compose:1.9.3")
+```
+
+### Permissions in [AndroidManifest.xml](mdc:app/src/main/AndroidManifest.xml):
+```xml
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
+```

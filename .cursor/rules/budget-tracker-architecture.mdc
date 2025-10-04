@@ -1,0 +1,99 @@
+---
+alwaysApply: true
+description: Budget Tracker app architecture and structure guide
+---
+
+# Budget Tracker Android App - Architecture Guide
+
+## Project Overview
+This is a **Kotlin Android app** using **Clean Architecture with MVVM** pattern, built with **Jetpack Compose** and **Material Design 3**.
+
+**Key Details:**
+- Target SDK: 35 (Android 15)
+- Min SDK: 24 (Android 7.0)
+- Package: `com.budgettracker`
+- Architecture: Clean Architecture with MVVM
+- UI: Jetpack Compose with Material Design 3
+
+## Architecture Structure
+
+```
+app/src/main/java/com/budgettracker/
+├── BudgetTrackerApplication.kt     # Application class with Hilt
+├── MainActivity.kt                 # Main activity
+├── core/
+│   ├── data/
+│   │   ├── local/                  # Local data storage
+│   │   │   ├── TransactionDataStore.kt    # Singleton data persistence
+│   │   │   └── entities/           # Room entities
+│   │   └── repository/             # Data repositories
+│   │       └── TransactionRepository.kt   # Firebase repository
+│   ├── domain/
+│   │   └── model/                  # Domain models
+│   │       ├── Transaction.kt      # Core transaction model
+│   │       ├── Budget.kt          # Budget model
+│   │       └── SavingsGoal.kt     # Savings goal model
+│   └── utils/                      # Utilities
+│       ├── PDFParser.kt           # General PDF parser
+│       ├── FixedRegionsBankPDFParser.kt  # Specialized Regions Bank parser
+│       └── FirebaseCleaner.kt     # Firebase database utilities
+├── features/                       # Feature modules
+│   ├── auth/                      # Authentication
+│   ├── dashboard/                 # Dashboard/Home screen
+│   │   └── presentation/
+│   │       └── MobileFriendlyDashboard.kt
+│   ├── transactions/              # Transaction management
+│   │   └── presentation/
+│   │       ├── EnhancedMobileFriendlyTransactions.kt  # Main transactions screen
+│   │       ├── AddTransactionScreen.kt               # Add transaction form
+│   │       └── TransactionsViewModel.kt              # ViewModel (optional)
+│   ├── budget/                    # Budget planning
+│   ├── savings/                   # Savings goals
+│   └── settings/                  # App settings
+├── navigation/                    # Navigation setup
+│   ├── BudgetTrackerNavigation.kt # Main navigation
+│   ├── BottomNavigation.kt        # Bottom tab navigation
+│   └── BudgetTrackerDestinations.kt # Route definitions
+└── ui/                           # UI components and theme
+    └── theme/                    # Material Design theme
+```
+
+## Key Domain Models
+
+### Transaction
+- 37+ categories (Income, Fixed/Variable Expenses, Savings, Visa-specific)
+- Recurring transaction support
+- Attachment and location tracking
+- Soft delete functionality
+- Firebase Firestore integration
+
+### Budget
+- Monthly budget planning
+- Category-wise allocation
+- Templates: 50/30/20 rule, Zero-based, OPT Student
+- Real-time tracking and status monitoring
+
+## Technology Stack
+- **DI:** Hilt (Dagger)
+- **Database:** TransactionDataStore (local) + Firebase Firestore (cloud)
+- **Auth:** Firebase Auth
+- **Charts:** Custom Compose charts
+- **Image Loading:** Coil
+- **PDF Processing:** PDFBox Android
+- **Async:** Kotlinx Coroutines
+- **Background:** WorkManager
+
+## Data Flow
+1. **UI Layer:** Jetpack Compose screens
+2. **Data Layer:** TransactionDataStore (singleton)
+3. **Persistence:** Firebase Firestore (cloud)
+4. **Local Cache:** In-memory with Firebase sync
+
+## Development Guidelines
+
+1. **Follow Clean Architecture:** Domain → Data → Presentation layers
+2. **Use MVVM Pattern:** ViewModels for UI state management (optional)
+3. **Compose First:** All UI in Jetpack Compose
+4. **TransactionDataStore:** Use for all transaction operations
+5. **Firebase Integration:** Background sync with proper error handling
+6. **Mobile-First:** Responsive design for all screen sizes

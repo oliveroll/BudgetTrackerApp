@@ -56,4 +56,3 @@ object DatabaseModule {
         return database.loanPaymentDao()
     }
 }
-

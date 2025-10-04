@@ -1,0 +1,179 @@
+---
+description: Firebase configuration, Firestore operations, and cloud storage
+---
+
+# Firebase Integration Guide
+
+## Firebase Configuration
+
+### Setup Files
+- [google-services.json](mdc:app/google-services.json) - Firebase project configuration
+- [firestore.indexes.json](mdc:firestore.indexes.json) - Firestore database indexes
+- [.firebaserc](mdc:.firebaserc) - Firebase project settings
+
+### Build Configuration
+In [app/build.gradle.kts](mdc:app/build.gradle.kts):
+```kotlin
+plugins {
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
+}
+
+dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+}
+```
+
+## Firestore Database Structure
+
+### Collections:
+- **`transactions`** - Main transaction data
+- **`budgets`** - Budget information
+- **`savingsGoals`** - Savings goals
+- **`users`** - User profiles
+
+### Transaction Document Structure:
+```json
+{
+  "userId": "demo_user",
+  "amount": 1514.19,
+  "category": "SALARY",
+  "type": "INCOME",
+  "description": "Gusto Pay 485744 Oliver Ollesch",
+  "date": "2025-09-15T00:00:00Z",
+  "notes": "Parsed from DEPOSITS & CREDITS section",
+  "isRecurring": false,
+  "isDeleted": false,
+  "createdAt": "2025-09-28T15:30:00Z",
+  "updatedAt": "2025-09-28T15:30:00Z"
+}
+```
+
+## TransactionDataStore Operations
+
+### Core Operations in [TransactionDataStore.kt](mdc:app/src/main/java/com/budgettracker/core/data/local/TransactionDataStore.kt):
+
+#### Initialize from Firebase:
+```kotlin
+suspend fun initializeFromFirebase()
+```
+- Loads existing transactions from Firestore
+- Initializes with demo data if empty
+- Auto-saves demo data to Firebase
+
+#### Add Transactions:
+```kotlin
+fun addTransaction(transaction: Transaction)
+fun addTransactions(transactions: List<Transaction>, documentHash: String?): Int
+```
+- Local storage + Firebase sync
+- Comprehensive duplicate detection
+- Document hash tracking
+
+#### Update/Delete:
+```kotlin
+fun updateTransaction(updatedTransaction: Transaction)
+fun deleteTransaction(transactionId: String)
+```
+- **Hard delete:** Completely removes from Firebase
+- Background sync operations
+- Immediate local updates
+
+#### Clear All Data:
+```kotlin
+fun clearAllData()
+```
+- **Nuclear option:** Clears everything
+- Local + Firebase clearing
+- Resets app to fresh state
+
+## Firebase Operations
+
+### Authentication
+```kotlin
+private val auth = FirebaseAuth.getInstance()
+private fun getCurrentUserId(): String {
+    return auth.currentUser?.uid ?: "demo_user"
+}
+```
+
+### Firestore Operations
+```kotlin
+// Save transaction
+firestore.collection("transactions")
+    .document(transaction.id)
+    .set(transactionData)
+    .await()
+
+// Update transaction  
+firestore.collection("transactions")
+    .document(transactionId)
+    .update(updateData)
+    .await()
+
+// Hard delete (permanent removal)
+firestore.collection("transactions")
+    .document(transactionId)
+    .delete()
+    .await()
+
+// Query user transactions
+firestore.collection("transactions")
+    .whereEqualTo("userId", userId)
+    .whereEqualTo("isDeleted", false)
+    .orderBy("date", Query.Direction.DESCENDING)
+    .get()
+    .await()
+```
+
+## Error Handling
+
+### Firebase Error Patterns:
+```kotlin
+try {
+    // Firebase operation
+    val result = firestore.operation().await()
+    android.util.Log.d("TAG", "Success: $result")
+} catch (e: Exception) {
+    android.util.Log.e("TAG", "Error: ${e.message}")
+    // Fallback to local data
+}
+```
+
+### Common Issues:
+1. **Network Connectivity:** Always provide offline fallback
+2. **Authentication:** Handle anonymous users with demo_user
+3. **Permission Errors:** Proper Firestore security rules
+4. **Rate Limiting:** Batch operations when possible
+
+## Testing Firebase Operations
+
+### Debug Commands:
+```bash
+# Monitor Firebase operations
+adb logcat -s TransactionDataStore:* FirebaseCleaner:*
+
+# Check app logs
+adb logcat -s com.budgettracker:*
+
+# Monitor crashes
+adb logcat -s AndroidRuntime:E
+```
+
+### Firebase Console:
+- **Project:** Budget Tracker App
+- **Database:** Cloud Firestore
+- **Collection:** `transactions`
+- **Security Rules:** User-based isolation
+
+## Best Practices
+
+1. **Always use background threads** for Firebase operations
+2. **Implement proper error handling** with user feedback
+3. **Use hard deletes** for actual data removal
+4. **Implement duplicate prevention** at multiple levels
+5. **Provide offline functionality** with local caching
+6. **Log operations** for debugging and monitoring
