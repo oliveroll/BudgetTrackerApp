@@ -63,22 +63,7 @@ fun ModernDashboardScreen(
         calculateDashboardStats(filteredTransactions)
     }
     
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToAddTransaction,
-                containerColor = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add Transaction",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    ) { paddingValues ->
+    Scaffold { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -375,77 +360,97 @@ private fun AnimatedMonthSelector(
         shape = RoundedCornerShape(24.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onPreviousMonth,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronLeft,
-                    contentDescription = "Previous Month",
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF4facfe),
+                            Color(0xFF00f2fe)
+                        )
+                    )
                 )
-            }
-            
-            AnimatedContent(
-                targetState = "${getMonthName(selectedMonth)} $selectedYear",
-                transitionSpec = {
-                    slideInVertically { it } + fadeIn() togetherWith
-                    slideOutVertically { -it } + fadeOut()
-                },
-                label = "month_animation"
-            ) { monthText ->
-                Card(
-                    onClick = onMonthClick,
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    ),
-                    shape = RoundedCornerShape(16.dp),
-                    modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onPreviousMonth,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f))
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Previous Month",
+                        modifier = Modifier.size(32.dp),
+                        tint = Color.White
+                    )
+                }
+                
+                AnimatedContent(
+                    targetState = "${getMonthName(selectedMonth)} $selectedYear",
+                    transitionSpec = {
+                        slideInVertically { it } + fadeIn() togetherWith
+                        slideOutVertically { -it } + fadeOut()
+                    },
+                    label = "month_animation"
+                ) { monthText ->
+                    Card(
+                        onClick = onMonthClick,
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        Text(
-                            text = monthText,
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarMonth,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            Text(
+                                text = monthText,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 20.sp
+                            )
+                        }
                     }
                 }
-            }
-            
-            IconButton(
-                onClick = onNextMonth,
-                modifier = Modifier.size(52.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Next Month",
-                    modifier = Modifier.size(36.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                
+                IconButton(
+                    onClick = onNextMonth,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f))
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Next Month",
+                        modifier = Modifier.size(32.dp),
+                        tint = Color.White
+                    )
+                }
             }
         }
     }
