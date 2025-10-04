@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgettracker.core.data.local.TransactionDataStore
@@ -79,9 +80,9 @@ fun ModernDashboardScreen(
                 )
             }
             
-            // Month Selector with Animation
+            // Unified Financial Overview Container
             item {
-                AnimatedMonthSelector(
+                UnifiedFinancialOverviewCard(
                     selectedMonth = selectedMonth,
                     selectedYear = selectedYear,
                     onMonthClick = { showMonthPicker = true },
@@ -101,31 +102,7 @@ fun ModernDashboardScreen(
                             selectedMonth += 1
                         }
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            
-            // Income vs Expenses Card with Animation
-            item {
-                AnimatedIncomeExpensesCard(
                     stats = monthlyStats,
-                    isVisible = isDataLoaded,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            
-            // Monthly Totals Summary
-            item {
-                MonthlyTotalsCard(
-                    stats = monthlyStats,
-                    isVisible = isDataLoaded,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            
-            // Spending by Category Chart
-            item {
-                SpendingByCategoryCard(
                     transactions = filteredTransactions,
                     isVisible = isDataLoaded,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -337,6 +314,415 @@ private fun PremiumWelcomeHeader(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun UnifiedFinancialOverviewCard(
+    selectedMonth: Int,
+    selectedYear: Int,
+    onMonthClick: () -> Unit,
+    onPreviousMonth: () -> Unit,
+    onNextMonth: () -> Unit,
+    stats: DashboardStats,
+    transactions: List<Transaction>,
+    isVisible: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val animatedIncome by animateFloatAsState(
+        targetValue = if (isVisible) stats.totalIncome.toFloat() else 0f,
+        animationSpec = tween(durationMillis = 1200, easing = EaseOutCubic),
+        label = "income_anim"
+    )
+    
+    val animatedExpenses by animateFloatAsState(
+        targetValue = if (isVisible) stats.totalExpenses.toFloat() else 0f,
+        animationSpec = tween(durationMillis = 1200, easing = EaseOutCubic),
+        label = "expenses_anim"
+    )
+    
+    val animatedProgress by animateFloatAsState(
+        targetValue = if (isVisible) 1f else 0f,
+        animationSpec = tween(durationMillis = 1200, easing = EaseOutCubic),
+        label = "chart_anim"
+    )
+    
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val maxValue = maxOf(stats.totalIncome, stats.totalExpenses, 1.0)
+    
+    val expenseTransactions = transactions.filter { it.type == TransactionType.EXPENSE }
+    val categoryData = remember(expenseTransactions) {
+        expenseTransactions
+            .groupBy { it.category }
+            .mapValues { (_, txns) -> txns.sumOf { it.amount } }
+            .toList()
+            .sortedByDescending { it.second }
+            .take(5)
+    }
+    
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(10.dp, RoundedCornerShape(28.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        shape = RoundedCornerShape(28.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            // Month Selector Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(
+                    onClick = onPreviousMonth,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronLeft,
+                        contentDescription = "Previous Month",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                AnimatedContent(
+                    targetState = "${getMonthName(selectedMonth)} $selectedYear",
+                    transitionSpec = {
+                        slideInVertically { it } + fadeIn() togetherWith
+                        slideOutVertically { -it } + fadeOut()
+                    },
+                    label = "month_change"
+                ) { monthText ->
+                    TextButton(onClick = onMonthClick) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(10.dp))
+                        
+                        Text(
+                            text = monthText,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 20.sp
+                        )
+                    }
+                }
+                
+                IconButton(
+                    onClick = onNextMonth,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Next Month",
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(28.dp))
+            
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            
+            Spacer(modifier = Modifier.height(28.dp))
+            
+            // Income vs Expenses Section
+            Text(
+                text = "Income vs Expenses",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 18.sp
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Income Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF28a745))
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Income",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 15.sp
+                    )
+                }
+                
+                Text(
+                    text = currencyFormat.format(animatedIncome.toDouble()),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF28a745),
+                    fontSize = 20.sp
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(
+                            fraction = ((animatedIncome / maxValue.toFloat()).coerceIn(0f, 1f))
+                        )
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF28a745),
+                                    Color(0xFF34d058)
+                                )
+                            )
+                        )
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            // Expenses Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFdc3545))
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Expenses",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 15.sp
+                    )
+                }
+                
+                Text(
+                    text = currencyFormat.format(animatedExpenses.toDouble()),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFdc3545),
+                    fontSize = 20.sp
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(
+                            fraction = ((animatedExpenses / maxValue.toFloat()).coerceIn(0f, 1f))
+                        )
+                        .clip(RoundedCornerShape(9.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFdc3545),
+                                    Color(0xFFff4d5a)
+                                )
+                            )
+                        )
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(28.dp))
+            
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
+            
+            Spacer(modifier = Modifier.height(28.dp))
+            
+            // Spending by Category Section
+            Text(
+                text = "Spending by Category",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 18.sp
+            )
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            if (categoryData.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "📊",
+                        fontSize = 40.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "No expenses this month",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                // Category Bars
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    categoryData.forEach { (category, amount) ->
+                        CompactCategoryItem(
+                            category = category.displayName,
+                            icon = category.icon,
+                            amount = amount,
+                            total = stats.totalExpenses,
+                            color = getCategoryColor(categoryData.indexOf(category to amount)),
+                            progress = animatedProgress
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CompactCategoryItem(
+    category: String,
+    icon: String,
+    amount: Double,
+    total: Double,
+    color: Color,
+    progress: Float
+) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val percentage = if (total > 0) (amount / total * 100).toInt() else 0
+    
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = icon,
+                    fontSize = 20.sp
+                )
+                
+                Spacer(modifier = Modifier.width(10.dp))
+                
+                Text(
+                    text = category,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = 14.sp
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(12.dp))
+            
+            Column(
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(
+                    text = currencyFormat.format(amount),
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    fontSize = 16.sp
+                )
+                Text(
+                    text = "$percentage%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.2f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(
+                        fraction = ((amount / total * progress).toFloat().coerceIn(0f, 1f))
+                    )
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(color)
+            )
         }
     }
 }
