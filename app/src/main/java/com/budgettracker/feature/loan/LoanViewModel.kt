@@ -239,3 +239,4 @@ data class LoanProgress(
     val originalAmount: Double,
     val remainingBalanceUSD: Double
 )
+

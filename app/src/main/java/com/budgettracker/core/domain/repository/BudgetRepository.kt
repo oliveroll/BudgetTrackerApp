@@ -1,6 +1,7 @@
 package com.budgettracker.core.domain.repository
 
 import com.budgettracker.core.domain.model.Budget
+import com.budgettracker.core.utils.Result
 import kotlinx.coroutines.flow.Flow
 
 /**

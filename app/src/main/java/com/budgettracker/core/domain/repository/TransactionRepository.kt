@@ -3,6 +3,7 @@ package com.budgettracker.core.domain.repository
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
+import com.budgettracker.core.utils.Result
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 

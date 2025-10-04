@@ -28,3 +28,4 @@ sealed class Result<out T> {
         return this
     }
 }
+

@@ -43,3 +43,4 @@ class AddLoanPayment @Inject constructor(
         return Pair(interestAmount, principalAmount)
     }
 }
+

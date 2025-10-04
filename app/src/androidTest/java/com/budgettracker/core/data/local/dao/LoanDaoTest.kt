@@ -144,3 +144,4 @@ class LoanDaoTest {
         assertEquals(700.0, updated?.remainingAmount, 0.01)
     }
 }
+

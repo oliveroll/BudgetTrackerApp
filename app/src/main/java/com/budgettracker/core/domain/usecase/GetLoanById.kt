@@ -25,3 +25,4 @@ class GetLoanById @Inject constructor(
         return loanRepository.getLoanByIdFlow(loanId)
     }
 }
+

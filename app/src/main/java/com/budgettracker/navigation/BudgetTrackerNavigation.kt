@@ -13,8 +13,8 @@ import com.budgettracker.features.auth.presentation.SplashScreen
 import com.budgettracker.features.auth.presentation.LoginScreen
 import com.budgettracker.features.auth.presentation.RegisterScreen
 import com.budgettracker.features.dashboard.presentation.MobileFriendlyDashboard
-import com.budgettracker.features.transactions.presentation.EnhancedMobileFriendlyTransactions
 import com.budgettracker.features.transactions.presentation.AddTransactionScreen
+import com.budgettracker.features.transactions.presentation.TransactionListScreen
 import com.budgettracker.features.budget.presentation.EnhancedBudgetScreen
 import com.budgettracker.features.savings.presentation.SavingsGoalsScreen
 import com.budgettracker.features.savings.presentation.AddGoalScreen
@@ -103,7 +103,7 @@ fun BudgetTrackerNavigation(
         }
         
         composable(BudgetTrackerDestinations.TRANSACTIONS_ROUTE) {
-            EnhancedMobileFriendlyTransactions(
+            TransactionListScreen(
                 onNavigateToAddTransaction = {
                     navController.navigate(BudgetTrackerDestinations.ADD_TRANSACTION_ROUTE)
                 }

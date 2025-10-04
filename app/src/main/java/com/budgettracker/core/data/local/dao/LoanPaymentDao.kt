@@ -61,3 +61,4 @@ interface LoanPaymentDao {
     @Query("UPDATE loan_payments SET syncStatus = :status WHERE id = :id")
     suspend fun updateSyncStatus(id: String, status: String)
 }
+

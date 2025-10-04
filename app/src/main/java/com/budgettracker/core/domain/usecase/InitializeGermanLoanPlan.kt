@@ -87,23 +87,25 @@ class InitializeGermanLoanPlan @Inject constructor(
         val payments = mutableListOf<LoanPayment>()
         val calendar = Calendar.getInstance()
         
+        data class PaymentData(val monthYear: String, val amount: Double, val interest: Double, val principal: Double)
+        
         val scheduleData = listOf(
-            Triple("Dec 2025", 900.0, 57.26, 842.74),
-            Triple("Jan 2026", 900.0, 52.58, 847.42),
-            Triple("Feb 2026", 900.0, 47.88, 852.12),
-            Triple("Mar 2026", 900.0, 43.16, 856.84),
-            Triple("Apr 2026", 900.0, 38.40, 861.60),
-            Triple("May 2026", 900.0, 33.62, 866.38),
-            Triple("Jun 2026", 900.0, 28.81, 871.19),
-            Triple("Jul 2026", 900.0, 23.98, 876.02),
-            Triple("Aug 2026", 900.0, 19.11, 880.89),
-            Triple("Sep 2026", 900.0, 14.22, 885.78),
-            Triple("Oct 2026", 900.0, 9.31, 890.69),
-            Triple("Nov 2026", 790.33, 4.36, 785.97)
+            PaymentData("Dec 2025", 900.0, 57.26, 842.74),
+            PaymentData("Jan 2026", 900.0, 52.58, 847.42),
+            PaymentData("Feb 2026", 900.0, 47.88, 852.12),
+            PaymentData("Mar 2026", 900.0, 43.16, 856.84),
+            PaymentData("Apr 2026", 900.0, 38.40, 861.60),
+            PaymentData("May 2026", 900.0, 33.62, 866.38),
+            PaymentData("Jun 2026", 900.0, 28.81, 871.19),
+            PaymentData("Jul 2026", 900.0, 23.98, 876.02),
+            PaymentData("Aug 2026", 900.0, 19.11, 880.89),
+            PaymentData("Sep 2026", 900.0, 14.22, 885.78),
+            PaymentData("Oct 2026", 900.0, 9.31, 890.69),
+            PaymentData("Nov 2026", 790.33, 4.36, 785.97)
         )
         
-        for ((monthYear, amount, interest, principal) in scheduleData) {
-            val parts = monthYear.split(" ")
+        for (paymentData in scheduleData) {
+            val parts = paymentData.monthYear.split(" ")
             val month = when (parts[0]) {
                 "Dec" -> Calendar.DECEMBER
                 "Jan" -> Calendar.JANUARY
@@ -128,15 +130,15 @@ class InitializeGermanLoanPlan @Inject constructor(
             val payment = LoanPayment(
                 id = UUID.randomUUID().toString(),
                 loanId = loanId,
-                amount = amount,
-                principalAmount = principal,
-                interestAmount = interest,
+                amount = paymentData.amount,
+                principalAmount = paymentData.principal,
+                interestAmount = paymentData.interest,
                 paymentDate = paymentDate,
                 paymentMethod = "Bank Transfer",
-                notes = "Scheduled payment for $monthYear",
+                notes = "Scheduled payment for ${paymentData.monthYear}",
                 isExtraPayment = false,
                 exchangeRate = 1.05,
-                amountInUSD = amount * 1.05
+                amountInUSD = paymentData.amount * 1.05
             )
             
             payments.add(payment)

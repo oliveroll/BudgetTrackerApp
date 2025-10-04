@@ -34,7 +34,7 @@ class CreateRecurringLoanTransaction @Inject constructor(
                 id = UUID.randomUUID().toString(),
                 userId = userId,
                 amount = monthlyPaymentAmount,
-                category = TransactionCategory.LOAN_PAYMENTS,
+                category = TransactionCategory.LOAN_PAYMENT,
                 type = TransactionType.EXPENSE,
                 description = "$loanName Payment",
                 date = startDate,
@@ -49,7 +49,7 @@ class CreateRecurringLoanTransaction @Inject constructor(
                 isDeleted = false
             )
             
-            transactionRepository.createTransaction(transaction)
+            transactionRepository.insertTransaction(transaction)
         } catch (e: Exception) {
             Result.Error("Failed to create recurring loan transaction: ${e.message}")
         }

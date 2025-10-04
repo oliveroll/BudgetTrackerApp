@@ -1,19 +1,16 @@
 package com.budgettracker.feature.loan.worker
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.budgettracker.feature.loan.notifications.LoanNotifications
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 
-@HiltWorker
-class LoanReminderWorker @AssistedInject constructor(
-    @Assisted context: Context,
-    @Assisted workerParams: WorkerParameters,
-    private val loanNotifications: LoanNotifications
+class LoanReminderWorker(
+    context: Context,
+    workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
+    
+    private val loanNotifications = LoanNotifications(context)
     
     override suspend fun doWork(): Result {
         return try {

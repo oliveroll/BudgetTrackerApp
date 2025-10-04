@@ -52,3 +52,4 @@ interface LoanRepository {
     suspend fun getUnsyncedLoans(): Result<List<Loan>>
     suspend fun getUnsyncedPayments(): Result<List<LoanPayment>>
 }
+

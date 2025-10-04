@@ -3,6 +3,7 @@ package com.budgettracker.core.domain.repository
 import com.budgettracker.core.domain.model.GoalCategory
 import com.budgettracker.core.domain.model.Priority
 import com.budgettracker.core.domain.model.SavingsGoal
+import com.budgettracker.core.utils.Result
 import kotlinx.coroutines.flow.Flow
 import java.util.Date
 

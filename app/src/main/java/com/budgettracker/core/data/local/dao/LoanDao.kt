@@ -74,3 +74,4 @@ interface LoanDao {
     @Query("SELECT * FROM loans WHERE userId = :userId AND isActive = 1 AND estimatedPayoffDate <= :sixMonthsFromNow ORDER BY estimatedPayoffDate ASC")
     suspend fun getLoansNearPayoff(userId: String, sixMonthsFromNow: Long): List<LoanEntity>
 }
+
