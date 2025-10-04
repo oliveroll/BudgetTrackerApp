@@ -25,6 +25,7 @@ import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
@@ -63,36 +64,19 @@ fun ModernDashboardScreen(
     }
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = "Dashboard",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
+            FloatingActionButton(
                 onClick = onNavigateToAddTransaction,
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Add") },
-                containerColor = MaterialTheme.colorScheme.primary
-            )
+                containerColor = MaterialTheme.colorScheme.primary,
+                shape = CircleShape,
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add Transaction",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -100,9 +84,15 @@ fun ModernDashboardScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
             contentPadding = PaddingValues(bottom = 100.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            item { Spacer(modifier = Modifier.height(4.dp)) }
+            // Premium Welcome Header
+            item {
+                PremiumWelcomeHeader(
+                    onNavigateToSettings = onNavigateToSettings,
+                    balance = monthlyStats.netBalance
+                )
+            }
             
             // Month Selector with Animation
             item {
@@ -184,6 +174,189 @@ fun ModernDashboardScreen(
 }
 
 @Composable
+private fun PremiumWelcomeHeader(
+    onNavigateToSettings: () -> Unit,
+    balance: Double,
+    modifier: Modifier = Modifier
+) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val greeting = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 5..11 -> "Good Morning"
+            in 12..17 -> "Good Afternoon"
+            else -> "Good Evening"
+        }
+    }
+    
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        // Gradient Background Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Transparent
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFF667eea),
+                                Color(0xFF764ba2)
+                            )
+                        )
+                    )
+                    .padding(24.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Header Row with Settings
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = greeting,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 16.sp
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            
+                            Text(
+                                text = "Oliver Ollesch",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 28.sp
+                            )
+                        }
+                        
+                        IconButton(
+                            onClick = onNavigateToSettings,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Job Title
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Work,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Text(
+                            text = "Hardware Test Engineer at Ixana",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 15.sp
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    HorizontalDivider(
+                        color = Color.White.copy(alpha = 0.3f),
+                        thickness = 1.dp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Current Balance Display
+                    Column {
+                        Text(
+                            text = "Current Balance",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = currencyFormat.format(balance),
+                                style = MaterialTheme.typography.displaySmall,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 36.sp
+                            )
+                            
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (balance >= 0) 
+                                    Color(0xFF28a745).copy(alpha = 0.3f) 
+                                else 
+                                    Color(0xFFdc3545).copy(alpha = 0.3f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = if (balance >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    
+                                    Text(
+                                        text = if (balance >= 0) "Positive" else "Negative",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun AnimatedMonthSelector(
     selectedMonth: Int,
     selectedYear: Int,
@@ -195,11 +368,12 @@ private fun AnimatedMonthSelector(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
+            .shadow(8.dp, RoundedCornerShape(24.dp)),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
             modifier = Modifier
@@ -301,23 +475,38 @@ private fun AnimatedIncomeExpensesCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
+            .shadow(8.dp, RoundedCornerShape(24.dp)),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .padding(28.dp)
         ) {
-            Text(
-                text = "Income vs Expenses",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CompareArrows,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Text(
+                    text = "Income vs Expenses",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 22.sp
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
@@ -515,43 +704,66 @@ private fun TotalCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier.shadow(2.dp, RoundedCornerShape(16.dp)),
+        modifier = modifier.shadow(6.dp, RoundedCornerShape(20.dp)),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
+            containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            color.copy(alpha = 0.15f),
+                            color.copy(alpha = 0.05f)
+                        )
+                    )
+                )
         ) {
-            Text(
-                text = icon,
-                fontSize = 32.sp
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = amount,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = color,
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(color.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = icon,
+                        fontSize = 28.sp
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
+                )
+                
+                Spacer(modifier = Modifier.height(6.dp))
+                
+                Text(
+                    text = amount,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = color,
+                    fontSize = 18.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -582,23 +794,38 @@ private fun SpendingByCategoryCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
+            .shadow(8.dp, RoundedCornerShape(24.dp)),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp)
+                .padding(28.dp)
         ) {
-            Text(
-                text = "Spending by Category",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PieChart,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Text(
+                    text = "Spending by Category",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 22.sp
+                )
+            }
             
             Spacer(modifier = Modifier.height(24.dp))
             
