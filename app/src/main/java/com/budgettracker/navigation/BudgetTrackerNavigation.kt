@@ -13,6 +13,7 @@ import com.budgettracker.features.auth.presentation.SplashScreen
 import com.budgettracker.features.auth.presentation.LoginScreen
 import com.budgettracker.features.auth.presentation.RegisterScreen
 import com.budgettracker.features.dashboard.presentation.MobileFriendlyDashboard
+import com.budgettracker.features.dashboard.presentation.ModernDashboardScreen
 import com.budgettracker.features.transactions.presentation.AddTransactionScreen
 import com.budgettracker.features.transactions.presentation.TransactionListScreen
 import com.budgettracker.features.budget.presentation.EnhancedBudgetScreen
@@ -83,7 +84,7 @@ fun BudgetTrackerNavigation(
         
         // Main App Flow
         composable(BudgetTrackerDestinations.DASHBOARD_ROUTE) {
-            MobileFriendlyDashboard(
+            ModernDashboardScreen(
                 onNavigateToAddTransaction = {
                     navController.navigate(BudgetTrackerDestinations.ADD_TRANSACTION_ROUTE)
                 },
