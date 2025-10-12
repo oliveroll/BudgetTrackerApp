@@ -58,6 +58,29 @@ fun MobileBudgetOverviewScreen(
     val monthFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()) }
     
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "💰",
+                            fontSize = 28.sp
+                        )
+                        Text(
+                            text = "Budget",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         
@@ -82,7 +105,7 @@ fun MobileBudgetOverviewScreen(
                             add(Calendar.MONTH, 1)
                         }
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
             

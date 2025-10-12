@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.budgettracker.core.data.repository.FirebaseRepository
 import com.budgettracker.core.domain.model.SavingsGoal
 import com.budgettracker.ui.theme.Primary40
@@ -36,11 +37,24 @@ fun SavingsGoalsScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        text = "📈 Financial Goals & Milestones",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "📈",
+                            fontSize = 28.sp
+                        )
+                        Text(
+                            text = "Goals",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         floatingActionButton = {

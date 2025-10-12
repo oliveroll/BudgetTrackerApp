@@ -71,11 +71,20 @@ fun TransactionListScreen(
         topBar = {
             TopAppBar(
                 title = { 
-                    Text(
-                        text = "Transactions",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "💳",
+                            fontSize = 28.sp
+                        )
+                        Text(
+                            text = "Transactions",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
