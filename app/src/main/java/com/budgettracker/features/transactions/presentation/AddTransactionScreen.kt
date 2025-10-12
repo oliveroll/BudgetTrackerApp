@@ -279,7 +279,19 @@ fun AddTransactionScreen(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            selectedDate = Date(millis)
+                            // FIX: Preserve current time, only update the date portion
+                            val calendar = Calendar.getInstance()
+                            calendar.time = selectedDate // Keep current time
+                            
+                            val pickedCalendar = Calendar.getInstance()
+                            pickedCalendar.timeInMillis = millis // Get selected date
+                            
+                            // Update only year, month, and day - preserve time
+                            calendar.set(Calendar.YEAR, pickedCalendar.get(Calendar.YEAR))
+                            calendar.set(Calendar.MONTH, pickedCalendar.get(Calendar.MONTH))
+                            calendar.set(Calendar.DAY_OF_MONTH, pickedCalendar.get(Calendar.DAY_OF_MONTH))
+                            
+                            selectedDate = calendar.time
                         }
                         showDatePicker = false
                     }

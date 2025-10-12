@@ -2,6 +2,7 @@ package com.budgettracker.features.transactions.presentation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,11 +27,12 @@ import androidx.compose.ui.unit.sp
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionListScreen(
     onNavigateToAddTransaction: () -> Unit = {}
@@ -39,6 +41,8 @@ fun TransactionListScreen(
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
+    var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         TransactionDataStore.initializeFromFirebase()
@@ -160,10 +164,16 @@ fun TransactionListScreen(
                         )
                     }
                     
-                    items(dayTransactions) { transaction ->
-                        TransactionCard(
+                    items(
+                        items = dayTransactions,
+                        key = { it.id }
+                    ) { transaction ->
+                        SwipeToDeleteTransactionCard(
                             transaction = transaction,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            onDelete = { transactionToDelete = it },
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .animateItem()
                         )
                     }
                 }
@@ -181,6 +191,89 @@ fun TransactionListScreen(
                 showMonthPicker = false
             },
             onDismiss = { showMonthPicker = false }
+        )
+    }
+    
+    // Delete Confirmation Dialog
+    transactionToDelete?.let { transaction ->
+        AlertDialog(
+            onDismissRequest = { transactionToDelete = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(
+                    text = "Delete Transaction?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text("Are you sure you want to delete this transaction?")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = transaction.description,
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${transaction.category.icon} ${transaction.category.displayName}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = NumberFormat.getCurrencyInstance().format(transaction.amount),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This action cannot be undone.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        // Optimistic UI update
+                        val deletedTransaction = transaction
+                        transactions = transactions.filter { it.id != deletedTransaction.id }
+                        transactionToDelete = null
+                        
+                        // Delete from backend (async)
+                        TransactionDataStore.deleteTransaction(deletedTransaction.id)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { transactionToDelete = null }
+                ) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }
@@ -720,3 +813,69 @@ private data class MonthlyStats(
     val netBalance: Double,
     val transactionCount: Int
 )
+
+/**
+ * Swipeable Transaction Card with delete gesture
+ * Material 3 SwipeToDismissBox implementation
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeToDeleteTransactionCard(
+    transaction: Transaction,
+    onDelete: (Transaction) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                onDelete(transaction)
+                true
+            } else {
+                false
+            }
+        }
+    )
+    
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = {
+            // Red delete background
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        color = MaterialTheme.colorScheme.error,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    ) {
+        TransactionCard(
+            transaction = transaction,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
