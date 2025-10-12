@@ -463,10 +463,10 @@ private fun EssentialExpensesCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Expense items
+            // Expense items with swipe actions
             if (expensesWithSpending.isNotEmpty()) {
                 expensesWithSpending.forEach { expenseData ->
-                    EssentialExpenseItem(
+                    SwipeableExpenseItem(
                         expenseData = expenseData,
                         onEdit = { onEditExpense(expenseData) },
                         onDelete = { onDeleteExpense(expenseData) },
@@ -673,10 +673,10 @@ private fun SubscriptionsCard(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Subscription items
+            // Subscription items with swipe actions
             if (subscriptions.isNotEmpty()) {
                 subscriptions.forEach { subscription ->
-                    SubscriptionItem(
+                    SwipeableSubscriptionItem(
                         subscription = subscription,
                         onEdit = { onEditSubscription(subscription) },
                         onDelete = { onDeleteSubscription(subscription) }
@@ -1609,6 +1609,410 @@ private fun ConfirmDeleteDialog(
                 }
             }
         }
+    }
+}
+
+/**
+ * Swipeable Expense Item with delete and edit gestures
+ * Identical UX to Transaction screen swipe behavior
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableExpenseItem(
+    expenseData: com.budgettracker.core.data.repository.EssentialExpenseWithSpending,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onToggleFixed: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left → Delete
+                    showDeleteDialog = true
+                    false // Don't auto-dismiss
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right → Edit
+                    showEditDialog = true
+                    false // Don't auto-dismiss
+                }
+                else -> false
+            }
+        },
+        positionalThreshold = { it * 0.4f }
+    )
+    
+    val swipeProgress = dismissState.progress
+    val targetValue = dismissState.targetValue
+    val currentValue = dismissState.currentValue
+    
+    val isSwipingLeft = targetValue == SwipeToDismissBoxValue.EndToStart
+    val isSwipingRight = targetValue == SwipeToDismissBoxValue.StartToEnd
+    
+    LaunchedEffect(currentValue) {
+        if (currentValue != SwipeToDismissBoxValue.Settled) {
+            dismissState.reset()
+        }
+    }
+    
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = {
+            val showBackground = swipeProgress > 0.05f
+            
+            if (showBackground) {
+                val backgroundColor = when {
+                    isSwipingLeft -> MaterialTheme.colorScheme.error
+                    isSwipingRight -> Color(0xFF28a745)
+                    else -> Color.Transparent
+                }
+                
+                val alpha = (swipeProgress * 2f).coerceIn(0f, 1f)
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = backgroundColor.copy(alpha = alpha),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = if (isSwipingLeft) Alignment.CenterEnd else Alignment.CenterStart
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = swipeProgress > 0.25f,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (isSwipingLeft) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Delete",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            } else if (isSwipingRight) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Edit",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true
+    ) {
+        EssentialExpenseItem(
+            expenseData = expenseData,
+            onEdit = onEdit,
+            onDelete = onDelete,
+            onToggleFixed = onToggleFixed
+        )
+    }
+    
+    // Edit dialog
+    if (showEditDialog) {
+        showEditDialog = false
+        onEdit()
+    }
+    
+    // Delete dialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Delete Expense?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text("Are you sure you want to delete this expense?")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = expenseData.expense.name,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = expenseData.expense.category.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "$${String.format("%.2f", expenseData.expense.plannedAmount)}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Swipeable Subscription Item with delete and edit gestures
+ * Identical UX to Transaction screen swipe behavior
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableSubscriptionItem(
+    subscription: EnhancedSubscriptionEntity,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            when (dismissValue) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left → Delete
+                    showDeleteDialog = true
+                    false
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right → Edit
+                    showEditDialog = true
+                    false
+                }
+                else -> false
+            }
+        },
+        positionalThreshold = { it * 0.4f }
+    )
+    
+    val swipeProgress = dismissState.progress
+    val targetValue = dismissState.targetValue
+    val currentValue = dismissState.currentValue
+    
+    val isSwipingLeft = targetValue == SwipeToDismissBoxValue.EndToStart
+    val isSwipingRight = targetValue == SwipeToDismissBoxValue.StartToEnd
+    
+    LaunchedEffect(currentValue) {
+        if (currentValue != SwipeToDismissBoxValue.Settled) {
+            dismissState.reset()
+        }
+    }
+    
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = {
+            val showBackground = swipeProgress > 0.05f
+            
+            if (showBackground) {
+                val backgroundColor = when {
+                    isSwipingLeft -> MaterialTheme.colorScheme.error
+                    isSwipingRight -> Color(0xFF28a745)
+                    else -> Color.Transparent
+                }
+                
+                val alpha = (swipeProgress * 2f).coerceIn(0f, 1f)
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = backgroundColor.copy(alpha = alpha),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = if (isSwipingLeft) Alignment.CenterEnd else Alignment.CenterStart
+                ) {
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = swipeProgress > 0.25f,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (isSwipingLeft) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Delete",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            } else if (isSwipingRight) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Edit",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true
+    ) {
+        SubscriptionItem(
+            subscription = subscription,
+            onEdit = onEdit,
+            onDelete = onDelete
+        )
+    }
+    
+    // Edit dialog
+    if (showEditDialog) {
+        showEditDialog = false
+        onEdit()
+    }
+    
+    // Delete dialog
+    if (showDeleteDialog) {
+        val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+        
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Delete Subscription?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text("Are you sure you want to delete this subscription?")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = subscription.name,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "Next billing: ${dateFormat.format(Date(subscription.nextBillingDate))}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "$${String.format("%.2f", subscription.amount)}/${subscription.frequency.name.lowercase()}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
