@@ -816,7 +816,7 @@ private data class MonthlyStats(
 
 /**
  * Swipeable Transaction Card with delete gesture
- * Material 3 SwipeToDismissBox implementation
+ * Material 3 SwipeToDismissBox implementation with progressive background reveal
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -827,46 +827,71 @@ private fun SwipeToDeleteTransactionCard(
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
+            // Don't auto-dismiss - show dialog first
             if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
                 onDelete(transaction)
-                true
+                // Return false to prevent automatic dismissal
+                // We'll handle dismissal after user confirmation
+                false
             } else {
                 false
             }
-        }
+        },
+        positionalThreshold = { it * 0.4f } // Require 40% swipe to trigger
     )
+    
+    // Calculate swipe progress for progressive background reveal
+    val swipeProgress = dismissState.progress
+    
+    // Reset swipe state when needed
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+            // Reset to settled state after dialog is shown
+            dismissState.reset()
+        }
+    }
     
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
         backgroundContent = {
-            // Red delete background
+            // Progressive red delete background based on swipe progress
+            val backgroundColor = MaterialTheme.colorScheme.error
+            val alpha = (swipeProgress * 2f).coerceIn(0f, 1f) // Fade in progressively
+            
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        color = MaterialTheme.colorScheme.error,
+                        color = backgroundColor.copy(alpha = alpha),
                         shape = RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 20.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Only show icon and text when sufficiently swiped
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = swipeProgress > 0.25f,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut()
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Delete",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White.copy(alpha = alpha),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "Delete",
+                            color = Color.White.copy(alpha = alpha),
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
                 }
             }
         },
