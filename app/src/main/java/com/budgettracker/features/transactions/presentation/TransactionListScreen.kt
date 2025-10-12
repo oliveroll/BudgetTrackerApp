@@ -8,8 +8,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -20,12 +23,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
+import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
@@ -166,16 +172,24 @@ fun TransactionListScreen(
                     
                     items(
                         items = dayTransactions,
-                        key = { it.id }
-                    ) { transaction ->
-                        SwipeToDeleteTransactionCard(
-                            transaction = transaction,
-                            onDelete = { transactionToDelete = it },
-                            modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .animateItem()
-                        )
-                    }
+                    key = { it.id }
+                ) { transaction ->
+                    SwipeToDeleteTransactionCard(
+                        transaction = transaction,
+                        onDelete = { transactionToDelete = it },
+                        onEdit = { updatedTransaction ->
+                            // Update transaction in list
+                            transactions = transactions.map {
+                                if (it.id == updatedTransaction.id) updatedTransaction else it
+                            }
+                            // Update in backend
+                            TransactionDataStore.updateTransaction(updatedTransaction)
+                        },
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .animateItem()
+                    )
+                }
                 }
             }
         }
@@ -194,85 +208,18 @@ fun TransactionListScreen(
         )
     }
     
-    // Delete Confirmation Dialog
+    // Modern Delete Confirmation Dialog
     transactionToDelete?.let { transaction ->
-        AlertDialog(
-            onDismissRequest = { transactionToDelete = null },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
-            title = {
-                Text(
-                    text = "Delete Transaction?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    Text("Are you sure you want to delete this transaction?")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = transaction.description,
-                                fontWeight = FontWeight.Medium,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = "${transaction.category.icon} ${transaction.category.displayName}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = NumberFormat.getCurrencyInstance().format(transaction.amount),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "This action cannot be undone.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        // Optimistic UI update
-                        val deletedTransaction = transaction
-                        transactions = transactions.filter { it.id != deletedTransaction.id }
-                        transactionToDelete = null
-                        
-                        // Delete from backend (async)
-                        TransactionDataStore.deleteTransaction(deletedTransaction.id)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(
-                    onClick = { transactionToDelete = null }
-                ) {
-                    Text("Cancel")
-                }
+        ModernDeleteConfirmationDialog(
+            transaction = transaction,
+            onDismiss = { transactionToDelete = null },
+            onConfirm = {
+                // Optimistic UI update
+                transactions = transactions.filter { it.id != transaction.id }
+                transactionToDelete = null
+                
+                // Delete from backend (async)
+                TransactionDataStore.deleteTransaction(transaction.id)
             }
         )
     }
@@ -825,6 +772,7 @@ private data class MonthlyStats(
 private fun SwipeToDeleteTransactionCard(
     transaction: Transaction,
     onDelete: (Transaction) -> Unit,
+    onEdit: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
@@ -945,59 +893,537 @@ private fun SwipeToDeleteTransactionCard(
         )
     }
     
-    // Edit Dialog (placeholder - can be replaced with navigation to edit screen)
+    // Modern Edit Transaction Dialog
     if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            },
-            title = {
-                Text(
-                    text = "Edit Transaction",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    Text("Edit functionality will be implemented here.")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ModernEditTransactionDialog(
+            transaction = transaction,
+            onDismiss = { showEditDialog = false },
+            onSave = { updatedTransaction ->
+                // Pass updated transaction to parent
+                onEdit(updatedTransaction)
+                showEditDialog = false
+            }
+        )
+    }
+}
+
+/**
+ * Modern Edit Transaction Dialog
+ * Full-featured form for editing transactions
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ModernEditTransactionDialog(
+    transaction: Transaction,
+    onDismiss: () -> Unit,
+    onSave: (Transaction) -> Unit
+) {
+    var amount by remember { mutableStateOf(transaction.amount.toString()) }
+    var description by remember { mutableStateOf(transaction.description) }
+    var selectedCategory by remember { mutableStateOf(transaction.category) }
+    var selectedType by remember { mutableStateOf(transaction.type) }
+    var notes by remember { mutableStateOf(transaction.notes ?: "") }
+    var selectedDate by remember { mutableStateOf(transaction.date) }
+    var showCategoryDropdown by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
+    
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate.time
+    )
+    
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 600.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                // Header with gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
                         )
+                        .padding(24.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Edit Transaction",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                            IconButton(onClick = onDismiss) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Modify transaction details",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+                
+                // Form content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Transaction Type Toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                text = transaction.description,
-                                fontWeight = FontWeight.Medium,
-                                style = MaterialTheme.typography.bodyMedium
+                        FilterChip(
+                            selected = selectedType == TransactionType.INCOME,
+                            onClick = { selectedType = TransactionType.INCOME },
+                            label = {
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text("💰 Income")
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF28a745),
+                                selectedLabelColor = Color.White
                             )
-                            Text(
-                                text = "${transaction.category.icon} ${transaction.category.displayName}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FilterChip(
+                            selected = selectedType == TransactionType.EXPENSE,
+                            onClick = { selectedType = TransactionType.EXPENSE },
+                            label = {
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text("💸 Expense")
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFdc3545),
+                                selectedLabelColor = Color.White
                             )
+                        )
+                    }
+                    
+                    // Amount Input
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Amount") },
+                        leadingIcon = { 
                             Text(
-                                text = NumberFormat.getCurrencyInstance().format(transaction.amount),
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                "$",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Description Input
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it },
+                        label = { Text("Description") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Description, contentDescription = null)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Category Dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = showCategoryDropdown,
+                        onExpandedChange = { showCategoryDropdown = !showCategoryDropdown }
+                    ) {
+                        OutlinedTextField(
+                            value = "${selectedCategory.icon} ${selectedCategory.displayName}",
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Category") },
+                            trailingIcon = { 
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategoryDropdown)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = showCategoryDropdown,
+                            onDismissRequest = { showCategoryDropdown = false }
+                        ) {
+                            val categories = if (selectedType == TransactionType.INCOME) {
+                                TransactionCategory.getIncomeCategories()
+                            } else {
+                                TransactionCategory.getExpenseCategories()
+                            }
+                            
+                            categories.forEach { category ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row {
+                                            Text(category.icon)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(category.displayName)
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedCategory = category
+                                        showCategoryDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Date Picker
+                    OutlinedTextField(
+                        value = SimpleDateFormat("MMM dd, yyyy - h:mm a", Locale.getDefault()).format(selectedDate),
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Date & Time") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Event, contentDescription = null)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDatePicker = true },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Notes Input
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes (Optional)") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Notes, contentDescription = null)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        maxLines = 3,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = {
+                                if (amount.isNotBlank() && description.isNotBlank()) {
+                                    val updatedTransaction = transaction.copy(
+                                        amount = amount.toDoubleOrNull() ?: transaction.amount,
+                                        description = description,
+                                        category = selectedCategory,
+                                        type = selectedType,
+                                        notes = notes.ifBlank { null },
+                                        date = selectedDate,
+                                        updatedAt = Date()
+                                    )
+                                    onSave(updatedTransaction)
+                                }
+                            },
+                            enabled = amount.isNotBlank() && description.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Save")
                         }
                     }
                 }
-            },
+            }
+        }
+    }
+    
+    // Date Picker Dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                Button(
-                    onClick = { showEditDialog = false }
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            // Preserve current time, only update date
+                            val calendar = Calendar.getInstance()
+                            calendar.time = selectedDate
+                            
+                            val pickedCalendar = Calendar.getInstance()
+                            pickedCalendar.timeInMillis = millis
+                            
+                            calendar.set(Calendar.YEAR, pickedCalendar.get(Calendar.YEAR))
+                            calendar.set(Calendar.MONTH, pickedCalendar.get(Calendar.MONTH))
+                            calendar.set(Calendar.DAY_OF_MONTH, pickedCalendar.get(Calendar.DAY_OF_MONTH))
+                            
+                            selectedDate = calendar.time
+                        }
+                        showDatePicker = false
+                    }
                 ) {
-                    Text("Close")
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel")
                 }
             }
-        )
+        ) {
+            DatePicker(
+                state = datePickerState,
+                title = {
+                    Text(
+                        text = "Select Date",
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Modern Delete Confirmation Dialog
+ * Beautiful, clear confirmation with transaction preview
+ */
+@Composable
+private fun ModernDeleteConfirmationDialog(
+    transaction: Transaction,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Header with red gradient
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFdc3545),
+                                    Color(0xFFc82333)
+                                )
+                            )
+                        )
+                        .padding(24.dp)
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Delete Transaction?",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "This action cannot be undone",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+                
+                // Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Transaction Preview Card
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                // Description with icon
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text(
+                                        text = transaction.category.icon,
+                                        style = MaterialTheme.typography.titleLarge
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = transaction.description,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                // Category
+                                Text(
+                                    text = transaction.category.displayName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                // Date
+                                Text(
+                                    text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(transaction.date),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(12.dp))
+                            
+                            // Amount with background
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(4.dp)
+                            ) {
+                                Text(
+                                    text = NumberFormat.getCurrencyInstance().format(transaction.amount),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Warning message
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "You're about to permanently delete this transaction",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                        )
+                    }
+                    
+                    // Action Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel", fontWeight = FontWeight.Medium)
+                        }
+                        Button(
+                            onClick = onConfirm,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Delete", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
