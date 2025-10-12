@@ -544,26 +544,6 @@ private fun EssentialExpenseItem(
                     }
                 }
             }
-            
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                
-                IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color(0xFFdc3545),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
         }
         
         Spacer(modifier = Modifier.height(8.dp))
@@ -819,31 +799,14 @@ private fun SubscriptionItem(
                 )
             }
             
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (daysUntil <= 7 && daysUntil >= 0) {
-                    Icon(
-                        imageVector = Icons.Default.Notifications,
-                        contentDescription = "Reminder active",
-                        tint = Color(0xFFff9800),
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                IconButton(onClick = onDelete, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete",
-                        tint = Color(0xFFdc3545),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            // Reminder indicator
+            if (daysUntil <= 7 && daysUntil >= 0) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Reminder active",
+                    tint = Color(0xFFff9800),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -1071,127 +1034,204 @@ private fun EditExpenseDialog(
     var isFixed by remember { mutableStateOf(expense.dueDay != null) }
     
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 600.dp),
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "Edit Essential Expense",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Expense Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Box {
-                    OutlinedTextField(
-                        value = "${selectedCategory.iconEmoji} ${selectedCategory.displayName}",
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("Category") },
-                        trailingIcon = {
-                            IconButton(onClick = { showCategoryDropdown = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
+                // Modern gradient header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF6f42c1),
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                        )
+                        .padding(24.dp)
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.ShoppingCart,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Edit Expense",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
                             }
+                            IconButton(onClick = onDismiss) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Update expense details",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+                
+                // Form content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Expense Name") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Description, contentDescription = null)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showCategoryDropdown = true }
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
                     )
                     
-                    DropdownMenu(
-                        expanded = showCategoryDropdown,
-                        onDismissRequest = { showCategoryDropdown = false }
-                    ) {
-                        ExpenseCategory.values().forEach { category ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row {
-                                        Text(category.iconEmoji)
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(category.displayName)
-                                    }
-                                },
-                                onClick = {
-                                    selectedCategory = category
-                                    showCategoryDropdown = false
+                    // Category dropdown
+                    Box {
+                        OutlinedTextField(
+                            value = "${selectedCategory.iconEmoji} ${selectedCategory.displayName}",
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Category") },
+                            trailingIcon = {
+                                IconButton(onClick = { showCategoryDropdown = true }) {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
                                 }
-                            )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showCategoryDropdown = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        
+                        DropdownMenu(
+                            expanded = showCategoryDropdown,
+                            onDismissRequest = { showCategoryDropdown = false }
+                        ) {
+                            ExpenseCategory.values().forEach { category ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row {
+                                            Text(category.iconEmoji)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(category.displayName)
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedCategory = category
+                                        showCategoryDropdown = false
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Amount") },
-                    prefix = { Text("$") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isFixed,
-                        onCheckedChange = { isFixed = it }
-                    )
-                    Text("Fixed expense (recurring)")
-                }
-                
-                if (isFixed) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Amount input
                     OutlinedTextField(
-                        value = dueDay,
-                        onValueChange = { dueDay = it },
-                        label = { Text("Due day (1-31)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val parsedAmount = amount.toDoubleOrNull()
-                            val parsedDueDay = if (isFixed) dueDay.toIntOrNull() else null
-                            if (name.isNotBlank() && parsedAmount != null) {
-                                onConfirm(name, selectedCategory, parsedAmount, parsedDueDay)
-                            }
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Amount") },
+                        leadingIcon = {
+                            Text(
+                                "$",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         },
-                        enabled = name.isNotBlank() && amount.toDoubleOrNull() != null
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Fixed expense toggle
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Update")
+                        Checkbox(
+                            checked = isFixed,
+                            onCheckedChange = { isFixed = it }
+                        )
+                        Text("Fixed expense (recurring monthly)")
+                    }
+                    
+                    // Due day (if fixed)
+                    if (isFixed) {
+                        OutlinedTextField(
+                            value = dueDay,
+                            onValueChange = { dueDay = it },
+                            label = { Text("Due day (1-31)") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Event, contentDescription = null)
+                            },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                    
+                    // Action buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = {
+                                val parsedAmount = amount.toDoubleOrNull()
+                                val parsedDueDay = if (isFixed) dueDay.toIntOrNull() else null
+                                if (name.isNotBlank() && parsedAmount != null) {
+                                    onConfirm(name, selectedCategory, parsedAmount, parsedDueDay)
+                                }
+                            },
+                            enabled = name.isNotBlank() && amount.toDoubleOrNull() != null,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Update")
+                        }
                     }
                 }
             }
@@ -1384,144 +1424,200 @@ private fun EditSubscriptionDialog(
     )
     
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 650.dp),
             shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 6.dp
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
         ) {
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
+                    .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                Text(
-                    text = "Edit Subscription",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Service Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text("Amount") },
-                    prefix = { Text("$") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                Box {
-                    OutlinedTextField(
-                        value = selectedFrequency.displayName,
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("Billing Frequency") },
-                        trailingIcon = {
-                            IconButton(onClick = { showFrequencyDropdown = true }) {
-                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showFrequencyDropdown = true }
-                    )
-                    
-                    DropdownMenu(
-                        expanded = showFrequencyDropdown,
-                        onDismissRequest = { showFrequencyDropdown = false }
-                    ) {
-                        BillingFrequency.values().forEach { frequency ->
-                            DropdownMenuItem(
-                                text = { Text(frequency.displayName) },
-                                onClick = {
-                                    selectedFrequency = frequency
-                                    showFrequencyDropdown = false
-                                }
+                // Modern gradient header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
                             )
-                        }
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
-                OutlinedTextField(
-                    value = iconEmoji,
-                    onValueChange = { if (it.length <= 2) iconEmoji = it },
-                    label = { Text("Icon (emoji)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                // Date picker card
-                Card(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Next Billing Date",
-                            style = MaterialTheme.typography.bodyLarge
                         )
+                        .padding(24.dp)
+                ) {
+                    Column {
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = dateFormat.format(Date(nextBillingDate)),
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Event,
-                                contentDescription = "Select Date",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Edit Subscription",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                            IconButton(onClick = onDismiss) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color.White
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Update subscription details",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                // Form content
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val parsedAmount = amount.toDoubleOrNull()
-                            if (name.isNotBlank() && parsedAmount != null) {
-                                onConfirm(name, parsedAmount, selectedFrequency, nextBillingDate, iconEmoji)
-                            }
+                    // Service name
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Service Name") },
+                        leadingIcon = {
+                            Text(
+                                iconEmoji,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         },
-                        enabled = name.isNotBlank() && amount.toDoubleOrNull() != null
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Amount
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Amount") },
+                        leadingIcon = {
+                            Text(
+                                "$",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                
+                    // Billing frequency dropdown
+                    Box {
+                        OutlinedTextField(
+                            value = selectedFrequency.displayName,
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Billing Frequency") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Refresh, contentDescription = null)
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { showFrequencyDropdown = true }) {
+                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showFrequencyDropdown = true },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        
+                        DropdownMenu(
+                            expanded = showFrequencyDropdown,
+                            onDismissRequest = { showFrequencyDropdown = false }
+                        ) {
+                            BillingFrequency.values().forEach { frequency ->
+                                DropdownMenuItem(
+                                    text = { Text(frequency.displayName) },
+                                    onClick = {
+                                        selectedFrequency = frequency
+                                        showFrequencyDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    
+                    // Next billing date picker
+                    OutlinedTextField(
+                        value = dateFormat.format(Date(nextBillingDate)),
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Next Billing Date") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Event, contentDescription = null)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showDatePicker = true },
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Icon emoji
+                    OutlinedTextField(
+                        value = iconEmoji,
+                        onValueChange = { if (it.length <= 2) iconEmoji = it },
+                        label = { Text("Icon (emoji)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    
+                    // Action buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("Update")
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Cancel")
+                        }
+                        Button(
+                            onClick = {
+                                val parsedAmount = amount.toDoubleOrNull()
+                                if (name.isNotBlank() && parsedAmount != null) {
+                                    onConfirm(name, parsedAmount, selectedFrequency, nextBillingDate, iconEmoji)
+                                }
+                            },
+                            enabled = name.isNotBlank() && amount.toDoubleOrNull() != null,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Update")
+                        }
                     }
                 }
             }
