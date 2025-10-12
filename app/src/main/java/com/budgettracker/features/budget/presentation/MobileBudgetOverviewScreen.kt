@@ -1839,74 +1839,185 @@ private fun SwipeableExpenseItem(
         onEdit()
     }
     
-    // Delete dialog
+    // Modern Delete Confirmation Dialog
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Delete Expense?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    Text("Are you sure you want to delete this expense?")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+        Dialog(onDismissRequest = { showDeleteDialog = false }) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Header with red gradient
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFdc3545),
+                                        Color(0xFFc82333)
+                                    )
+                                )
+                            )
+                            .padding(24.dp)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Delete Expense?",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = expenseData.expense.name,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = expenseData.expense.category.name,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$${String.format("%.2f", expenseData.expense.plannedAmount)}",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
+                                text = "This action cannot be undone",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    
+                    // Content
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Expense Preview Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    // Name with category
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = expenseData.expense.category.iconEmoji,
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = expenseData.expense.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    // Category name
+                                    Text(
+                                        text = expenseData.expense.category.displayName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                // Amount with background
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Text(
+                                        text = "$${String.format("%.2f", expenseData.expense.plannedAmount)}",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Warning message
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "You're about to permanently delete this expense",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                            )
+                        }
+                        
+                        // Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showDeleteDialog = false },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Cancel", fontWeight = FontWeight.Medium)
+                            }
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    onDelete()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Delete", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 }
 
@@ -2039,76 +2150,193 @@ private fun SwipeableSubscriptionItem(
         onEdit()
     }
     
-    // Delete dialog
+    // Modern Delete Confirmation Dialog
     if (showDeleteDialog) {
         val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
         
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(32.dp)
-                )
-            },
-            title = {
-                Text(
-                    text = "Delete Subscription?",
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    Text("Are you sure you want to delete this subscription?")
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+        Dialog(onDismissRequest = { showDeleteDialog = false }) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Header with red gradient
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFdc3545),
+                                        Color(0xFFc82333)
+                                    )
+                                )
+                            )
+                            .padding(24.dp)
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Delete Subscription?",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = subscription.name,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = "Next billing: ${dateFormat.format(Date(subscription.nextBillingDate))}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$${String.format("%.2f", subscription.amount)}/${subscription.frequency.name.lowercase()}",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
+                                text = "This action cannot be undone",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f)
                             )
                         }
                     }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(Icons.Default.Delete, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    
+                    // Content
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        // Subscription Preview Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    // Name with icon
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = subscription.iconEmoji ?: "💳",
+                                            style = MaterialTheme.typography.titleLarge
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = subscription.name,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    // Next billing date
+                                    Text(
+                                        text = "Next billing: ${dateFormat.format(Date(subscription.nextBillingDate))}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    // Frequency
+                                    Text(
+                                        text = subscription.frequency.displayName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                // Amount with background
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Text(
+                                        text = "$${String.format("%.2f", subscription.amount)}",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        // Warning message
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "You're about to permanently delete this subscription",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                            )
+                        }
+                        
+                        // Action Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedButton(
+                                onClick = { showDeleteDialog = false },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text("Cancel", fontWeight = FontWeight.Medium)
+                            }
+                            Button(
+                                onClick = {
+                                    showDeleteDialog = false
+                                    onDelete()
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Delete", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
                 }
             }
-        )
+        }
     }
 }
 
