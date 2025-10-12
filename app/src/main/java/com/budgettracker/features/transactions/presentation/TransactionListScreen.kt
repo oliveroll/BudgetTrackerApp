@@ -815,8 +815,10 @@ private data class MonthlyStats(
 )
 
 /**
- * Swipeable Transaction Card with delete gesture
+ * Swipeable Transaction Card with delete and edit gestures
  * Material 3 SwipeToDismissBox implementation with progressive background reveal
+ * - Swipe Left (EndToStart): Red background → Delete
+ * - Swipe Right (StartToEnd): Green background → Edit
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -825,28 +827,39 @@ private fun SwipeToDeleteTransactionCard(
     onDelete: (Transaction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showEditDialog by remember { mutableStateOf(false) }
+    
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { dismissValue ->
-            // Don't auto-dismiss - show dialog first
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDelete(transaction)
-                // Return false to prevent automatic dismissal
-                // We'll handle dismissal after user confirmation
-                false
-            } else {
-                false
+            when (dismissValue) {
+                SwipeToDismissBoxValue.EndToStart -> {
+                    // Swipe left → Delete
+                    onDelete(transaction)
+                    false // Don't auto-dismiss
+                }
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    // Swipe right → Edit
+                    showEditDialog = true
+                    false // Don't auto-dismiss
+                }
+                else -> false
             }
         },
         positionalThreshold = { it * 0.4f } // Require 40% swipe to trigger
     )
     
-    // Calculate swipe progress for progressive background reveal
+    // Calculate swipe progress and direction
     val swipeProgress = dismissState.progress
+    val targetValue = dismissState.targetValue
+    val currentValue = dismissState.currentValue
+    
+    // Determine swipe direction
+    val isSwipingLeft = targetValue == SwipeToDismissBoxValue.EndToStart
+    val isSwipingRight = targetValue == SwipeToDismissBoxValue.StartToEnd
     
     // Reset swipe state when needed
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
-            // Reset to settled state after dialog is shown
+    LaunchedEffect(currentValue) {
+        if (currentValue != SwipeToDismissBoxValue.Settled) {
             dismissState.reset()
         }
     }
@@ -855,52 +868,136 @@ private fun SwipeToDeleteTransactionCard(
         state = dismissState,
         modifier = modifier,
         backgroundContent = {
-            // Progressive red delete background based on swipe progress
-            val backgroundColor = MaterialTheme.colorScheme.error
-            val alpha = (swipeProgress * 2f).coerceIn(0f, 1f) // Fade in progressively
+            // Only show background when actively swiping
+            val showBackground = swipeProgress > 0.05f
             
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        color = backgroundColor.copy(alpha = alpha),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                // Only show icon and text when sufficiently swiped
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = swipeProgress > 0.25f,
-                    enter = fadeIn() + scaleIn(),
-                    exit = fadeOut() + scaleOut()
+            if (showBackground) {
+                // Choose background color based on swipe direction
+                val backgroundColor = when {
+                    isSwipingLeft -> MaterialTheme.colorScheme.error // Red for delete
+                    isSwipingRight -> Color(0xFF28a745) // Green for edit
+                    else -> Color.Transparent
+                }
+                
+                // Progressive fade-in based on swipe progress
+                val alpha = (swipeProgress * 2f).coerceIn(0f, 1f)
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = backgroundColor.copy(alpha = alpha),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = if (isSwipingLeft) Alignment.CenterEnd else Alignment.CenterStart
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Show appropriate icon based on direction
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = swipeProgress > 0.25f,
+                        enter = fadeIn() + scaleIn(),
+                        exit = fadeOut() + scaleOut()
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = Color.White.copy(alpha = alpha),
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "Delete",
-                            color = Color.White.copy(alpha = alpha),
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (isSwipingLeft) {
+                                // Delete icon and text
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Delete",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            } else if (isSwipingRight) {
+                                // Edit icon and text
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Edit",
+                                    tint = Color.White.copy(alpha = alpha),
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Text(
+                                    text = "Edit",
+                                    color = Color.White.copy(alpha = alpha),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
                     }
                 }
             }
         },
-        enableDismissFromStartToEnd = false,
-        enableDismissFromEndToStart = true
+        enableDismissFromStartToEnd = true,  // Enable swipe right for edit
+        enableDismissFromEndToStart = true   // Enable swipe left for delete
     ) {
         TransactionCard(
             transaction = transaction,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+    
+    // Edit Dialog (placeholder - can be replaced with navigation to edit screen)
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text(
+                    text = "Edit Transaction",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column {
+                    Text("Edit functionality will be implemented here.")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        )
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text(
+                                text = transaction.description,
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = "${transaction.category.icon} ${transaction.category.displayName}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = NumberFormat.getCurrencyInstance().format(transaction.amount),
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showEditDialog = false }
+                ) {
+                    Text("Close")
+                }
+            }
         )
     }
 }
