@@ -2,6 +2,9 @@ package com.budgettracker.core.data.local.converters
 
 import androidx.room.TypeConverter
 import com.budgettracker.core.domain.model.*
+import com.budgettracker.core.data.local.entities.BillingFrequency
+import com.budgettracker.core.data.local.entities.ExpenseCategory
+import com.budgettracker.core.data.local.entities.ReminderType
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.Date
@@ -35,6 +38,20 @@ class Converters {
         return value?.let {
             val listType = object : TypeToken<List<String>>() {}.type
             gson.fromJson<List<String>>(it, listType)
+        } ?: emptyList()
+    }
+    
+    // List<Int> converters for reminder days
+    @TypeConverter
+    fun fromIntList(value: List<Int>?): String? {
+        return gson.toJson(value)
+    }
+    
+    @TypeConverter
+    fun toIntList(value: String?): List<Int>? {
+        return value?.let {
+            val listType = object : TypeToken<List<Int>>() {}.type
+            gson.fromJson<List<Int>>(it, listType)
         } ?: emptyList()
     }
     
@@ -136,6 +153,57 @@ class Converters {
                 LoanType.valueOf(it)
             } catch (e: IllegalArgumentException) {
                 LoanType.OTHER
+            }
+        }
+    }
+    
+    // BillingFrequency converter for enhanced subscriptions
+    @TypeConverter
+    fun fromBillingFrequency(frequency: BillingFrequency?): String? {
+        return frequency?.name
+    }
+    
+    @TypeConverter
+    fun toBillingFrequency(frequencyName: String?): BillingFrequency? {
+        return frequencyName?.let { 
+            try {
+                BillingFrequency.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                BillingFrequency.MONTHLY
+            }
+        }
+    }
+    
+    // ExpenseCategory converter for essential expenses
+    @TypeConverter
+    fun fromExpenseCategory(category: ExpenseCategory?): String? {
+        return category?.name
+    }
+    
+    @TypeConverter
+    fun toExpenseCategory(categoryName: String?): ExpenseCategory? {
+        return categoryName?.let { 
+            try {
+                ExpenseCategory.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                ExpenseCategory.OTHER
+            }
+        }
+    }
+    
+    // ReminderType converter for FCM reminders
+    @TypeConverter
+    fun fromReminderType(type: ReminderType?): String? {
+        return type?.name
+    }
+    
+    @TypeConverter
+    fun toReminderType(typeName: String?): ReminderType? {
+        return typeName?.let { 
+            try {
+                ReminderType.valueOf(it)
+            } catch (e: IllegalArgumentException) {
+                ReminderType.CUSTOM
             }
         }
     }

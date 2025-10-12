@@ -3,42 +3,71 @@ package com.budgettracker.features.budget.presentation
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /**
- * Budget overview screen showing current month budget status
+ * Budget Overview Screen - No Hilt Dependencies
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BudgetOverviewScreen(
-    onNavigateToBudgetSetup: () -> Unit = {}
+    onNavigateToSubscriptions: () -> Unit = {},
+    onNavigateToReminders: () -> Unit = {},
+    onNavigateToDebtTracker: () -> Unit = {}
 ) {
+    // Static data for now - no ViewModel needed
+    val isLoading = false
+    val error: String? = null
+    
+    // Error state
+    if (error != null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Error: $error",
+                    color = MaterialTheme.colorScheme.error
+                )
+                Button(
+                    onClick = { /* Refresh logic */ },
+                    modifier = Modifier.padding(top = 16.dp)
+                ) {
+                    Text("Retry")
+                }
+            }
+        }
+        return
+    }
+    
+    // Loading state
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { 
                     Text(
-                        text = "Budget",
+                        "Budget Overview",
                         fontWeight = FontWeight.Bold
-                    )
+                    ) 
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToBudgetSetup
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Create Budget"
-                )
-            }
         }
     ) { paddingValues ->
         LazyColumn(
@@ -49,163 +78,189 @@ fun BudgetOverviewScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
         ) {
-            // Current Month Budget Card
+            // Simple header
             item {
-                CurrentMonthBudgetCard()
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Financial Overview",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Net Monthly Income: $5,191.32",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
             }
             
-            // Budget Templates
+            // Simple debt progress
             item {
-                BudgetTemplatesCard(onCreateBudget = onNavigateToBudgetSetup)
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Debt Progress",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Remaining: €10,317.64",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        LinearProgressIndicator(
+                            progress = { 0.107f }, // 10.7%
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "10.7% paid off • Freedom Date: November 2026",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
             
-            // Empty State
+            // Simple subscriptions list
             item {
-                EmptyBudgetCard(onCreateBudget = onNavigateToBudgetSetup)
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Active Subscriptions",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Sample subscriptions
+                        listOf(
+                            "Spotify Premium" to "$11.99",
+                            "Phone Plan" to "$150.00",
+                            "Netflix" to "$15.49"
+                        ).forEach { (name, cost) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = name)
+                                Text(text = cost, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Total: $177.48/month",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            
+            // Simple upcoming bills
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Upcoming Bills",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // Sample bills
+                        listOf(
+                            "Rent Payment" to "$708.95",
+                            "Electric Bill" to "$85.00", 
+                            "German Student Loan" to "€900.00"
+                        ).forEach { (name, amount) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(text = name)
+                                Text(text = amount, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Action buttons
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onNavigateToSubscriptions,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Manage Subscriptions")
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onNavigateToReminders,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Set Reminders")
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onNavigateToDebtTracker,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.TrendingUp,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("View Debt Details")
+                    }
+                }
             }
         }
     }
 }
-
-@Composable
-private fun CurrentMonthBudgetCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "September 2025",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "No budget set for this month",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun BudgetTemplatesCard(
-    onCreateBudget: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "Budget Templates",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            BudgetTemplateItem(
-                title = "50/30/20 Rule",
-                description = "50% needs, 30% wants, 20% savings",
-                onClick = onCreateBudget
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            BudgetTemplateItem(
-                title = "OPT Student Budget",
-                description = "Optimized for visa holders with higher emergency fund",
-                onClick = onCreateBudget
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            BudgetTemplateItem(
-                title = "Zero-Based Budget",
-                description = "Every dollar has a purpose",
-                onClick = onCreateBudget
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BudgetTemplateItem(
-    title: String,
-    description: String,
-    onClick: () -> Unit
-) {
-    OutlinedCard(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyBudgetCard(
-    onCreateBudget: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "📊",
-                style = MaterialTheme.typography.displayMedium
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Text(
-                text = "No Budget Set",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            
-            Text(
-                text = "Create your first budget to start tracking your spending and reach your financial goals",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Button(
-                onClick = onCreateBudget
-            ) {
-                Text("Create Budget")
-            }
-        }
-    }
-}
-

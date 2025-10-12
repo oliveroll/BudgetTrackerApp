@@ -21,6 +21,14 @@
     <!-- Document access permissions for PDF upload -->
     <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
     <uses-permission android:name="android.permission.MANAGE_DOCUMENTS" />
+    
+    <!-- Notification permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Boot permission to reschedule notifications after reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".BudgetTrackerApplication"
@@ -44,6 +52,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
+        <!-- Enhanced Firebase Cloud Messaging Service -->
+        <service
+            android:name=".core.messaging.EnhancedBudgetMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Enhanced Notification Action Receiver -->
+        <receiver
+            android:name=".core.messaging.EnhancedNotificationActionReceiver"
+            android:exported="false" />
+        
+        <!-- Boot Receiver to reschedule notifications -->
+        <receiver
+            android:name=".core.messaging.BootReceiver"
+            android:exported="false">
+            <intent-filter android:priority="1000">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
         
     </application>
 

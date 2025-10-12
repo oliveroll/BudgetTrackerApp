@@ -18,12 +18,13 @@ class BudgetTrackerApplication : Application() {
         // Initialize analytics
         
         // Set up global exception handling for better crash reporting
+        val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
             // Log crash to Firebase Crashlytics
             exception.printStackTrace()
             
-            // Re-throw to let the system handle it
-            Thread.getDefaultUncaughtExceptionHandler()?.uncaughtException(thread, exception)
+            // Call the original default handler to let the system handle it
+            defaultHandler?.uncaughtException(thread, exception)
         }
     }
 }

@@ -55,5 +55,20 @@ object DatabaseModule {
     fun provideLoanPaymentDao(database: BudgetTrackerDatabase): LoanPaymentDao {
         return database.loanPaymentDao()
     }
+    
+    @Provides
+    fun provideBudgetOverviewDao(database: BudgetTrackerDatabase): BudgetOverviewDao {
+        return database.budgetOverviewDao()
+    }
+    
+    @Provides
+    fun provideSubscriptionDao(database: BudgetTrackerDatabase): SubscriptionDao {
+        return database.subscriptionDao()
+    }
+    
+    @Provides
+    fun provideBillReminderDao(database: BudgetTrackerDatabase): BillReminderDao {
+        return database.billReminderDao()
+    }
 }
 

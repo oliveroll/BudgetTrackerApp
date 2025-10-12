@@ -1,7 +1,7 @@
 package com.budgettracker.di
 
-import com.budgettracker.core.data.repository.LoanRepositoryImpl
-import com.budgettracker.core.domain.repository.LoanRepository
+import com.budgettracker.core.data.repository.*
+import com.budgettracker.core.domain.repository.*
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -14,7 +14,7 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-    
+
     @Binds
     @Singleton
     abstract fun bindLoanRepository(

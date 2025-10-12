@@ -21,9 +21,19 @@ import com.budgettracker.core.data.local.entities.*
         SavingsGoalEntity::class,
         UserProfileEntity::class,
         LoanEntity::class,
-        LoanPaymentEntity::class
+        LoanPaymentEntity::class,
+        BudgetOverviewEntity::class,
+        SubscriptionEntity::class,
+        BillReminderEntity::class,
+        // New enhanced entities
+        EnhancedSubscriptionEntity::class,
+        EssentialExpenseEntity::class,
+        BalanceEntity::class,
+        PaycheckEntity::class,
+        ReminderEntity::class,
+        DeviceEntity::class
     ],
-    version = 2,
+    version = 4, // Increment version for new entities
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -35,6 +45,9 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun loanDao(): LoanDao
     abstract fun loanPaymentDao(): LoanPaymentDao
+    abstract fun budgetOverviewDao(): BudgetOverviewDao
+    abstract fun subscriptionDao(): SubscriptionDao
+    abstract fun billReminderDao(): BillReminderDao
     
     companion object {
         @Volatile
@@ -93,6 +106,131 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create enhanced_subscriptions table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `enhanced_subscriptions` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `currency` TEXT NOT NULL DEFAULT 'USD',
+                        `frequency` TEXT NOT NULL,
+                        `nextBillingDate` INTEGER NOT NULL,
+                        `reminderDaysBefore` TEXT NOT NULL,
+                        `fcmReminderEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `active` INTEGER NOT NULL DEFAULT 1,
+                        `iconEmoji` TEXT,
+                        `category` TEXT NOT NULL DEFAULT 'Entertainment',
+                        `notes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Create essential_expenses table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `essential_expenses` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `plannedAmount` REAL NOT NULL,
+                        `actualAmount` REAL,
+                        `dueDay` INTEGER,
+                        `paid` INTEGER NOT NULL DEFAULT 0,
+                        `period` TEXT NOT NULL,
+                        `reminderDaysBefore` TEXT,
+                        `fcmReminderEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `notes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Create balance table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `balance` (
+                        `userId` TEXT NOT NULL,
+                        `currentBalance` REAL NOT NULL,
+                        `lastUpdatedBy` TEXT NOT NULL DEFAULT 'user',
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`userId`)
+                    )
+                """)
+                
+                // Create paychecks table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `paychecks` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `date` INTEGER NOT NULL,
+                        `grossAmount` REAL NOT NULL,
+                        `netAmount` REAL NOT NULL,
+                        `deposited` INTEGER NOT NULL DEFAULT 0,
+                        `depositedAt` INTEGER,
+                        `payPeriodStart` INTEGER,
+                        `payPeriodEnd` INTEGER,
+                        `notes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Create fcm_reminders table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `fcm_reminders` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `targetId` TEXT NOT NULL,
+                        `fireAtUtc` INTEGER NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `message` TEXT NOT NULL,
+                        `sent` INTEGER NOT NULL DEFAULT 0,
+                        `sentAt` INTEGER,
+                        `fcmMessageId` TEXT,
+                        `recurringRule` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Create fcm_devices table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `fcm_devices` (
+                        `deviceId` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `fcmToken` TEXT NOT NULL,
+                        `platform` TEXT NOT NULL DEFAULT 'android',
+                        `appVersion` TEXT NOT NULL,
+                        `notificationsEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `lastSeen` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`deviceId`)
+                    )
+                """)
+            }
+        }
+        
         fun getDatabase(context: Context): BudgetTrackerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -100,7 +238,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4)
                 .build()
                 INSTANCE = instance
                 instance

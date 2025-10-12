@@ -17,6 +17,11 @@ import com.budgettracker.features.dashboard.presentation.ModernDashboardScreen
 import com.budgettracker.features.transactions.presentation.AddTransactionScreen
 import com.budgettracker.features.transactions.presentation.TransactionListScreen
 import com.budgettracker.features.budget.presentation.EnhancedBudgetScreen
+import com.budgettracker.features.budget.presentation.BudgetOverviewScreen
+import com.budgettracker.features.budget.presentation.EnhancedBudgetOverviewScreen
+import com.budgettracker.features.budget.presentation.MobileBudgetOverviewScreen
+import com.budgettracker.features.budget.presentation.SubscriptionsScreen
+import com.budgettracker.features.budget.presentation.RemindersScreen
 import com.budgettracker.features.savings.presentation.SavingsGoalsScreen
 import com.budgettracker.features.savings.presentation.AddGoalScreen
 import com.budgettracker.features.savings.presentation.GoalsScreen
@@ -141,11 +146,27 @@ fun BudgetTrackerNavigation(
         }
         
         composable(BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE) {
-            EnhancedBudgetScreen()
+            MobileBudgetOverviewScreen()
         }
         
         composable(BudgetTrackerDestinations.BUDGET_SETUP_ROUTE) {
             // TODO: BudgetSetupScreen()
+        }
+        
+        composable(BudgetTrackerDestinations.SUBSCRIPTIONS_ROUTE) {
+            SubscriptionsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        
+        composable(BudgetTrackerDestinations.REMINDERS_ROUTE) {
+            RemindersScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
         
         composable(BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE) {

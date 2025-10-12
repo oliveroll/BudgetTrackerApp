@@ -18,12 +18,13 @@ import com.budgettracker.navigation.BudgetTrackerNavigation
 import com.budgettracker.navigation.BudgetTrackerBottomNavigation
 import com.budgettracker.navigation.BudgetTrackerDestinations
 import com.budgettracker.ui.theme.BudgetTrackerTheme
-// import dagger.hilt.android.AndroidEntryPoint // Temporarily disabled
+import dagger.hilt.android.AndroidEntryPoint
+
+@AndroidEntryPoint
 
 /**
  * Main activity for Budget Tracker app
  */
-// @AndroidEntryPoint // Temporarily disabled
 class MainActivity : ComponentActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {

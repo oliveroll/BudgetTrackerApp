@@ -26,6 +26,8 @@ object BudgetTrackerDestinations {
     // Budget
     const val BUDGET_OVERVIEW_ROUTE = "budget_overview"
     const val BUDGET_SETUP_ROUTE = "budget_setup"
+    const val SUBSCRIPTIONS_ROUTE = "subscriptions"
+    const val REMINDERS_ROUTE = "reminders"
     
     // Savings Goals
     const val SAVINGS_GOALS_ROUTE = "savings_goals"
