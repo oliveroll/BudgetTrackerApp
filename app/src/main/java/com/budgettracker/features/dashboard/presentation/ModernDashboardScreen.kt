@@ -22,9 +22,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
+import com.budgettracker.features.budget.presentation.BudgetOverviewViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -38,7 +40,8 @@ fun ModernDashboardScreen(
     onNavigateToBudget: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToAddTransaction: () -> Unit = {}
+    onNavigateToAddTransaction: () -> Unit = {},
+    budgetViewModel: BudgetOverviewViewModel = hiltViewModel()
 ) {
     var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
@@ -46,10 +49,17 @@ fun ModernDashboardScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     var isDataLoaded by remember { mutableStateOf(false) }
     
+    val budgetUiState by budgetViewModel.uiState.collectAsState()
+    
     LaunchedEffect(Unit) {
         TransactionDataStore.initializeFromFirebase()
         transactions = TransactionDataStore.getTransactions()
         isDataLoaded = true
+    }
+    
+    // Update budget data when month changes
+    LaunchedEffect(selectedMonth, selectedYear) {
+        budgetViewModel.setSelectedMonth(selectedMonth, selectedYear)
     }
     
     val filteredTransactions = remember(transactions, selectedMonth, selectedYear) {
@@ -60,8 +70,11 @@ fun ModernDashboardScreen(
         }
     }
     
-    val monthlyStats = remember(filteredTransactions) {
-        calculateDashboardStats(filteredTransactions)
+    // Calculate total expenses including transactions, fixed expenses, and subscriptions
+    val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions) {
+        val fixedExpensesTotal = budgetUiState.essentialExpenses.sumOf { it.plannedAmount }
+        val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
+        calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
     }
     
     Scaffold { paddingValues ->
@@ -1564,14 +1577,21 @@ private fun getCategoryColor(index: Int): Color {
     return colors[index % colors.size]
 }
 
-private fun calculateDashboardStats(transactions: List<Transaction>): DashboardStats {
+private fun calculateDashboardStats(
+    transactions: List<Transaction>,
+    fixedExpensesTotal: Double = 0.0,
+    subscriptionsTotal: Double = 0.0
+): DashboardStats {
     val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
-    val expenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    val transactionExpenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+    
+    // Total expenses include transaction expenses, fixed expenses, and subscriptions
+    val totalExpenses = transactionExpenses + fixedExpensesTotal + subscriptionsTotal
     
     return DashboardStats(
         totalIncome = income,
-        totalExpenses = expenses,
-        netBalance = income - expenses,
+        totalExpenses = totalExpenses,
+        netBalance = income - totalExpenses,
         transactionCount = transactions.size
     )
 }

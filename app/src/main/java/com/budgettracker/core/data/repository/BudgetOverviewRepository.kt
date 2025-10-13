@@ -118,10 +118,76 @@ class BudgetOverviewRepository @Inject constructor(
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
             val currentPeriod = period ?: getCurrentPeriod()
+            
+            // Auto-create fixed expenses for new period if they don't exist
+            ensureFixedExpensesForPeriod(userId, currentPeriod)
+            
             val expenses = dao.getEssentialExpenses(userId, currentPeriod)
             Result.Success(expenses)
         } catch (e: Exception) {
             Result.Error("Failed to get essential expenses: ${e.message}")
+        }
+    }
+    
+    /**
+     * Automatically create fixed expenses for a new period based on previous month's fixed expenses
+     */
+    private suspend fun ensureFixedExpensesForPeriod(userId: String, targetPeriod: String) {
+        try {
+            // Check if expenses already exist for this period
+            val existingExpenses = dao.getEssentialExpenses(userId, targetPeriod)
+            if (existingExpenses.isNotEmpty()) {
+                return // Already has expenses for this period
+            }
+            
+            // Get previous month's period
+            val (year, month) = targetPeriod.split("-").let {
+                it[0].toInt() to it[1].toInt()
+            }
+            val previousMonthCal = Calendar.getInstance().apply {
+                set(Calendar.YEAR, year)
+                set(Calendar.MONTH, month - 2) // month is 1-indexed, Calendar.MONTH is 0-indexed
+            }
+            val previousPeriod = "${previousMonthCal.get(Calendar.YEAR)}-${(previousMonthCal.get(Calendar.MONTH) + 1).toString().padStart(2, '0')}"
+            
+            // Get fixed expenses from previous month (expenses with dueDay set)
+            val previousExpenses = dao.getEssentialExpenses(userId, previousPeriod)
+            val fixedExpenses = previousExpenses.filter { it.dueDay != null }
+            
+            if (fixedExpenses.isEmpty()) {
+                return // No fixed expenses to copy
+            }
+            
+            // Create new instances for current period
+            fixedExpenses.forEach { template ->
+                val newExpense = template.copy(
+                    id = UUID.randomUUID().toString(),
+                    period = targetPeriod,
+                    paid = false, // Reset paid status
+                    actualAmount = null, // Clear actual amount
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis(),
+                    syncedAt = null,
+                    pendingSync = true
+                )
+                
+                // Insert into local database
+                dao.insertEssentialExpense(newExpense)
+                
+                // Sync to Firebase
+                try {
+                    firestore.collection("users")
+                        .document(userId)
+                        .collection("essentials")
+                        .document(newExpense.id)
+                        .set(newExpense.toFirestoreMap())
+                        .await()
+                } catch (e: Exception) {
+                    // Keep as pending sync for retry
+                }
+            }
+        } catch (e: Exception) {
+            // Don't throw - allow getting expenses to continue even if auto-creation fails
         }
     }
     
@@ -138,6 +204,10 @@ class BudgetOverviewRepository @Inject constructor(
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
             val currentPeriod = period ?: getCurrentPeriod()
+            
+            // Auto-create fixed expenses for new period if they don't exist
+            ensureFixedExpensesForPeriod(userId, currentPeriod)
+            
             val expenses = dao.getEssentialExpenses(userId, currentPeriod)
             
             // Parse period to get month and year
