@@ -30,9 +30,22 @@ class BudgetOverviewViewModel @Inject constructor(
     private val _showEditBalanceDialog = MutableStateFlow(false)
     val showEditBalanceDialog: StateFlow<Boolean> = _showEditBalanceDialog.asStateFlow()
     
+    // Track selected month/year for filtering
+    private var selectedMonth: Int = Calendar.getInstance().get(Calendar.MONTH)
+    private var selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
+    
     init {
         loadBudgetData()
         observeDataChanges()
+    }
+    
+    /**
+     * Set the selected month and reload data for that period
+     */
+    fun setSelectedMonth(month: Int, year: Int) {
+        selectedMonth = month
+        selectedYear = year
+        loadBudgetData()
     }
     
     private fun loadBudgetData() {
@@ -40,10 +53,13 @@ class BudgetOverviewViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isLoading = true)
             
             try {
-                // Load all data concurrently
+                // Format period as YYYY-MM for repository
+                val period = "$selectedYear-${(selectedMonth + 1).toString().padStart(2, '0')}"
+                
+                // Load all data concurrently with selected period
                 val balanceResult = repository.getCurrentBalance()
-                val essentialsResult = repository.getEssentialExpenses()
-                val essentialsWithSpendingResult = repository.getEssentialExpensesWithSpending()
+                val essentialsResult = repository.getEssentialExpenses(period)
+                val essentialsWithSpendingResult = repository.getEssentialExpensesWithSpending(period)
                 val subscriptionsResult = repository.getActiveSubscriptions()
                 val paychecksResult = repository.getUpcomingPaychecks()
                 val timelineResult = repository.getUpcomingTimeline()
@@ -110,7 +126,7 @@ class BudgetOverviewViewModel @Inject constructor(
     
     private fun observeDataChanges() {
         viewModelScope.launch {
-            // Observe balance changes
+            // Observe balance changes (not month-specific)
             repository.getBalanceFlow()
                 .collect { balance ->
                     _uiState.value = _uiState.value.copy(currentBalance = balance)
@@ -118,20 +134,19 @@ class BudgetOverviewViewModel @Inject constructor(
         }
         
         viewModelScope.launch {
-            // Observe essentials changes
-            repository.getEssentialExpensesFlow()
-                .collect { essentials ->
-                    _uiState.value = _uiState.value.copy(essentialExpenses = essentials)
-                }
-        }
-        
-        viewModelScope.launch {
-            // Observe subscriptions changes
+            // Observe subscriptions changes (not month-specific)
             repository.getActiveSubscriptionsFlow()
                 .collect { subscriptions ->
                     _uiState.value = _uiState.value.copy(subscriptions = subscriptions)
                 }
         }
+        
+        // Note: Month-specific data (essentials, spending) is loaded via loadBudgetData()
+        // when the user changes months. Real-time observation would overwrite selected month data.
+    }
+    
+    private fun getCurrentPeriod(): String {
+        return "$selectedYear-${(selectedMonth + 1).toString().padStart(2, '0')}"
     }
     
     fun refreshData() {

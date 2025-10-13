@@ -57,6 +57,13 @@ fun MobileBudgetOverviewScreen(
     var currentMonth by remember { mutableStateOf(Calendar.getInstance()) }
     val monthFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()) }
     
+    // Notify ViewModel when month changes
+    LaunchedEffect(currentMonth) {
+        val month = currentMonth.get(Calendar.MONTH)
+        val year = currentMonth.get(Calendar.YEAR)
+        viewModel.setSelectedMonth(month, year)
+    }
+    
     Scaffold(
         topBar = {
             TopAppBar(
