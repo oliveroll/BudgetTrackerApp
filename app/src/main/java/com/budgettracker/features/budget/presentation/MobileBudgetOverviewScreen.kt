@@ -1576,9 +1576,16 @@ private fun EditSubscriptionDialog(
                         leadingIcon = {
                             Icon(Icons.Default.Event, contentDescription = null)
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showDatePicker = true },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePicker = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = "Change date",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
                     
