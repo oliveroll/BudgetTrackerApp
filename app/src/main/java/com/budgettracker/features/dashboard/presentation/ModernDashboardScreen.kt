@@ -978,7 +978,7 @@ private fun AnimatedIncomeExpensesCard(
             
             Spacer(modifier = Modifier.height(24.dp))
             
-            // Expenses Bar
+            // Total Expenses Bar
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -996,7 +996,7 @@ private fun AnimatedIncomeExpensesCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Expenses",
+                            text = "Total Expenses",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1014,6 +1014,7 @@ private fun AnimatedIncomeExpensesCard(
                 
                 Spacer(modifier = Modifier.height(12.dp))
                 
+                // Stacked bar showing expense breakdown
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1021,22 +1022,132 @@ private fun AnimatedIncomeExpensesCard(
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier
                             .fillMaxHeight()
                             .fillMaxWidth(
                                 fraction = ((animatedExpenses / maxValue.toFloat()).coerceIn(0f, 1f))
                             )
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0xFFdc3545),
-                                        Color(0xFFff4d5a)
-                                    )
-                                )
+                    ) {
+                        // Transaction expenses (dark red)
+                        if (stats.transactionExpenses > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(stats.transactionExpenses.toFloat())
+                                    .background(Color(0xFFdc3545))
                             )
-                    )
+                        }
+                        // Fixed expenses (orange)
+                        if (stats.fixedExpenses > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(stats.fixedExpenses.toFloat())
+                                    .background(Color(0xFFfd7e14))
+                            )
+                        }
+                        // Subscriptions (purple)
+                        if (stats.subscriptions > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .weight(stats.subscriptions.toFloat())
+                                    .background(Color(0xFF6f42c1))
+                            )
+                        }
+                    }
+                }
+                
+                // Expense breakdown legend
+                Spacer(modifier = Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Transaction expenses
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFdc3545))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Transactions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = currencyFormat.format(stats.transactionExpenses),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    // Fixed expenses
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFfd7e14))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Fixed Expenses",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = currencyFormat.format(stats.fixedExpenses),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    
+                    // Subscriptions
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF6f42c1))
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Subscriptions",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = currencyFormat.format(stats.subscriptions),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         }
@@ -1591,6 +1702,9 @@ private fun calculateDashboardStats(
     return DashboardStats(
         totalIncome = income,
         totalExpenses = totalExpenses,
+        transactionExpenses = transactionExpenses,
+        fixedExpenses = fixedExpensesTotal,
+        subscriptions = subscriptionsTotal,
         netBalance = income - totalExpenses,
         transactionCount = transactions.size
     )
@@ -1617,6 +1731,9 @@ private fun getMonthName(month: Int): String {
 private data class DashboardStats(
     val totalIncome: Double,
     val totalExpenses: Double,
+    val transactionExpenses: Double,
+    val fixedExpenses: Double,
+    val subscriptions: Double,
     val netBalance: Double,
     val transactionCount: Int
 )

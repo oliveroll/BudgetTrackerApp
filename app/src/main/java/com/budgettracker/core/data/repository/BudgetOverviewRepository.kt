@@ -300,10 +300,10 @@ class BudgetOverviewRepository @Inject constructor(
     
     suspend fun updateEssentialExpense(
         expenseId: String,
-        name: String? = null,
-        category: ExpenseCategory? = null,
-        plannedAmount: Double? = null,
-        dueDay: Int? = null
+        name: String,
+        category: ExpenseCategory,
+        plannedAmount: Double,
+        dueDay: Int? // This can be explicitly null to unmark as fixed
     ): Result<Unit> {
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
@@ -312,12 +312,12 @@ class BudgetOverviewRepository @Inject constructor(
             val existingExpense = dao.getEssentialExpenseById(expenseId)
                 ?: return Result.Error("Expense not found")
             
-            // Update only provided fields
+            // Update all fields (dueDay can be explicitly set to null to remove fixed status)
             val updatedExpense = existingExpense.copy(
-                name = name ?: existingExpense.name,
-                category = category ?: existingExpense.category,
-                plannedAmount = plannedAmount ?: existingExpense.plannedAmount,
-                dueDay = dueDay ?: existingExpense.dueDay,
+                name = name,
+                category = category,
+                plannedAmount = plannedAmount,
+                dueDay = dueDay, // Explicitly set, can be null
                 updatedAt = System.currentTimeMillis(),
                 pendingSync = true
             )
