@@ -79,7 +79,21 @@ fun ModernDashboardScreen(
     }
     
     // Calculate total expenses including transactions, ONLY FIXED expenses, and subscriptions
-    val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions) {
+    val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions, budgetUiState.isLoading) {
+        // Don't calculate if ViewModel is still loading data
+        if (budgetUiState.isLoading) {
+            Log.d(TAG, "=== DASHBOARD CALCULATION SKIPPED (Still Loading) ===")
+            return@remember DashboardStats(
+                totalIncome = 0.0,
+                totalExpenses = 0.0,
+                transactionExpenses = 0.0,
+                fixedExpenses = 0.0,
+                subscriptions = 0.0,
+                netBalance = 0.0,
+                transactionCount = 0
+            )
+        }
+        
         Log.d(TAG, "=== DASHBOARD CALCULATION START ===")
         Log.d(TAG, "Total essential expenses count: ${budgetUiState.essentialExpenses.size}")
         
@@ -129,6 +143,39 @@ fun ModernDashboardScreen(
                     onNavigateToSettings = onNavigateToSettings,
                     balance = monthlyStats.netBalance
                 )
+            }
+            
+            // Loading indicator for budget data
+            if (budgetUiState.isLoading) {
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Loading budget data...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
             }
             
             // Unified Financial Overview Container
