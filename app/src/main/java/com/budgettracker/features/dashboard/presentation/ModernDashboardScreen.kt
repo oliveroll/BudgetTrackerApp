@@ -57,6 +57,11 @@ fun ModernDashboardScreen(
         isDataLoaded = true
     }
     
+    // Reload transactions when budget state changes (e.g., after adding/editing expenses)
+    LaunchedEffect(budgetUiState.lastUpdated) {
+        transactions = TransactionDataStore.getTransactions()
+    }
+    
     // Update budget data when month changes
     LaunchedEffect(selectedMonth, selectedYear) {
         budgetViewModel.setSelectedMonth(selectedMonth, selectedYear)
@@ -70,9 +75,12 @@ fun ModernDashboardScreen(
         }
     }
     
-    // Calculate total expenses including transactions, fixed expenses, and subscriptions
+    // Calculate total expenses including transactions, ONLY FIXED expenses, and subscriptions
     val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions) {
-        val fixedExpensesTotal = budgetUiState.essentialExpenses.sumOf { it.plannedAmount }
+        // Only sum expenses that are marked as Fixed (have dueDay set)
+        val fixedExpensesTotal = budgetUiState.essentialExpenses
+            .filter { it.dueDay != null }
+            .sumOf { it.plannedAmount }
         val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
         calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
     }
@@ -1012,7 +1020,15 @@ private fun AnimatedIncomeExpensesCard(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Debug: Show breakdown values
+                Text(
+                    text = "Breakdown: Trans=$${String.format("%.2f", stats.transactionExpenses)} | Fixed=$${String.format("%.2f", stats.fixedExpenses)} | Subs=$${String.format("%.2f", stats.subscriptions)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
                 
                 // Stacked bar showing expense breakdown
                 Box(
