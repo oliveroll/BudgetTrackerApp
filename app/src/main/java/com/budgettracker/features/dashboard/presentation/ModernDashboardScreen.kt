@@ -1,5 +1,6 @@
 package com.budgettracker.features.dashboard.presentation
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -32,6 +33,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
+
+private const val TAG = "DashboardDebug"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,11 +80,38 @@ fun ModernDashboardScreen(
     
     // Calculate total expenses including transactions, ONLY FIXED expenses, and subscriptions
     val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions) {
+        Log.d(TAG, "=== DASHBOARD CALCULATION START ===")
+        Log.d(TAG, "Total essential expenses count: ${budgetUiState.essentialExpenses.size}")
+        
+        // Log each essential expense with its Fixed status
+        budgetUiState.essentialExpenses.forEachIndexed { index, expense ->
+            Log.d(TAG, "Expense #$index: ${expense.name}")
+            Log.d(TAG, "  - Amount: ${expense.plannedAmount}")
+            Log.d(TAG, "  - Due Day: ${expense.dueDay}")
+            Log.d(TAG, "  - Is Fixed: ${expense.dueDay != null}")
+            Log.d(TAG, "  - Period: ${expense.period}")
+        }
+        
         // Only sum expenses that are marked as Fixed (have dueDay set)
-        val fixedExpensesTotal = budgetUiState.essentialExpenses
-            .filter { it.dueDay != null }
-            .sumOf { it.plannedAmount }
+        val fixedExpenses = budgetUiState.essentialExpenses.filter { it.dueDay != null }
+        val fixedExpensesTotal = fixedExpenses.sumOf { it.plannedAmount }
+        
+        Log.d(TAG, "Fixed expenses count: ${fixedExpenses.size}")
+        Log.d(TAG, "Fixed expenses total: $$fixedExpensesTotal")
+        
+        // Log subscriptions
+        Log.d(TAG, "Subscriptions count: ${budgetUiState.subscriptions.size}")
+        budgetUiState.subscriptions.forEachIndexed { index, sub ->
+            val monthlyCost = sub.getMonthlyCost()
+            Log.d(TAG, "Subscription #$index: ${sub.name} - Monthly: $$monthlyCost")
+        }
+        
         val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
+        Log.d(TAG, "Subscriptions total: $$subscriptionsTotal")
+        
+        Log.d(TAG, "Transaction expenses: $${filteredTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }}")
+        Log.d(TAG, "=== DASHBOARD CALCULATION END ===")
+        
         calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
     }
     

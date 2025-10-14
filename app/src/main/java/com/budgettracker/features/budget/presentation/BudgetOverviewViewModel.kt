@@ -1,5 +1,6 @@
 package com.budgettracker.features.budget.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgettracker.core.data.local.dao.DashboardSummary
@@ -14,6 +15,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+
+private const val TAG = "BudgetViewModelDebug"
 
 /**
  * ViewModel for Budget Overview Screen
@@ -50,12 +53,14 @@ class BudgetOverviewViewModel @Inject constructor(
     
     private fun loadBudgetData() {
         viewModelScope.launch {
+            Log.d(TAG, "=== LOAD BUDGET DATA START ===")
+            Log.d(TAG, "Selected Month: $selectedMonth, Year: $selectedYear")
+            val period = "$selectedYear-${(selectedMonth + 1).toString().padStart(2, '0')}"
+            Log.d(TAG, "Period: $period")
+            
             _uiState.value = _uiState.value.copy(isLoading = true)
             
             try {
-                // Format period as YYYY-MM for repository
-                val period = "$selectedYear-${(selectedMonth + 1).toString().padStart(2, '0')}"
-                
                 // Load all data concurrently with selected period
                 val balanceResult = repository.getCurrentBalance()
                 val essentialsResult = repository.getEssentialExpenses(period)
@@ -101,6 +106,16 @@ class BudgetOverviewViewModel @Inject constructor(
                     is Result.Error -> null
                 }
                 
+                Log.d(TAG, "Essentials loaded: ${essentials.size}")
+                essentials.forEachIndexed { index, expense ->
+                    Log.d(TAG, "  Expense #$index: ${expense.name}, DueDay: ${expense.dueDay}, Period: ${expense.period}")
+                }
+                
+                Log.d(TAG, "Subscriptions loaded: ${subscriptions.size}")
+                subscriptions.forEachIndexed { index, sub ->
+                    Log.d(TAG, "  Sub #$index: ${sub.name}, Amount: ${sub.amount}")
+                }
+                
                 // Update UI state
                 _uiState.value = BudgetOverviewUiState(
                     isLoading = false,
@@ -115,7 +130,11 @@ class BudgetOverviewViewModel @Inject constructor(
                     lastUpdated = System.currentTimeMillis()
                 )
                 
+                Log.d(TAG, "UI State updated. lastUpdated: ${_uiState.value.lastUpdated}")
+                Log.d(TAG, "=== LOAD BUDGET DATA END ===")
+                
             } catch (e: Exception) {
+                Log.e(TAG, "Load failed: ${e.message}", e)
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     error = "Failed to load budget data: ${e.message}"
@@ -245,17 +264,30 @@ class BudgetOverviewViewModel @Inject constructor(
         dueDay: Int?
     ) {
         viewModelScope.launch {
+            Log.d(TAG, "=== VIEWMODEL UPDATE EXPENSE START ===")
+            Log.d(TAG, "Calling repository.updateEssentialExpense")
+            Log.d(TAG, "  ID: $expenseId")
+            Log.d(TAG, "  Name: $name")
+            Log.d(TAG, "  Due Day: $dueDay")
+            
             when (val result = repository.updateEssentialExpense(expenseId, name, category, plannedAmount, dueDay)) {
                 is Result.Success -> {
+                    Log.d(TAG, "Repository returned SUCCESS")
                     _uiState.value = _uiState.value.copy(
                         successMessage = "Essential expense updated",
                         lastUpdated = System.currentTimeMillis()
                     )
+                    Log.d(TAG, "UI State lastUpdated set to: ${_uiState.value.lastUpdated}")
+                    
                     // Reload data to refresh spending calculations
+                    Log.d(TAG, "Calling loadBudgetData() to refresh")
                     loadBudgetData()
+                    Log.d(TAG, "=== VIEWMODEL UPDATE EXPENSE END (SUCCESS) ===")
                 }
                 is Result.Error -> {
+                    Log.e(TAG, "Repository returned ERROR: ${result.message}")
                     _uiState.value = _uiState.value.copy(error = result.message)
+                    Log.d(TAG, "=== VIEWMODEL UPDATE EXPENSE END (ERROR) ===")
                 }
             }
         }

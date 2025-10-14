@@ -1,5 +1,6 @@
 package com.budgettracker.core.data.repository
 
+import android.util.Log
 import com.budgettracker.core.data.local.dao.BudgetOverviewDao
 import com.budgettracker.core.data.local.dao.DashboardSummary
 import com.budgettracker.core.data.local.dao.TimelineItem
@@ -19,6 +20,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+
+private const val TAG = "BudgetRepoDebug"
 
 /**
  * Data class to hold essential expense with actual spending
@@ -308,9 +311,22 @@ class BudgetOverviewRepository @Inject constructor(
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
             
+            Log.d(TAG, "=== UPDATE ESSENTIAL EXPENSE START ===")
+            Log.d(TAG, "Expense ID: $expenseId")
+            Log.d(TAG, "Name: $name")
+            Log.d(TAG, "Category: $category")
+            Log.d(TAG, "Amount: $$plannedAmount")
+            Log.d(TAG, "Due Day: $dueDay")
+            Log.d(TAG, "Is Fixed: ${dueDay != null}")
+            
             // Get existing expense
             val existingExpense = dao.getEssentialExpenseById(expenseId)
                 ?: return Result.Error("Expense not found")
+            
+            Log.d(TAG, "Existing expense found:")
+            Log.d(TAG, "  - Old Name: ${existingExpense.name}")
+            Log.d(TAG, "  - Old Due Day: ${existingExpense.dueDay}")
+            Log.d(TAG, "  - Old Period: ${existingExpense.period}")
             
             // Update all fields (dueDay can be explicitly set to null to remove fixed status)
             val updatedExpense = existingExpense.copy(
@@ -322,7 +338,13 @@ class BudgetOverviewRepository @Inject constructor(
                 pendingSync = true
             )
             
+            Log.d(TAG, "Updated expense:")
+            Log.d(TAG, "  - New Name: ${updatedExpense.name}")
+            Log.d(TAG, "  - New Due Day: ${updatedExpense.dueDay}")
+            Log.d(TAG, "  - New Is Fixed: ${updatedExpense.dueDay != null}")
+            
             dao.updateEssentialExpense(updatedExpense)
+            Log.d(TAG, "Database updated successfully")
             
             // Sync to Firestore
             firestore.collection("users")
@@ -332,8 +354,12 @@ class BudgetOverviewRepository @Inject constructor(
                 .set(updatedExpense.toFirestoreMap())
                 .await()
             
+            Log.d(TAG, "Firebase sync completed")
+            Log.d(TAG, "=== UPDATE ESSENTIAL EXPENSE END ===")
+            
             Result.Success(Unit)
         } catch (e: Exception) {
+            Log.e(TAG, "Update failed: ${e.message}", e)
             Result.Error("Failed to update essential expense: ${e.message}")
         }
     }
