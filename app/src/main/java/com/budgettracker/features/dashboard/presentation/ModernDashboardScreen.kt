@@ -1122,7 +1122,7 @@ private fun AnimatedIncomeExpensesCard(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(16.dp)
+                        .height(24.dp)  // Made taller for better visibility
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
@@ -1130,49 +1130,51 @@ private fun AnimatedIncomeExpensesCard(
                     val totalExpenses = stats.totalExpenses
                     if (totalExpenses > 0) {
                         val barFraction = ((stats.totalExpenses / maxValue).coerceIn(0.0, 1.0)).toFloat()
+                        
+                        // Calculate each segment as a fraction of total expenses
+                        val transFraction = (stats.transactionExpenses / totalExpenses).toFloat()
+                        val fixedFraction = (stats.fixedExpenses / totalExpenses).toFloat()
+                        val subsFraction = (stats.subscriptions / totalExpenses).toFloat()
+                        
                         Log.d(TAG, "=== BAR RENDERING ===")
                         Log.d(TAG, "Bar fraction of screen: $barFraction")
-                        Log.d(TAG, "Trans weight: ${stats.transactionExpenses}")
-                        Log.d(TAG, "Fixed weight: ${stats.fixedExpenses}")
-                        Log.d(TAG, "Subs weight: ${stats.subscriptions}")
+                        Log.d(TAG, "Trans fraction: $transFraction (${transFraction * 100}%)")
+                        Log.d(TAG, "Fixed fraction: $fixedFraction (${fixedFraction * 100}%)")
+                        Log.d(TAG, "Subs fraction: $subsFraction (${subsFraction * 100}%)")
                         
                         Row(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(fraction = barFraction)
+                                .fillMaxWidth(fraction = barFraction),
+                            horizontalArrangement = Arrangement.Start
                         ) {
-                            // Transaction expenses (dark red) - always render if > 0
+                            // Transaction expenses (dark red)
                             if (stats.transactionExpenses > 0) {
+                                Log.d(TAG, "Rendering TRANS segment: fraction=$transFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .weight(stats.transactionExpenses.toFloat(), fill = true)
+                                        .fillMaxWidth(transFraction)
                                         .background(Color(0xFFdc3545))
                                 )
-                                // Add subtle separator
-                                if (stats.fixedExpenses > 0 || stats.subscriptions > 0) {
-                                    Spacer(modifier = Modifier.width(1.dp))
-                                }
                             }
-                            // Fixed expenses (orange) - always render if > 0
+                            // Fixed expenses (orange)
                             if (stats.fixedExpenses > 0) {
+                                Log.d(TAG, "Rendering FIXED segment: fraction=$fixedFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .weight(stats.fixedExpenses.toFloat(), fill = true)
+                                        .fillMaxWidth(fixedFraction / (1f - transFraction))  // Adjusted for remaining space
                                         .background(Color(0xFFfd7e14))
                                 )
-                                // Add subtle separator
-                                if (stats.subscriptions > 0) {
-                                    Spacer(modifier = Modifier.width(1.dp))
-                                }
                             }
-                            // Subscriptions (purple) - always render if > 0
+                            // Subscriptions (purple)
                             if (stats.subscriptions > 0) {
+                                Log.d(TAG, "Rendering SUBS segment: fraction=$subsFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .weight(stats.subscriptions.toFloat(), fill = true)
+                                        .fillMaxWidth()  // Fill remaining space
                                         .background(Color(0xFF6f42c1))
                                 )
                             }
