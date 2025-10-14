@@ -1099,13 +1099,24 @@ private fun AnimatedIncomeExpensesCard(
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                // Debug: Show breakdown values
-                Text(
-                    text = "Breakdown: Trans=$${String.format("%.2f", stats.transactionExpenses)} | Fixed=$${String.format("%.2f", stats.fixedExpenses)} | Subs=$${String.format("%.2f", stats.subscriptions)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                // Debug: Show breakdown values with percentages
+                val totalExp = stats.totalExpenses
+                val transPercent = if (totalExp > 0) (stats.transactionExpenses / totalExp * 100) else 0.0
+                val fixedPercent = if (totalExp > 0) (stats.fixedExpenses / totalExp * 100) else 0.0
+                val subsPercent = if (totalExp > 0) (stats.subscriptions / totalExp * 100) else 0.0
+                
+                Column(modifier = Modifier.padding(bottom = 4.dp)) {
+                    Text(
+                        text = "Breakdown: Trans=$${String.format("%.2f", stats.transactionExpenses)} (${String.format("%.1f", transPercent)}%) | Fixed=$${String.format("%.2f", stats.fixedExpenses)} (${String.format("%.1f", fixedPercent)}%) | Subs=$${String.format("%.2f", stats.subscriptions)} (${String.format("%.1f", subsPercent)}%)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Total: $${String.format("%.2f", totalExp)} | Bar fraction: ${String.format("%.2f", (totalExp / maxValue))} | MaxValue: $${String.format("%.2f", maxValue)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
                 
                 // Stacked bar showing expense breakdown
                 Box(
@@ -1118,12 +1129,17 @@ private fun AnimatedIncomeExpensesCard(
                     // Calculate proportions for stacked segments
                     val totalExpenses = stats.totalExpenses
                     if (totalExpenses > 0) {
+                        val barFraction = ((stats.totalExpenses / maxValue).coerceIn(0.0, 1.0)).toFloat()
+                        Log.d(TAG, "=== BAR RENDERING ===")
+                        Log.d(TAG, "Bar fraction of screen: $barFraction")
+                        Log.d(TAG, "Trans weight: ${stats.transactionExpenses}")
+                        Log.d(TAG, "Fixed weight: ${stats.fixedExpenses}")
+                        Log.d(TAG, "Subs weight: ${stats.subscriptions}")
+                        
                         Row(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(
-                                    fraction = ((stats.totalExpenses / maxValue).coerceIn(0.0, 1.0)).toFloat()
-                                )
+                                .fillMaxWidth(fraction = barFraction)
                         ) {
                             // Transaction expenses (dark red) - always render if > 0
                             if (stats.transactionExpenses > 0) {
@@ -1133,6 +1149,10 @@ private fun AnimatedIncomeExpensesCard(
                                         .weight(stats.transactionExpenses.toFloat(), fill = true)
                                         .background(Color(0xFFdc3545))
                                 )
+                                // Add subtle separator
+                                if (stats.fixedExpenses > 0 || stats.subscriptions > 0) {
+                                    Spacer(modifier = Modifier.width(1.dp))
+                                }
                             }
                             // Fixed expenses (orange) - always render if > 0
                             if (stats.fixedExpenses > 0) {
@@ -1142,6 +1162,10 @@ private fun AnimatedIncomeExpensesCard(
                                         .weight(stats.fixedExpenses.toFloat(), fill = true)
                                         .background(Color(0xFFfd7e14))
                                 )
+                                // Add subtle separator
+                                if (stats.subscriptions > 0) {
+                                    Spacer(modifier = Modifier.width(1.dp))
+                                }
                             }
                             // Subscriptions (purple) - always render if > 0
                             if (stats.subscriptions > 0) {
