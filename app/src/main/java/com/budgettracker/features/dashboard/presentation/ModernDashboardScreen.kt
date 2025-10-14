@@ -1,9 +1,9 @@
 package com.budgettracker.features.dashboard.presentation
 
-import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -34,7 +34,9 @@ import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
-private const val TAG = "DashboardDebug"
+private enum class ExpenseSegment {
+    TRANSACTIONS, FIXED, SUBSCRIPTIONS
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,7 +84,6 @@ fun ModernDashboardScreen(
     val monthlyStats = remember(filteredTransactions, budgetUiState.essentialExpenses, budgetUiState.subscriptions, budgetUiState.isLoading) {
         // Don't calculate if ViewModel is still loading data
         if (budgetUiState.isLoading) {
-            Log.d(TAG, "=== DASHBOARD CALCULATION SKIPPED (Still Loading) ===")
             return@remember DashboardStats(
                 totalIncome = 0.0,
                 totalExpenses = 0.0,
@@ -94,37 +95,12 @@ fun ModernDashboardScreen(
             )
         }
         
-        Log.d(TAG, "=== DASHBOARD CALCULATION START ===")
-        Log.d(TAG, "Total essential expenses count: ${budgetUiState.essentialExpenses.size}")
-        
-        // Log each essential expense with its Fixed status
-        budgetUiState.essentialExpenses.forEachIndexed { index, expense ->
-            Log.d(TAG, "Expense #$index: ${expense.name}")
-            Log.d(TAG, "  - Amount: ${expense.plannedAmount}")
-            Log.d(TAG, "  - Due Day: ${expense.dueDay}")
-            Log.d(TAG, "  - Is Fixed: ${expense.dueDay != null}")
-            Log.d(TAG, "  - Period: ${expense.period}")
-        }
-        
         // Only sum expenses that are marked as Fixed (have dueDay set)
-        val fixedExpenses = budgetUiState.essentialExpenses.filter { it.dueDay != null }
-        val fixedExpensesTotal = fixedExpenses.sumOf { it.plannedAmount }
-        
-        Log.d(TAG, "Fixed expenses count: ${fixedExpenses.size}")
-        Log.d(TAG, "Fixed expenses total: $$fixedExpensesTotal")
-        
-        // Log subscriptions
-        Log.d(TAG, "Subscriptions count: ${budgetUiState.subscriptions.size}")
-        budgetUiState.subscriptions.forEachIndexed { index, sub ->
-            val monthlyCost = sub.getMonthlyCost()
-            Log.d(TAG, "Subscription #$index: ${sub.name} - Monthly: $$monthlyCost")
-        }
+        val fixedExpensesTotal = budgetUiState.essentialExpenses
+            .filter { it.dueDay != null }
+            .sumOf { it.plannedAmount }
         
         val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
-        Log.d(TAG, "Subscriptions total: $$subscriptionsTotal")
-        
-        Log.d(TAG, "Transaction expenses: $${filteredTransactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }}")
-        Log.d(TAG, "=== DASHBOARD CALCULATION END ===")
         
         calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
     }
@@ -657,92 +633,84 @@ private fun UnifiedFinancialOverviewCard(
                 )
             }
             
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
-            // Debug: Show breakdown values with percentages
+            // Modern Interactive Expense Breakdown Bar
+            var selectedSegment by remember { mutableStateOf<ExpenseSegment?>(null) }
+            
             val totalExp = stats.totalExpenses
-            val transPercent = if (totalExp > 0) (stats.transactionExpenses / totalExp * 100) else 0.0
-            val fixedPercent = if (totalExp > 0) (stats.fixedExpenses / totalExp * 100) else 0.0
-            val subsPercent = if (totalExp > 0) (stats.subscriptions / totalExp * 100) else 0.0
-            
-            Column(modifier = Modifier.padding(bottom = 4.dp)) {
-                Text(
-                    text = "Trans=$${String.format("%.0f", stats.transactionExpenses)} (${String.format("%.1f", transPercent)}%) | Fixed=$${String.format("%.0f", stats.fixedExpenses)} (${String.format("%.1f", fixedPercent)}%) | Subs=$${String.format("%.0f", stats.subscriptions)} (${String.format("%.1f", subsPercent)}%)",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(6.dp))
-            
-            // STACKED BAR showing expense breakdown
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(24.dp)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                if (stats.totalExpenses > 0) {
-                    val barFraction = ((stats.totalExpenses / maxValue).coerceIn(0.0, 1.0)).toFloat()
-                    
-                    // Calculate each segment as a fraction of total expenses
-                    val transFraction = (stats.transactionExpenses / totalExp).toFloat()
-                    val fixedFraction = (stats.fixedExpenses / totalExp).toFloat()
-                    val subsFraction = (stats.subscriptions / totalExp).toFloat()
-                    
-                    Log.d(TAG, "=== EXPENSE BAR RENDERING ===")
-                    Log.d(TAG, "Total expenses: $$totalExp")
-                    Log.d(TAG, "Trans: $${stats.transactionExpenses} (${transFraction * 100}%)")
-                    Log.d(TAG, "Fixed: $${stats.fixedExpenses} (${fixedFraction * 100}%)")
-                    Log.d(TAG, "Subs: $${stats.subscriptions} (${subsFraction * 100}%)")
-                    Log.d(TAG, "Bar will fill ${barFraction * 100}% of available width")
-                    
+            if (totalExp > 0) {
+                val barFraction = ((totalExp / maxValue).coerceIn(0.0, 1.0)).toFloat()
+                val transFraction = (stats.transactionExpenses / totalExp).toFloat()
+                val fixedFraction = (stats.fixedExpenses / totalExp).toFloat()
+                val subsFraction = (stats.subscriptions / totalExp).toFloat()
+                
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxHeight()
                             .fillMaxWidth(fraction = barFraction),
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        // Transaction expenses (dark red)
+                        // Transaction expenses segment
                         if (stats.transactionExpenses > 0) {
-                            Log.d(TAG, "Rendering TRANS segment")
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
                                     .fillMaxWidth(transFraction)
+                                    .clickable {
+                                        selectedSegment = ExpenseSegment.TRANSACTIONS
+                                    }
                                     .background(Color(0xFFdc3545))
                             )
                         }
-                        // Fixed expenses (orange)
+                        // Fixed expenses segment
                         if (stats.fixedExpenses > 0) {
-                            Log.d(TAG, "Rendering FIXED segment")
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(fixedFraction / (1f - transFraction))  // Adjusted for remaining space
+                                    .fillMaxWidth(fixedFraction / (1f - transFraction))
+                                    .clickable {
+                                        selectedSegment = ExpenseSegment.FIXED
+                                    }
                                     .background(Color(0xFFfd7e14))
                             )
                         }
-                        // Subscriptions (purple)
+                        // Subscriptions segment
                         if (stats.subscriptions > 0) {
-                            Log.d(TAG, "Rendering SUBS segment")
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth()  // Fill remaining space
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedSegment = ExpenseSegment.SUBSCRIPTIONS
+                                    }
                                     .background(Color(0xFF6f42c1))
                             )
                         }
                     }
-                } else {
-                    // No expenses - show empty bar
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(0.05f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                    )
+                }
+                
+                // Animated Detail Card
+                AnimatedVisibility(
+                    visible = selectedSegment != null,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut()
+                ) {
+                    selectedSegment?.let { segment ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        ExpenseDetailCard(
+                            segment = segment,
+                            stats = stats,
+                            onDismiss = { selectedSegment = null }
+                        )
+                    }
                 }
             }
             
@@ -800,6 +768,91 @@ private fun UnifiedFinancialOverviewCard(
                     }
                 }
             }
+        }
+    }
+}
+
+private data class SegmentInfo(
+    val title: String,
+    val amount: Double,
+    val color: Color,
+    val icon: String,
+    val percentage: Double
+)
+
+@Composable
+private fun ExpenseDetailCard(
+    segment: ExpenseSegment,
+    stats: DashboardStats,
+    onDismiss: () -> Unit
+) {
+    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val totalExp = stats.totalExpenses
+    
+    val info = when (segment) {
+        ExpenseSegment.TRANSACTIONS -> {
+            val percent = if (totalExp > 0) (stats.transactionExpenses / totalExp * 100) else 0.0
+            SegmentInfo("Transactions", stats.transactionExpenses, Color(0xFFdc3545), "💳", percent)
+        }
+        ExpenseSegment.FIXED -> {
+            val percent = if (totalExp > 0) (stats.fixedExpenses / totalExp * 100) else 0.0
+            SegmentInfo("Fixed Expenses", stats.fixedExpenses, Color(0xFFfd7e14), "📌", percent)
+        }
+        ExpenseSegment.SUBSCRIPTIONS -> {
+            val percent = if (totalExp > 0) (stats.subscriptions / totalExp * 100) else 0.0
+            SegmentInfo("Subscriptions", stats.subscriptions, Color(0xFF6f42c1), "🔄", percent)
+        }
+    }
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onDismiss() },
+        colors = CardDefaults.cardColors(
+            containerColor = info.color.copy(alpha = 0.1f)
+        ),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = info.icon,
+                    fontSize = 32.sp,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+                
+                Column {
+                    Text(
+                        text = info.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "${String.format("%.1f", info.percentage)}% of expenses",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            
+            Text(
+                text = currencyFormat.format(info.amount),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = info.color,
+                fontSize = 20.sp
+            )
         }
     }
 }
@@ -1196,13 +1249,6 @@ private fun AnimatedIncomeExpensesCard(
                         // Calculate each segment as a fraction of total expenses
                         val transFraction = (stats.transactionExpenses / totalExpenses).toFloat()
                         val fixedFraction = (stats.fixedExpenses / totalExpenses).toFloat()
-                        val subsFraction = (stats.subscriptions / totalExpenses).toFloat()
-                        
-                        Log.d(TAG, "=== BAR RENDERING ===")
-                        Log.d(TAG, "Bar fraction of screen: $barFraction")
-                        Log.d(TAG, "Trans fraction: $transFraction (${transFraction * 100}%)")
-                        Log.d(TAG, "Fixed fraction: $fixedFraction (${fixedFraction * 100}%)")
-                        Log.d(TAG, "Subs fraction: $subsFraction (${subsFraction * 100}%)")
                         
                         Row(
                             modifier = Modifier
@@ -1212,7 +1258,6 @@ private fun AnimatedIncomeExpensesCard(
                         ) {
                             // Transaction expenses (dark red)
                             if (stats.transactionExpenses > 0) {
-                                Log.d(TAG, "Rendering TRANS segment: fraction=$transFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
@@ -1222,21 +1267,19 @@ private fun AnimatedIncomeExpensesCard(
                             }
                             // Fixed expenses (orange)
                             if (stats.fixedExpenses > 0) {
-                                Log.d(TAG, "Rendering FIXED segment: fraction=$fixedFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(fixedFraction / (1f - transFraction))  // Adjusted for remaining space
+                                        .fillMaxWidth(fixedFraction / (1f - transFraction))
                                         .background(Color(0xFFfd7e14))
                                 )
                             }
                             // Subscriptions (purple)
                             if (stats.subscriptions > 0) {
-                                Log.d(TAG, "Rendering SUBS segment: fraction=$subsFraction")
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth()  // Fill remaining space
+                                        .fillMaxWidth()
                                         .background(Color(0xFF6f42c1))
                                 )
                             }
