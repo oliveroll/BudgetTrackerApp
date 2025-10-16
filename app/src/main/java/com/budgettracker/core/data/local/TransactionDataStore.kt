@@ -2,6 +2,10 @@ package com.budgettracker.core.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
+import com.budgettracker.core.data.local.entities.EssentialExpenseEntity
+import com.budgettracker.core.data.local.entities.ExpenseCategory
+import com.budgettracker.core.data.repository.BudgetOverviewRepository
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
@@ -11,7 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 import java.util.*
+import com.budgettracker.core.utils.Result as RepositoryResult
 
 /**
  * Singleton data store with Firebase persistence
@@ -24,6 +30,16 @@ object TransactionDataStore {
     
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    
+    // Repository for auto-marking fixed expenses as paid
+    private var budgetRepository: BudgetOverviewRepository? = null
+    
+    /**
+     * Set the budget repository for auto-pay functionality
+     */
+    fun setBudgetRepository(repository: BudgetOverviewRepository) {
+        budgetRepository = repository
+    }
     
     private fun getCurrentUserId(): String {
         return auth.currentUser?.uid ?: "demo_user"
@@ -98,14 +114,20 @@ object TransactionDataStore {
     
     /**
      * Add a single transaction and save to Firebase
+     * Also automatically marks matching fixed expenses as paid
      */
     fun addTransaction(transaction: Transaction) {
         _transactions.add(transaction)
-        android.util.Log.d("TransactionDataStore", "Added transaction: ${transaction.description} - ${transaction.amount}")
+        Log.d("TransactionDataStore", "Added transaction: ${transaction.description} - ${transaction.amount}")
         
         // Save to Firebase in background
         CoroutineScope(Dispatchers.IO).launch {
             saveTransactionToFirebase(transaction)
+            
+            // Auto-mark matching fixed expense as paid (only for expenses)
+            if (transaction.type == TransactionType.EXPENSE) {
+                autoMarkFixedExpensePaid(transaction)
+            }
         }
     }
     
@@ -425,6 +447,92 @@ object TransactionDataStore {
             )
         )
         android.util.Log.d("TransactionDataStore", "Initialized with ${_transactions.size} demo transactions")
+    }
+    
+    /**
+     * Automatically mark a matching fixed expense as paid when a transaction is created
+     * Matches based on: amount (within 1% tolerance), category, and period (YYYY-MM)
+     */
+    private suspend fun autoMarkFixedExpensePaid(transaction: Transaction) {
+        try {
+            val repository = budgetRepository
+            if (repository == null) {
+                Log.w("TransactionDataStore", "BudgetRepository not set, skipping auto-pay")
+                return
+            }
+            
+            // Get the period from the transaction date (YYYY-MM format)
+            val calendar = Calendar.getInstance().apply { time = transaction.date }
+            val year = calendar.get(Calendar.YEAR)
+            val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-based
+            val period = String.format("%04d-%02d", year, month)
+            
+            Log.d("AutoPay", "=== AUTO-PAY CHECK ===")
+            Log.d("AutoPay", "Transaction: ${transaction.description} | $${transaction.amount} | ${transaction.category.displayName}")
+            Log.d("AutoPay", "Period: $period")
+            
+            // Get all unpaid fixed expenses for this period
+            val expensesResult = repository.getEssentialExpenses(period)
+            if (expensesResult is RepositoryResult.Success) {
+                val unpaidFixedExpenses: List<EssentialExpenseEntity> = expensesResult.data.filter { 
+                    it.dueDay != null && !it.paid 
+                }
+                
+                Log.d("AutoPay", "Found ${unpaidFixedExpenses.size} unpaid fixed expenses")
+                
+                // Try to find a matching expense
+                val matchingExpense: EssentialExpenseEntity? = unpaidFixedExpenses.find { expense ->
+                    // Check if category matches (map TransactionCategory to ExpenseCategory)
+                    val categoryMatches = doesCategoryMatch(transaction.category, expense.category)
+                    
+                    // Check if amount matches (within 1% tolerance to handle rounding)
+                    val amountDiff = kotlin.math.abs(transaction.amount - expense.plannedAmount)
+                    val tolerance = expense.plannedAmount * 0.01 // 1% tolerance
+                    val amountMatches = amountDiff <= tolerance
+                    
+                    Log.d("AutoPay", "  Checking: ${expense.name} | $${expense.plannedAmount} | ${expense.category}")
+                    Log.d("AutoPay", "    Category match: $categoryMatches | Amount match: $amountMatches (diff: $$amountDiff, tolerance: $$tolerance)")
+                    
+                    categoryMatches && amountMatches
+                }
+                
+                if (matchingExpense != null) {
+                    Log.d("AutoPay", "✅ MATCH FOUND: ${matchingExpense.name}")
+                    Log.d("AutoPay", "   Marking as paid with actual amount: $${transaction.amount}")
+                    
+                    // Mark as paid with the actual transaction amount
+                    val result = repository.markEssentialPaid(matchingExpense.id, transaction.amount)
+                    
+                    if (result is RepositoryResult.Success) {
+                        Log.d("AutoPay", "✅ Successfully auto-marked fixed expense as paid!")
+                    } else if (result is RepositoryResult.Error) {
+                        Log.e("AutoPay", "❌ Failed to mark as paid: ${result.message}")
+                    }
+                } else {
+                    Log.d("AutoPay", "❌ No matching fixed expense found")
+                }
+            }
+            
+            Log.d("AutoPay", "=== AUTO-PAY CHECK END ===\n")
+            
+        } catch (e: Exception) {
+            Log.e("AutoPay", "Error in auto-pay: ${e.message}", e)
+        }
+    }
+    
+    /**
+     * Map TransactionCategory to ExpenseCategory for matching
+     */
+    private fun doesCategoryMatch(transactionCategory: TransactionCategory, expenseCategory: ExpenseCategory): Boolean {
+        return when (transactionCategory) {
+            TransactionCategory.RENT -> expenseCategory == ExpenseCategory.RENT
+            TransactionCategory.UTILITIES -> expenseCategory == ExpenseCategory.UTILITIES
+            TransactionCategory.GROCERIES -> expenseCategory == ExpenseCategory.GROCERIES
+            TransactionCategory.PHONE -> expenseCategory == ExpenseCategory.PHONE
+            TransactionCategory.INSURANCE -> expenseCategory == ExpenseCategory.INSURANCE
+            TransactionCategory.TRANSPORTATION -> expenseCategory == ExpenseCategory.TRANSPORTATION
+            else -> false // Don't auto-match other categories
+        }
     }
     
     /**

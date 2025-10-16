@@ -1,5 +1,6 @@
 package com.budgettracker.features.dashboard.presentation
 
+import android.util.Log
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -34,6 +35,8 @@ import java.util.*
 import kotlin.math.cos
 import kotlin.math.sin
 
+private const val TAG = "DashboardDebug"
+
 private enum class ExpenseSegment {
     TRANSACTIONS, FIXED, SUBSCRIPTIONS
 }
@@ -57,6 +60,9 @@ fun ModernDashboardScreen(
     val budgetUiState by budgetViewModel.uiState.collectAsState()
     
     LaunchedEffect(Unit) {
+        // Initialize TransactionDataStore with budget repository for auto-pay
+        TransactionDataStore.setBudgetRepository(budgetViewModel.getRepository())
+        
         TransactionDataStore.initializeFromFirebase()
         transactions = TransactionDataStore.getTransactions()
         isDataLoaded = true
@@ -95,14 +101,59 @@ fun ModernDashboardScreen(
             )
         }
         
-        // Only sum expenses that are marked as Fixed (have dueDay set)
-        val fixedExpensesTotal = budgetUiState.essentialExpenses
-            .filter { it.dueDay != null }
-            .sumOf { it.plannedAmount }
+        Log.d(TAG, "=== DASHBOARD CALCULATION START ===")
+        Log.d(TAG, "Selected Month: ${getMonthName(selectedMonth)} $selectedYear")
+        Log.d(TAG, "Filtered Transactions Count: ${filteredTransactions.size}")
+        
+        // Log all transactions for this month
+        filteredTransactions.forEach { txn ->
+            val dateStr = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(txn.date)
+            Log.d(TAG, "  Transaction: ${txn.type} | ${txn.description} | $${txn.amount} | $dateStr | Category: ${txn.category.displayName}")
+        }
+        
+        // Only sum expenses that are marked as Fixed (have dueDay set) AND are UNPAID
+        // This prevents double-counting: paid fixed expenses are already in transactions
+        val fixedExpenses = budgetUiState.essentialExpenses.filter { 
+            it.dueDay != null && !it.paid 
+        }
+        val fixedExpensesTotal = fixedExpenses.sumOf { it.plannedAmount }
+        
+        Log.d(TAG, "\nFixed Expenses (dueDay != null AND paid == false):")
+        Log.d(TAG, "  Total Unpaid Fixed Expenses: ${fixedExpenses.size}")
+        fixedExpenses.forEach { exp ->
+            Log.d(TAG, "    - ${exp.name}: $${exp.plannedAmount} | DueDay: ${exp.dueDay} | Paid: ${exp.paid} | Category: ${exp.category}")
+        }
+        Log.d(TAG, "  Fixed Expenses Total (Unpaid): $$fixedExpensesTotal")
+        
+        // Also log PAID fixed expenses for reference
+        val paidFixedExpenses = budgetUiState.essentialExpenses.filter { it.dueDay != null && it.paid }
+        if (paidFixedExpenses.isNotEmpty()) {
+            Log.d(TAG, "\nPaid Fixed Expenses (excluded from calculation):")
+            paidFixedExpenses.forEach { exp ->
+                Log.d(TAG, "    - ${exp.name}: $${exp.plannedAmount} | Already in transactions, not double-counted ✓")
+            }
+        }
         
         val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
+        Log.d(TAG, "\nSubscriptions:")
+        Log.d(TAG, "  Total Subscriptions: ${budgetUiState.subscriptions.size}")
+        budgetUiState.subscriptions.forEach { sub ->
+            Log.d(TAG, "    - ${sub.name}: $${sub.amount} | Frequency: ${sub.frequency}")
+        }
+        Log.d(TAG, "  Subscriptions Total: $$subscriptionsTotal")
         
-        calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
+        val stats = calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
+        
+        Log.d(TAG, "\n=== FINAL CALCULATION ===")
+        Log.d(TAG, "Income: $${stats.totalIncome}")
+        Log.d(TAG, "Transaction Expenses: $${stats.transactionExpenses}")
+        Log.d(TAG, "Fixed Expenses (Unpaid): $${stats.fixedExpenses}")
+        Log.d(TAG, "Subscriptions: $${stats.subscriptions}")
+        Log.d(TAG, "Total Expenses: $${stats.totalExpenses}")
+        Log.d(TAG, "Net Balance: $${stats.netBalance}")
+        Log.d(TAG, "=== DASHBOARD CALCULATION END ===\n")
+        
+        stats
     }
     
     Scaffold { paddingValues ->

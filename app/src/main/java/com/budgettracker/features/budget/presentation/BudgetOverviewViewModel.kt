@@ -40,6 +40,11 @@ class BudgetOverviewViewModel @Inject constructor(
     }
     
     /**
+     * Get the repository instance for auto-pay functionality
+     */
+    fun getRepository(): BudgetOverviewRepository = repository
+    
+    /**
      * Set the selected month and reload data for that period
      */
     fun setSelectedMonth(month: Int, year: Int) {
