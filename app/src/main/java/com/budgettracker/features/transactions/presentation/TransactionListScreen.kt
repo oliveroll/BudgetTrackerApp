@@ -43,16 +43,21 @@ import java.util.*
 fun TransactionListScreen(
     onNavigateToAddTransaction: () -> Unit = {}
 ) {
-    var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
+    var transactions by remember { mutableStateOf(emptyList<Transaction>()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
+        isLoading = true
         TransactionDataStore.initializeFromFirebase()
+        // Wait a bit for Firebase to load
+        kotlinx.coroutines.delay(1000)
         transactions = TransactionDataStore.getTransactions()
+        isLoading = false
     }
     
     val filteredTransactions = remember(transactions, selectedMonth, selectedYear) {
@@ -146,7 +151,28 @@ fun TransactionListScreen(
                 )
             }
             
-            if (filteredTransactions.isEmpty()) {
+            if (isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(64.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator()
+                            Text(
+                                text = "Loading transactions...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            } else if (filteredTransactions.isEmpty()) {
                 item {
                     EmptyStateCard(
                         onAddTransaction = onNavigateToAddTransaction,
@@ -155,13 +181,24 @@ fun TransactionListScreen(
                 }
             } else {
                 item {
-                    Text(
-                        text = "${filteredTransactions.size} Transaction${if (filteredTransactions.size != 1) "s" else ""}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-                    )
+                    Column(
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "${filteredTransactions.size} Transaction${if (filteredTransactions.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (transactions.size > filteredTransactions.size) {
+                            Text(
+                                text = "${transactions.size} total across all months",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 
                 val groupedTransactions = filteredTransactions.groupBy { 
