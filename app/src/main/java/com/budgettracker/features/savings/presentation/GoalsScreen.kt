@@ -35,7 +35,7 @@ import kotlin.math.sin
 fun GoalsScreen(
     onNavigateToAddGoal: () -> Unit = {}
 ) {
-    var selectedMonth by remember { mutableStateOf(0) } // 0 = Dec 2025, 11 = Nov 2026
+    var selectedMonth by remember { mutableStateOf(0) } // 0 = Oct 2025, 13 = Nov 2026
     var showPaymentDialog by remember { mutableStateOf(false) }
     var showDetailsDialog by remember { mutableStateOf(false) }
     var isDataLoaded by remember { mutableStateOf(false) }
@@ -138,7 +138,7 @@ private fun DebtFreedomHeader(
     modifier: Modifier = Modifier
 ) {
     val progress by animateFloatAsState(
-        targetValue = if (isVisible) (currentMonth + 1) / 12f else 0f,
+        targetValue = if (isVisible) (currentMonth + 1) / 14f else 0f, // 14 months total (Oct 2025 - Nov 2026)
         animationSpec = tween(durationMillis = 1500, easing = EaseOutCubic),
         label = "progress_anim"
     )
@@ -398,7 +398,7 @@ private fun PayoffTimelineCard(
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .fillMaxWidth(fraction = (selectedMonth + 1) / 12f)
+                            .fillMaxWidth(fraction = (selectedMonth + 1) / 14f) // 14 months total
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 Brush.horizontalGradient(
@@ -419,7 +419,7 @@ private fun PayoffTimelineCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Dec 2025",
+                    text = "Oct 2025",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
@@ -806,16 +806,16 @@ private fun QuickStatsRow(
         
         QuickStatCard(
             icon = "⏱️",
-            label = "Time Saved",
-            value = "8.75 yrs",
+            label = "Payoff Period",
+            value = "14 months",
             color = Color(0xFF28a745),
             modifier = Modifier.weight(1f)
         )
         
         QuickStatCard(
-            icon = "💸",
-            label = "Interest Saved",
-            value = "€3,367",
+            icon = "🎯",
+            label = "Rate (APR)",
+            value = "6.66%",
             color = Color(0xFF007bff),
             modifier = Modifier.weight(1f)
         )
@@ -959,24 +959,30 @@ data class MonthPayoffData(
 )
 
 private fun createLoanPayoffSchedule(): LoanPayoffData {
+    // KfW-Studienkredit (Kontonummer: 19767009)
+    // Current balance: €10,442.51 (as of 18.10.2025)
+    // Interest rate: 6.66% per annum
+    // Payment plan: €121.37/month (Oct-Dec 2025), then €900/month from Jan 2026
     val schedule = listOf(
-        MonthPayoffData("Dec 2025", 900.00, 57.26, 842.74, 9474.90),
-        MonthPayoffData("Jan 2026", 900.00, 52.58, 847.42, 8627.48),
-        MonthPayoffData("Feb 2026", 900.00, 47.88, 852.12, 7775.36),
-        MonthPayoffData("Mar 2026", 900.00, 43.16, 856.84, 6918.52),
-        MonthPayoffData("Apr 2026", 900.00, 38.40, 861.60, 6056.92),
-        MonthPayoffData("May 2026", 900.00, 33.62, 866.38, 5190.54),
-        MonthPayoffData("Jun 2026", 900.00, 28.81, 871.19, 4319.35),
-        MonthPayoffData("Jul 2026", 900.00, 23.98, 876.02, 3443.33),
-        MonthPayoffData("Aug 2026", 900.00, 19.11, 880.89, 2562.44),
-        MonthPayoffData("Sep 2026", 900.00, 14.22, 885.78, 1676.66),
-        MonthPayoffData("Oct 2026", 900.00, 9.31, 890.69, 785.97),
-        MonthPayoffData("Nov 2026", 790.33, 4.36, 785.97, 0.00)
+        MonthPayoffData("Oct 2025", 121.37, 58.00, 63.37, 10379.14),
+        MonthPayoffData("Nov 2025", 121.37, 57.65, 63.72, 10315.42),
+        MonthPayoffData("Dec 2025", 900.00, 57.30, 842.70, 9472.72),
+        MonthPayoffData("Jan 2026", 900.00, 52.59, 847.41, 8625.31),
+        MonthPayoffData("Feb 2026", 900.00, 47.88, 852.12, 7773.19),
+        MonthPayoffData("Mar 2026", 900.00, 43.15, 856.85, 6916.34),
+        MonthPayoffData("Apr 2026", 900.00, 38.40, 861.60, 6054.74),
+        MonthPayoffData("May 2026", 900.00, 33.64, 866.36, 5188.38),
+        MonthPayoffData("Jun 2026", 900.00, 28.82, 871.18, 4317.20),
+        MonthPayoffData("Jul 2026", 900.00, 23.98, 876.02, 3441.18),
+        MonthPayoffData("Aug 2026", 900.00, 19.12, 880.88, 2560.30),
+        MonthPayoffData("Sep 2026", 900.00, 14.22, 885.78, 1674.52),
+        MonthPayoffData("Oct 2026", 900.00, 9.30, 890.70, 783.82),
+        MonthPayoffData("Nov 2026", 790.33, 4.51, 785.82, 0.00)
     )
     
     return LoanPayoffData(
-        startingBalance = 10317.64,
-        totalInterest = 394.69,
+        startingBalance = 10442.51, // Updated current balance as of Nov 2025 payment
+        totalInterest = 488.56, // Total interest with new payment plan
         schedule = schedule
     )
 }
