@@ -35,7 +35,7 @@ import kotlin.math.sin
 fun GoalsScreen(
     onNavigateToAddGoal: () -> Unit = {}
 ) {
-    var selectedMonth by remember { mutableStateOf(0) } // 0 = Oct 2025, 13 = Nov 2026
+    var selectedMonth by remember { mutableStateOf(0) } // 0 = Oct 2025, 14 = Dec 2026
     var showPaymentDialog by remember { mutableStateOf(false) }
     var showDetailsDialog by remember { mutableStateOf(false) }
     var isDataLoaded by remember { mutableStateOf(false) }
@@ -138,7 +138,7 @@ private fun DebtFreedomHeader(
     modifier: Modifier = Modifier
 ) {
     val progress by animateFloatAsState(
-        targetValue = if (isVisible) (currentMonth + 1) / 14f else 0f, // 14 months total (Oct 2025 - Nov 2026)
+        targetValue = if (isVisible) (currentMonth + 1) / 15f else 0f, // 15 months total (Oct 2025 - Dec 2026)
         animationSpec = tween(durationMillis = 1500, easing = EaseOutCubic),
         label = "progress_anim"
     )
@@ -231,49 +231,64 @@ private fun DebtFreedomHeader(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                // Remaining Balance
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
-                        Text(
-                            text = "Remaining Balance",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 14.sp
-                        )
-                        Text(
-                            text = "€${String.format("%,.2f", animatedBalance)}",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 32.sp
-                        )
-                    }
-                    
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.White.copy(alpha = 0.25f)
+                    Text(
+                        text = "Remaining Balance",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "€${String.format("%,.2f", animatedBalance)}",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 36.sp
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(20.dp))
+                
+                // Freedom Date Card
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.25f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.End
-                        ) {
+                        Column {
                             Text(
-                                text = "Freedom Date",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 12.sp
+                                text = "Debt Freedom Date",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 14.sp
                             )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Nov 2026",
+                                text = "December 2026",
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
-                                fontSize = 18.sp
+                                fontSize = 22.sp
                             )
                         }
+                        
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(40.dp)
+                        )
                     }
                 }
             }
@@ -398,7 +413,7 @@ private fun PayoffTimelineCard(
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .fillMaxWidth(fraction = (selectedMonth + 1) / 14f) // 14 months total
+                            .fillMaxWidth(fraction = (selectedMonth + 1) / 15f) // 15 months total
                             .clip(RoundedCornerShape(12.dp))
                             .background(
                                 Brush.horizontalGradient(
@@ -425,7 +440,7 @@ private fun PayoffTimelineCard(
                     fontSize = 12.sp
                 )
                 Text(
-                    text = "Nov 2026",
+                    text = "Dec 2026",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp
@@ -807,7 +822,7 @@ private fun QuickStatsRow(
         QuickStatCard(
             icon = "⏱️",
             label = "Payoff Period",
-            value = "14 months",
+            value = "15 months",
             color = Color(0xFF28a745),
             modifier = Modifier.weight(1f)
         )
@@ -960,29 +975,30 @@ data class MonthPayoffData(
 
 private fun createLoanPayoffSchedule(): LoanPayoffData {
     // KfW-Studienkredit (Kontonummer: 19767009)
-    // Current balance: €10,442.51 (as of 18.10.2025)
-    // Interest rate: 6.66% per annum
-    // Payment plan: €121.37/month (Oct-Dec 2025), then €900/month from Jan 2026
+    // Current balance: €10,442.51 (as of 18.10.2025 - BEFORE Oct payment)
+    // Interest rate: 6.66% per annum (0.555% monthly)
+    // Payment plan: €121.37/month (Oct-Nov 2025), then €900/month from Dec 2025
     val schedule = listOf(
-        MonthPayoffData("Oct 2025", 121.37, 58.00, 63.37, 10379.14),
-        MonthPayoffData("Nov 2025", 121.37, 57.65, 63.72, 10315.42),
-        MonthPayoffData("Dec 2025", 900.00, 57.30, 842.70, 9472.72),
-        MonthPayoffData("Jan 2026", 900.00, 52.59, 847.41, 8625.31),
-        MonthPayoffData("Feb 2026", 900.00, 47.88, 852.12, 7773.19),
-        MonthPayoffData("Mar 2026", 900.00, 43.15, 856.85, 6916.34),
-        MonthPayoffData("Apr 2026", 900.00, 38.40, 861.60, 6054.74),
-        MonthPayoffData("May 2026", 900.00, 33.64, 866.36, 5188.38),
-        MonthPayoffData("Jun 2026", 900.00, 28.82, 871.18, 4317.20),
-        MonthPayoffData("Jul 2026", 900.00, 23.98, 876.02, 3441.18),
-        MonthPayoffData("Aug 2026", 900.00, 19.12, 880.88, 2560.30),
-        MonthPayoffData("Sep 2026", 900.00, 14.22, 885.78, 1674.52),
-        MonthPayoffData("Oct 2026", 900.00, 9.30, 890.70, 783.82),
-        MonthPayoffData("Nov 2026", 790.33, 4.51, 785.82, 0.00)
+        MonthPayoffData("Oct 2025", 121.37, 58.00, 63.37, 10442.51), // Starting balance (current)
+        MonthPayoffData("Nov 2025", 121.37, 57.98, 63.39, 10379.14), // After Oct payment
+        MonthPayoffData("Dec 2025", 900.00, 57.63, 842.37, 10315.75), // After Nov payment
+        MonthPayoffData("Jan 2026", 900.00, 52.93, 847.07, 9473.38),
+        MonthPayoffData("Feb 2026", 900.00, 48.22, 851.78, 8626.31),
+        MonthPayoffData("Mar 2026", 900.00, 43.49, 856.51, 7774.53),
+        MonthPayoffData("Apr 2026", 900.00, 38.74, 861.26, 6918.02),
+        MonthPayoffData("May 2026", 900.00, 33.97, 866.03, 6056.76),
+        MonthPayoffData("Jun 2026", 900.00, 29.18, 870.82, 5190.73),
+        MonthPayoffData("Jul 2026", 900.00, 24.37, 875.63, 4319.91),
+        MonthPayoffData("Aug 2026", 900.00, 19.53, 880.47, 3444.28),
+        MonthPayoffData("Sep 2026", 900.00, 14.67, 885.33, 2563.81),
+        MonthPayoffData("Oct 2026", 900.00, 9.79, 890.21, 1678.48),
+        MonthPayoffData("Nov 2026", 788.27, 4.88, 783.39, 788.27),
+        MonthPayoffData("Dec 2026", 792.65, 4.38, 788.27, 0.00) // Final payment
     )
     
     return LoanPayoffData(
-        startingBalance = 10442.51, // Updated current balance as of Nov 2025 payment
-        totalInterest = 488.56, // Total interest with new payment plan
+        startingBalance = 10442.51, // Actual current balance before any payments
+        totalInterest = 498.58, // Total interest with new payment plan
         schedule = schedule
     )
 }
