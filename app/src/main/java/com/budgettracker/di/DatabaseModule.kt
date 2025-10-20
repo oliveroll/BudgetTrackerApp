@@ -70,5 +70,26 @@ object DatabaseModule {
     fun provideBillReminderDao(database: BudgetTrackerDatabase): BillReminderDao {
         return database.billReminderDao()
     }
+    
+    // Financial Goals DAOs
+    @Provides
+    fun provideDebtLoanDao(database: BudgetTrackerDatabase): DebtLoanDao {
+        return database.debtLoanDao()
+    }
+    
+    @Provides
+    fun provideRothIRADao(database: BudgetTrackerDatabase): RothIRADao {
+        return database.rothIRADao()
+    }
+    
+    @Provides
+    fun provideEmergencyFundDao(database: BudgetTrackerDatabase): EmergencyFundDao {
+        return database.emergencyFundDao()
+    }
+    
+    @Provides
+    fun provideETFPortfolioDao(database: BudgetTrackerDatabase): ETFPortfolioDao {
+        return database.etfPortfolioDao()
+    }
 }
 
