@@ -35,8 +35,16 @@ class BudgetOverviewViewModel @Inject constructor(
     private var selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
     
     init {
+        syncFromFirebase()
         loadBudgetData()
         observeDataChanges()
+    }
+    
+    private fun syncFromFirebase() {
+        viewModelScope.launch {
+            // Sync data from Firebase to restore after database migration
+            repository.syncAllFromFirebase()
+        }
     }
     
     /**

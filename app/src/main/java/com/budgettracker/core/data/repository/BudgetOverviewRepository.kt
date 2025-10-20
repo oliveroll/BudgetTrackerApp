@@ -738,6 +738,123 @@ class BudgetOverviewRepository @Inject constructor(
             // Keep as pending sync
         }
     }
+    
+    /**
+     * Sync essential expenses FROM Firebase to local database
+     */
+    suspend fun syncEssentialExpensesFromFirebase(period: String? = null): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            val currentPeriod = period ?: getCurrentPeriod()
+            
+            // Fetch from Firebase
+            val snapshot = firestore.collection("users")
+                .document(userId)
+                .collection("essentials")
+                .whereEqualTo("period", currentPeriod)
+                .get()
+                .await()
+            
+            // Convert to entities and insert
+            snapshot.documents.forEach { doc ->
+                val data = doc.data ?: return@forEach
+                
+                val entity = EssentialExpenseEntity(
+                    id = doc.id,
+                    userId = userId,
+                    name = data["name"] as? String ?: "",
+                    category = ExpenseCategory.valueOf(data["category"] as? String ?: "OTHER"),
+                    plannedAmount = (data["plannedAmount"] as? Number)?.toDouble() ?: 0.0,
+                    actualAmount = (data["actualAmount"] as? Number)?.toDouble(),
+                    dueDay = (data["dueDay"] as? Number)?.toInt(),
+                    paid = data["paid"] as? Boolean ?: false,
+                    period = data["period"] as? String ?: currentPeriod,
+                    reminderDaysBefore = (data["reminderDaysBefore"] as? List<*>)?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(3, 1),
+                    fcmReminderEnabled = data["fcmReminderEnabled"] as? Boolean ?: true,
+                    notes = data["notes"] as? String,
+                    createdAt = (data["createdAt"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                    updatedAt = (data["updatedAt"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                    syncedAt = System.currentTimeMillis(),
+                    pendingSync = false
+                )
+                
+                dao.insertEssentialExpense(entity)
+            }
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Failed to sync essential expenses from Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Sync subscriptions FROM Firebase to local database
+     */
+    suspend fun syncSubscriptionsFromFirebase(): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            
+            // Fetch from Firebase
+            val snapshot = firestore.collection("users")
+                .document(userId)
+                .collection("subscriptions")
+                .whereEqualTo("active", true)
+                .get()
+                .await()
+            
+            // Convert to entities and insert
+            snapshot.documents.forEach { doc ->
+                val data = doc.data ?: return@forEach
+                
+                val entity = EnhancedSubscriptionEntity(
+                    id = doc.id,
+                    userId = userId,
+                    name = data["name"] as? String ?: "",
+                    amount = (data["amount"] as? Number)?.toDouble() ?: 0.0,
+                    currency = data["currency"] as? String ?: "USD",
+                    frequency = try {
+                        BillingFrequency.valueOf(data["frequency"] as? String ?: "MONTHLY")
+                    } catch (e: Exception) {
+                        BillingFrequency.MONTHLY
+                    },
+                    nextBillingDate = (data["nextBillingDate"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                    reminderDaysBefore = (data["reminderDaysBefore"] as? List<*>)?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1, 3, 7),
+                    fcmReminderEnabled = data["fcmReminderEnabled"] as? Boolean ?: true,
+                    active = data["active"] as? Boolean ?: true,
+                    iconEmoji = data["iconEmoji"] as? String ?: "",
+                    category = data["category"] as? String ?: "Other",
+                    notes = data["notes"] as? String,
+                    createdAt = (data["createdAt"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                    updatedAt = (data["updatedAt"] as? com.google.firebase.Timestamp)?.toDate()?.time ?: System.currentTimeMillis(),
+                    syncedAt = System.currentTimeMillis(),
+                    pendingSync = false
+                )
+                
+                dao.insertSubscription(entity)
+            }
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Failed to sync subscriptions from Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Sync all budget data from Firebase (call this after database migration or on app start)
+     */
+    suspend fun syncAllFromFirebase(): Result<Unit> {
+        return try {
+            // Sync current period's essential expenses
+            syncEssentialExpensesFromFirebase()
+            
+            // Sync subscriptions
+            syncSubscriptionsFromFirebase()
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Failed to sync all data from Firebase: ${e.message}")
+        }
+    }
 }
 
 // Extension functions for Firestore mapping
