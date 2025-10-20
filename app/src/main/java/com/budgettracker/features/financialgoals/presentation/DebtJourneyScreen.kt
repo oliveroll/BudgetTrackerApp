@@ -32,54 +32,41 @@ fun DebtJourneyScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { viewModel.toggleAddDialog() },
-                containerColor = MaterialTheme.colorScheme.primary
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.Add, "Add Loan")
+                CircularProgressIndicator()
             }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.loans.isEmpty()) {
-                EmptyDebtState(onAddClick = { viewModel.toggleAddDialog() })
-            } else {
-                // Summary Card
-                DebtSummaryCard(loans = uiState.loans)
-                
-                // Loans List
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.loans) { loan ->
-                        DebtLoanCard(
-                            loan = loan,
-                            onClick = { viewModel.selectLoan(loan) },
-                            onEdit = {
-                                viewModel.selectLoan(loan)
-                                viewModel.toggleEditDialog()
-                            },
-                            onDelete = {
-                                viewModel.selectLoan(loan)
-                                viewModel.deleteLoan(loan.id)
-                            }
-                        )
-                    }
+        } else if (uiState.loans.isEmpty()) {
+            EmptyDebtState(onAddClick = { viewModel.toggleAddDialog() })
+        } else {
+            // Summary Card
+            DebtSummaryCard(loans = uiState.loans)
+            
+            // Loans List
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.loans) { loan ->
+                    DebtLoanCard(
+                        loan = loan,
+                        onClick = { viewModel.selectLoan(loan) },
+                        onEdit = {
+                            viewModel.selectLoan(loan)
+                            viewModel.toggleEditDialog()
+                        },
+                        onDelete = {
+                            viewModel.selectLoan(loan)
+                            viewModel.deleteLoan(loan.id)
+                        }
+                    )
                 }
             }
         }
