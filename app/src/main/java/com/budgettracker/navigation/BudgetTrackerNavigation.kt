@@ -25,6 +25,7 @@ import com.budgettracker.features.budget.presentation.RemindersScreen
 import com.budgettracker.features.savings.presentation.SavingsGoalsScreen
 import com.budgettracker.features.savings.presentation.AddGoalScreen
 import com.budgettracker.features.savings.presentation.GoalsScreen
+import com.budgettracker.features.financialgoals.presentation.FinancialGoalsMainScreen
 import com.budgettracker.features.reports.presentation.ReportsScreen
 import com.budgettracker.features.settings.presentation.SettingsScreen
 
@@ -102,6 +103,9 @@ fun BudgetTrackerNavigation(
                 },
                 onNavigateToGoals = {
                     navController.navigate(BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE)
+                },
+                onNavigateToFinancialGoals = {
+                    navController.navigate(BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE)
                 },
                 onNavigateToSettings = {
                     navController.navigate(BudgetTrackerDestinations.SETTINGS_ROUTE)
@@ -195,6 +199,15 @@ fun BudgetTrackerNavigation(
         ) { backStackEntry ->
             val goalId = backStackEntry.arguments?.getString("goalId") ?: ""
             // TODO: EditGoalScreen(goalId)
+        }
+        
+        // Financial Goals - New Feature
+        composable(BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE) {
+            FinancialGoalsMainScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
         
         composable(BudgetTrackerDestinations.INVESTMENTS_ROUTE) {

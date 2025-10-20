@@ -34,6 +34,9 @@ object BudgetTrackerDestinations {
     const val ADD_GOAL_ROUTE = "add_goal"
     const val EDIT_GOAL_ROUTE = "edit_goal"
     
+    // Financial Goals (New Feature)
+    const val FINANCIAL_GOALS_ROUTE = "financial_goals"
+    
     // Investments & Loans
     const val INVESTMENTS_ROUTE = "investments"
     const val LOANS_ROUTE = "loans"

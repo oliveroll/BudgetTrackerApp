@@ -47,6 +47,7 @@ fun ModernDashboardScreen(
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToBudget: () -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
+    onNavigateToFinancialGoals: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAddTransaction: () -> Unit = {},
     budgetViewModel: BudgetOverviewViewModel = hiltViewModel()
