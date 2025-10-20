@@ -79,6 +79,46 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Financial Goals - Debt Loans
+    match /users/{userId}/debtLoans/{loanId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/debtPayments/{paymentId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Financial Goals - Roth IRA
+    match /users/{userId}/rothIRAs/{iraId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/iraContributions/{contributionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Financial Goals - Emergency Fund
+    match /users/{userId}/emergencyFunds/{fundId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/emergencyFundDeposits/{depositId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Financial Goals - ETF Portfolio
+    match /users/{userId}/etfPortfolios/{portfolioId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/etfHoldings/{holdingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId}/investmentTransactions/{transactionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Public read-only data (app metadata, categories, etc.)
     match /metadata/{document} {
       allow read: if true;
