@@ -230,3 +230,4 @@ This integration directly addresses your current issue:
 
 **Your transactions are safe!** All 92 transactions are in Firebase - the MCP server will help you access and manage them easily.
 
+

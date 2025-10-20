@@ -141,6 +141,7 @@ yarn-error.log*
 google-services.json
 firebase-debug.log
 .firebase/
+*-firebase-adminsdk-*.json
 
 # Gradle Wrapper (keep the wrapper)
 !gradle/wrapper/gradle-wrapper.jar
