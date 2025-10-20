@@ -31,9 +31,19 @@ import com.budgettracker.core.data.local.entities.*
         BalanceEntity::class,
         PaycheckEntity::class,
         ReminderEntity::class,
-        DeviceEntity::class
+        DeviceEntity::class,
+        // Financial Goals entities
+        DebtLoanEntity::class,
+        DebtPaymentRecordEntity::class,
+        RothIRAEntity::class,
+        IRAContributionEntity::class,
+        EmergencyFundEntity::class,
+        EmergencyFundDepositEntity::class,
+        ETFPortfolioEntity::class,
+        ETFHoldingEntity::class,
+        InvestmentTransactionEntity::class
     ],
-    version = 4, // Increment version for new entities
+    version = 5, // Increment version for financial goals entities
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -48,6 +58,12 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
     abstract fun budgetOverviewDao(): BudgetOverviewDao
     abstract fun subscriptionDao(): SubscriptionDao
     abstract fun billReminderDao(): BillReminderDao
+    
+    // Financial Goals DAOs
+    abstract fun debtLoanDao(): DebtLoanDao
+    abstract fun rothIRADao(): RothIRADao
+    abstract fun emergencyFundDao(): EmergencyFundDao
+    abstract fun etfPortfolioDao(): ETFPortfolioDao
     
     companion object {
         @Volatile
