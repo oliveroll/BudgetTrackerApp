@@ -255,6 +255,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     DATABASE_NAME
                 )
                 .addMigrations(MIGRATION_1_2, MIGRATION_3_4)
+                .fallbackToDestructiveMigrationFrom(4) // Allow destructive migration from v4 to v5
                 .build()
                 INSTANCE = instance
                 instance
