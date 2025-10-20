@@ -1,5 +1,6 @@
 package com.budgettracker.features.financialgoals.presentation
 
+import com.budgettracker.features.financialgoals.presentation.dialogs.AddRothIRADialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,15 +28,6 @@ fun RothIRAScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("🏦 Roth IRA") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
         floatingActionButton = {
             if (uiState.currentYearIRA != null) {
                 FloatingActionButton(
@@ -92,6 +84,16 @@ fun RothIRAScreen(
                     }
                 }
             }
+        }
+        
+        // Add IRA Dialog
+        if (uiState.showAddDialog) {
+            AddRothIRADialog(
+                onDismiss = { viewModel.toggleAddDialog() },
+                onConfirm = { ira ->
+                    viewModel.addIRA(ira)
+                }
+            )
         }
     }
 }

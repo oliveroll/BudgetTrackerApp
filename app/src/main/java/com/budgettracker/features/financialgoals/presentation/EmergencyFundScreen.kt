@@ -1,5 +1,6 @@
 package com.budgettracker.features.financialgoals.presentation
 
+import com.budgettracker.features.financialgoals.presentation.dialogs.AddEmergencyFundDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,15 +30,6 @@ fun EmergencyFundScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("🚨 Emergency Fund") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
         floatingActionButton = {
             if (uiState.selectedFund != null) {
                 FloatingActionButton(
@@ -97,6 +89,16 @@ fun EmergencyFundScreen(
                     }
                 }
             }
+        }
+        
+        // Add Fund Dialog
+        if (uiState.showAddDialog) {
+            AddEmergencyFundDialog(
+                onDismiss = { viewModel.toggleAddDialog() },
+                onConfirm = { fund ->
+                    viewModel.addFund(fund)
+                }
+            )
         }
     }
 }

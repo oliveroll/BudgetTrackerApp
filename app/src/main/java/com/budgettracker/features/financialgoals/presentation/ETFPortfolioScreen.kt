@@ -1,5 +1,6 @@
 package com.budgettracker.features.financialgoals.presentation
 
+import com.budgettracker.features.financialgoals.presentation.dialogs.AddETFPortfolioDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,15 +29,6 @@ fun ETFPortfolioScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("📈 ETF Portfolio") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
         floatingActionButton = {
             if (uiState.selectedPortfolio != null) {
                 FloatingActionButton(
@@ -103,6 +95,16 @@ fun ETFPortfolioScreen(
                     }
                 }
             }
+        }
+        
+        // Add Portfolio Dialog
+        if (uiState.showAddPortfolioDialog) {
+            AddETFPortfolioDialog(
+                onDismiss = { viewModel.toggleAddPortfolioDialog() },
+                onConfirm = { portfolio ->
+                    viewModel.addPortfolio(portfolio)
+                }
+            )
         }
     }
 }

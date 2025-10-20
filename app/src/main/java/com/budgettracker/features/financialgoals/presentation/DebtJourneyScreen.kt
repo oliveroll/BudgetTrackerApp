@@ -1,5 +1,6 @@
 package com.budgettracker.features.financialgoals.presentation
 
+import com.budgettracker.features.financialgoals.presentation.dialogs.AddLoanDialog
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,15 +32,6 @@ fun DebtJourneyScreen(
     val uiState by viewModel.uiState.collectAsState()
     
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("💪 Freedom Debt Journey") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.toggleAddDialog() },
@@ -81,6 +73,16 @@ fun DebtJourneyScreen(
                     }
                 }
             }
+        }
+        
+        // Add Loan Dialog
+        if (uiState.showAddDialog) {
+            AddLoanDialog(
+                onDismiss = { viewModel.toggleAddDialog() },
+                onConfirm = { loan ->
+                    viewModel.addLoan(loan)
+                }
+            )
         }
         
         // Error Snackbar
