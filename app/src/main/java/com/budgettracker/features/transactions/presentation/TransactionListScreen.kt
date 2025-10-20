@@ -49,11 +49,23 @@ fun TransactionListScreen(
     var showMonthPicker by remember { mutableStateOf(false) }
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
+    // Function to reload transactions
+    fun reloadTransactions() {
+        scope.launch {
+            isLoading = true
+            TransactionDataStore.initializeFromFirebase(forceReload = true)
+            kotlinx.coroutines.delay(1000)
+            transactions = TransactionDataStore.getTransactions()
+            isLoading = false
+        }
+    }
     
     LaunchedEffect(Unit) {
         isLoading = true
-        TransactionDataStore.initializeFromFirebase()
+        TransactionDataStore.initializeFromFirebase(forceReload = true)
         // Wait a bit for Firebase to load
         kotlinx.coroutines.delay(1000)
         transactions = TransactionDataStore.getTransactions()
@@ -88,6 +100,15 @@ fun TransactionListScreen(
                             text = "Transactions",
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { reloadTransactions() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Reload Transactions",
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },

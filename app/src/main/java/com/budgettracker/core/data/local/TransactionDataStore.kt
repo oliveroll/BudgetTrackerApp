@@ -47,9 +47,10 @@ object TransactionDataStore {
     
     /**
      * Initialize and load transactions from Firebase
+     * Set forceReload = true to bypass initialization check
      */
-    suspend fun initializeFromFirebase() {
-        if (isInitialized) return
+    suspend fun initializeFromFirebase(forceReload: Boolean = false) {
+        if (isInitialized && !forceReload) return
         
         try {
             val userId = getCurrentUserId()
