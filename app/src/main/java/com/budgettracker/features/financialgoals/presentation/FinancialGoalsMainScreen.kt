@@ -18,24 +18,16 @@ import androidx.compose.ui.unit.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FinancialGoalsMainScreen(
-    onNavigateBack: () -> Unit = {}
-) {
+fun FinancialGoalsMainScreen() {
     var selectedTabIndex by remember { mutableStateOf(0) }
     
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("🎯 Financial Goals") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
                 )
             )
         }

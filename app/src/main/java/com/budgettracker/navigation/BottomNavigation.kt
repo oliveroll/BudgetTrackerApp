@@ -77,7 +77,7 @@ val bottomNavItems = listOf(
         label = "Budget"
     ),
     BottomNavItem(
-        route = BudgetTrackerDestinations.SAVINGS_GOALS_ROUTE,
+        route = BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE,
         icon = Icons.Default.Savings,
         label = "Goals"
     )

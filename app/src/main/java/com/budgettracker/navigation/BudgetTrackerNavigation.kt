@@ -203,11 +203,7 @@ fun BudgetTrackerNavigation(
         
         // Financial Goals - New Feature
         composable(BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE) {
-            FinancialGoalsMainScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            FinancialGoalsMainScreen()
         }
         
         composable(BudgetTrackerDestinations.INVESTMENTS_ROUTE) {
