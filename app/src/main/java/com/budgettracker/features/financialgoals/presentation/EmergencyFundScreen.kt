@@ -1,6 +1,7 @@
 package com.budgettracker.features.financialgoals.presentation
 
 import com.budgettracker.features.financialgoals.presentation.dialogs.AddEmergencyFundDialog
+import com.budgettracker.features.financialgoals.presentation.dialogs.EditEmergencyFundDialog
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,39 +30,28 @@ fun EmergencyFundScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Scaffold(
-        floatingActionButton = {
-            if (uiState.selectedFund != null) {
-                FloatingActionButton(
-                    onClick = { viewModel.toggleDepositDialog() },
-                    containerColor = Color(0xFF28a745)
-                ) {
-                    Icon(Icons.Default.Add, "Add Deposit")
-                }
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (uiState.isLoading) {
-                Box(
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.isLoading) {
+            Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.selectedFund == null) {
-                EmptyFundState(onAddClick = { viewModel.toggleAddDialog() })
-            } else {
-                LazyColumn(
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.selectedFund == null) {
+            EmptyFundState(onAddClick = { viewModel.toggleAddDialog() })
+        } else {
+            LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
-                        FundProgressCard(fund = uiState.selectedFund!!)
+                        FundProgressCard(
+                            fund = uiState.selectedFund!!,
+                            onEdit = { viewModel.toggleEditDialog() }
+                        )
                     }
                     
                     item {
@@ -84,9 +74,8 @@ fun EmergencyFundScreen(
                         )
                     }
                     
-                    items(uiState.projections.take(12)) { projection ->
-                        ProjectionRow(projection = projection)
-                    }
+                items(uiState.projections.take(12)) { projection ->
+                    ProjectionRow(projection = projection)
                 }
             }
         }
@@ -100,11 +89,25 @@ fun EmergencyFundScreen(
                 }
             )
         }
+        
+        // Edit Fund Dialog
+        if (uiState.showEditDialog && uiState.selectedFund != null) {
+            EditEmergencyFundDialog(
+                fund = uiState.selectedFund!!,
+                onDismiss = { viewModel.toggleEditDialog() },
+                onConfirm = { updatedFund ->
+                    viewModel.updateFund(updatedFund)
+                }
+            )
+        }
     }
 }
 
 @Composable
-fun FundProgressCard(fund: EmergencyFund) {
+fun FundProgressCard(
+    fund: EmergencyFund,
+    onEdit: () -> Unit = {}
+) {
     val progressPercentage = fund.getProgressPercentage()
     val monthsToGoal = fund.getMonthsToReachGoal()
     val isGoalReached = fund.isGoalReached()
@@ -122,7 +125,7 @@ fun FundProgressCard(fund: EmergencyFund) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         fund.bankName,
                         style = MaterialTheme.typography.titleLarge,
@@ -132,6 +135,15 @@ fun FundProgressCard(fund: EmergencyFund) {
                         fund.accountType,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                
+                // Edit button
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 

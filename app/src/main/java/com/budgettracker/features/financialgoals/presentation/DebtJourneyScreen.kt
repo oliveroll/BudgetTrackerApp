@@ -1,6 +1,7 @@
 package com.budgettracker.features.financialgoals.presentation
 
 import com.budgettracker.features.financialgoals.presentation.dialogs.AddLoanDialog
+import com.budgettracker.features.financialgoals.presentation.dialogs.EditLoanDialog
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,7 +69,15 @@ fun DebtJourneyScreen(
                     items(uiState.loans) { loan ->
                         DebtLoanCard(
                             loan = loan,
-                            onClick = { viewModel.selectLoan(loan) }
+                            onClick = { viewModel.selectLoan(loan) },
+                            onEdit = {
+                                viewModel.selectLoan(loan)
+                                viewModel.toggleEditDialog()
+                            },
+                            onDelete = {
+                                viewModel.selectLoan(loan)
+                                viewModel.deleteLoan(loan.id)
+                            }
                         )
                     }
                 }
@@ -81,6 +90,24 @@ fun DebtJourneyScreen(
                 onDismiss = { viewModel.toggleAddDialog() },
                 onConfirm = { loan ->
                     viewModel.addLoan(loan)
+                }
+            )
+        }
+        
+        // Edit Loan Dialog
+        if (uiState.showEditDialog && uiState.selectedLoan != null) {
+            EditLoanDialog(
+                loan = uiState.selectedLoan!!,
+                onDismiss = { 
+                    viewModel.toggleEditDialog()
+                    viewModel.selectLoan(null)
+                },
+                onConfirm = { updatedLoan ->
+                    viewModel.updateLoan(updatedLoan)
+                },
+                onDelete = {
+                    viewModel.deleteLoan(uiState.selectedLoan!!.id)
+                    viewModel.toggleEditDialog()
                 }
             )
         }
@@ -201,7 +228,9 @@ fun DebtSummaryCard(loans: List<DebtLoan>) {
 @Composable
 fun DebtLoanCard(
     loan: DebtLoan,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -242,6 +271,41 @@ fun DebtLoanCard(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
+                }
+            }
+            
+            // Edit and Delete buttons row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                OutlinedButton(
+                    onClick = onEdit,
+                    modifier = Modifier.padding(end = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Edit")
+                }
+                OutlinedButton(
+                    onClick = onDelete,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Delete")
                 }
             }
             
