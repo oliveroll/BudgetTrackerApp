@@ -48,28 +48,39 @@ fun TransactionListScreen(
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
     var showMonthPicker by remember { mutableStateOf(false) }
     var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     
-    // Function to reload transactions
+    // Function to reload transactions (force refresh from Firebase)
     fun reloadTransactions() {
         scope.launch {
             isLoading = true
-            TransactionDataStore.initializeFromFirebase(forceReload = true)
-            kotlinx.coroutines.delay(1000)
-            transactions = TransactionDataStore.getTransactions()
-            isLoading = false
+            errorMessage = null
+            try {
+                TransactionDataStore.initializeFromFirebase(forceReload = true)
+                transactions = TransactionDataStore.getTransactions()
+            } catch (e: Exception) {
+                errorMessage = "Sync failed: ${e.message}"
+            } finally {
+                isLoading = false
+            }
         }
     }
     
     LaunchedEffect(Unit) {
-        isLoading = true
-        TransactionDataStore.initializeFromFirebase(forceReload = true)
-        // Wait a bit for Firebase to load
-        kotlinx.coroutines.delay(1000)
+        // Load cached data immediately (no loading spinner)
         transactions = TransactionDataStore.getTransactions()
-        isLoading = false
+        
+        // Sync from Firebase in background if needed
+        scope.launch {
+            try {
+                TransactionDataStore.initializeFromFirebase(forceReload = false)
+                transactions = TransactionDataStore.getTransactions()
+            } catch (e: Exception) {
+                errorMessage = "Background sync failed"
+            }
+        }
     }
     
     val filteredTransactions = remember(transactions, selectedMonth, selectedYear) {
