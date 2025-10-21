@@ -2,6 +2,7 @@ package com.budgettracker.features.financialgoals.presentation
 
 import com.budgettracker.features.financialgoals.presentation.dialogs.AddLoanDialog
 import com.budgettracker.features.financialgoals.presentation.dialogs.EditLoanDialog
+import com.budgettracker.features.financialgoals.presentation.dialogs.RecordPaymentDialog
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -107,14 +108,25 @@ fun DebtJourneyScreen(
             }
         }
         
-        // Loan Detail Bottom Sheet
-        if (uiState.selectedLoan != null) {
+        // Loan Detail Bottom Sheet (only show when NOT editing)
+        if (uiState.selectedLoan != null && !uiState.showEditDialog && !uiState.showPaymentDialog) {
             LoanDetailSheet(
                 loan = uiState.selectedLoan!!,
                 onDismiss = { viewModel.selectLoan(null) },
                 onRecordPayment = { viewModel.togglePaymentDialog() },
                 onEdit = { viewModel.toggleEditDialog() },
                 onDelete = { viewModel.deleteLoan(it) }
+            )
+        }
+        
+        // Record Payment Dialog
+        if (uiState.showPaymentDialog && uiState.selectedLoan != null) {
+            RecordPaymentDialog(
+                loan = uiState.selectedLoan!!,
+                onDismiss = { viewModel.togglePaymentDialog() },
+                onConfirm = { loanId, amount, principalPaid, interestPaid ->
+                    viewModel.recordPayment(loanId, amount, principalPaid, interestPaid)
+                }
             )
         }
     }
