@@ -1,5 +1,6 @@
 package com.budgettracker.features.financialgoals.presentation.dialogs
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -180,7 +181,7 @@ fun RecordPaymentDialog(
                                 )
                             }
                             
-                            Divider(
+                            HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 color = Color.White.copy(alpha = 0.3f)
                             )
@@ -207,23 +208,12 @@ fun RecordPaymentDialog(
                     
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Action buttons
-                    Row(
+                    // Action buttons - Responsive layout
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Button(
-                            onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White.copy(alpha = 0.2f),
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("Cancel", fontWeight = FontWeight.Medium)
-                        }
-                        
+                        // Record Payment button - Full width for better visibility
                         Button(
                             onClick = {
                                 if (amount > 0) {
@@ -231,7 +221,9 @@ fun RecordPaymentDialog(
                                     onDismiss()
                                 }
                             },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp), // Material 3 recommended height
                             enabled = amount > 0,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
@@ -239,20 +231,46 @@ fun RecordPaymentDialog(
                                 disabledContainerColor = Color.White.copy(alpha = 0.3f),
                                 disabledContentColor = Color.White.copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
+                                horizontalArrangement = Arrangement.Center,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(
                                     Icons.Default.Check,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Record Payment", fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Record Payment",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1
+                                )
                             }
+                        }
+                        
+                        // Cancel button - Outlined style
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = Color.White
+                            ),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "Cancel",
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.titleMedium
+                            )
                         }
                     }
                 }
