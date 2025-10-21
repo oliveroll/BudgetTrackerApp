@@ -63,7 +63,8 @@ fun ETFPortfolioScreen(
                         PortfolioSummaryCard(
                             portfolio = uiState.selectedPortfolio!!,
                             performance = uiState.performance,
-                            holdings = uiState.holdings
+                            holdings = uiState.holdings,
+                            onDelete = { viewModel.toggleDeleteDialog() }
                         )
                     }
                     
@@ -106,6 +107,35 @@ fun ETFPortfolioScreen(
                 }
             )
         }
+        
+        // Delete Confirmation Dialog
+        if (uiState.showDeleteDialog && uiState.selectedPortfolio != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.toggleDeleteDialog() },
+                title = { Text("Delete Portfolio?") },
+                text = { 
+                    Text("Are you sure you want to delete this portfolio? This action cannot be undone.") 
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deletePortfolio(uiState.selectedPortfolio!!.id)
+                            viewModel.toggleDeleteDialog()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.toggleDeleteDialog() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -113,7 +143,8 @@ fun ETFPortfolioScreen(
 fun PortfolioSummaryCard(
     portfolio: ETFPortfolio,
     performance: PortfolioPerformance?,
-    holdings: List<ETFHolding>
+    holdings: List<ETFHolding>,
+    onDelete: () -> Unit = {}
 ) {
     val totalValue = performance?.totalValue ?: 0.0
     val gainLoss = performance?.totalGainLoss ?: 0.0
@@ -127,16 +158,34 @@ fun PortfolioSummaryCard(
         )
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                portfolio.brokerageName,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                portfolio.accountType,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
+            // Header with delete button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        portfolio.brokerageName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        portfolio.accountType,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+                
+                // Delete button
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete Portfolio",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             
             Spacer(modifier = Modifier.height(20.dp))
             

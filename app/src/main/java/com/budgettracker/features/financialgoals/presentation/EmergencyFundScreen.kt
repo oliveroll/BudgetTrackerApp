@@ -50,7 +50,8 @@ fun EmergencyFundScreen(
                     item {
                         FundProgressCard(
                             fund = uiState.selectedFund!!,
-                            onEdit = { viewModel.toggleEditDialog() }
+                            onEdit = { viewModel.toggleEditDialog() },
+                            onDelete = { viewModel.toggleDeleteDialog() }
                         )
                     }
                     
@@ -100,13 +101,43 @@ fun EmergencyFundScreen(
                 }
             )
         }
+        
+        // Delete Confirmation Dialog
+        if (uiState.showDeleteDialog && uiState.selectedFund != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.toggleDeleteDialog() },
+                title = { Text("Delete Emergency Fund?") },
+                text = { 
+                    Text("Are you sure you want to delete this Emergency Fund? This action cannot be undone.") 
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.deleteFund(uiState.selectedFund!!.id)
+                            viewModel.toggleDeleteDialog()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.toggleDeleteDialog() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
 fun FundProgressCard(
     fund: EmergencyFund,
-    onEdit: () -> Unit = {}
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     val progressPercentage = fund.getProgressPercentage()
     val monthsToGoal = fund.getMonthsToReachGoal()
@@ -138,37 +169,51 @@ fun FundProgressCard(
                     )
                 }
                 
-                // Edit button
-                IconButton(onClick = onEdit) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
-                if (isGoalReached) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF28a745)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Edit button
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    // Delete button
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                    
+                    if (isGoalReached) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF28a745)
                         ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                "Goal Reached",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                "GOAL REACHED",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    "Goal Reached",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "GOAL REACHED",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
                         }
                     }
                 }
