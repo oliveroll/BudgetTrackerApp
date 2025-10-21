@@ -49,7 +49,8 @@ fun RothIRAScreen(
                 item {
                     IRAProgressCard(
                         ira = uiState.currentYearIRA!!,
-                        calculation = uiState.calculation
+                        calculation = uiState.calculation,
+                        onDelete = { viewModel.toggleDeleteDialog() }
                     )
                 }
                 
@@ -105,12 +106,42 @@ fun RothIRAScreen(
             }
         )
     }
+    
+    // Delete Confirmation Dialog
+    if (uiState.showDeleteDialog && uiState.currentYearIRA != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.toggleDeleteDialog() },
+            title = { Text("Delete Roth IRA?") },
+            text = { 
+                Text("Are you sure you want to delete this Roth IRA? This action cannot be undone.") 
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteIRA(uiState.currentYearIRA!!.id)
+                        viewModel.toggleDeleteDialog()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.toggleDeleteDialog() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 fun IRAProgressCard(
     ira: RothIRA,
-    calculation: com.budgettracker.core.domain.model.IRACalculation?
+    calculation: com.budgettracker.core.domain.model.IRACalculation?,
+    onDelete: () -> Unit = {}
 ) {
     val progressPercentage = ira.getProgressPercentage()
     val isOnTrack = ira.isOnTrackToMaxOut()
@@ -128,7 +159,7 @@ fun IRAProgressCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Tax Year ${ira.taxYear}",
                         style = MaterialTheme.typography.titleLarge,
@@ -141,29 +172,43 @@ fun IRAProgressCard(
                     )
                 }
                 
-                if (ira.isLimitReached()) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF28a745)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (ira.isLimitReached()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF28a745)
                         ) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                "Maxed Out",
-                                modifier = Modifier.size(16.dp),
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                "MAXED OUT",
-                                style = MaterialTheme.typography.labelSmall,
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    "Maxed Out",
+                                    modifier = Modifier.size(16.dp),
+                                    tint = Color.White
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "MAXED OUT",
+                                    style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
                             )
                         }
+                    }
+                }
+                
+                    // Delete icon button
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete IRA",
+                            tint = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }
