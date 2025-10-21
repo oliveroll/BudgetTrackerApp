@@ -1,6 +1,8 @@
 package com.budgettracker.features.financialgoals.presentation
 
 import com.budgettracker.features.financialgoals.presentation.dialogs.AddRothIRADialog
+import com.budgettracker.features.financialgoals.presentation.dialogs.AddContributionDialog
+import com.budgettracker.features.financialgoals.presentation.dialogs.EditIRADialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -27,74 +29,81 @@ fun RothIRAScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Scaffold(
-        floatingActionButton = {
-            if (uiState.currentYearIRA != null) {
-                FloatingActionButton(
-                    onClick = { viewModel.toggleContributionDialog() },
-                    containerColor = Color(0xFF28a745)
-                ) {
-                    Icon(Icons.Default.Add, "Add Contribution")
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (uiState.currentYearIRA == null) {
+            EmptyIRAState(onAddClick = { viewModel.toggleAddDialog() })
+        } else {
+            LazyColumn(
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item {
+                    IRAProgressCard(
+                        ira = uiState.currentYearIRA!!,
+                        calculation = uiState.calculation
+                    )
+                }
+                
+                item {
+                    ContributionCalculatorCard(
+                        ira = uiState.currentYearIRA!!,
+                        calculation = uiState.calculation
+                    )
+                }
+                
+                item {
+                    IRADetailsCard(ira = uiState.currentYearIRA!!)
+                }
+                
+                item {
+                    QuickActionsCard(
+                        onAddContribution = { viewModel.toggleContributionDialog() },
+                        onEditIRA = { viewModel.toggleEditDialog() }
+                    )
                 }
             }
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (uiState.currentYearIRA == null) {
-                EmptyIRAState(onAddClick = { viewModel.toggleAddDialog() })
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        IRAProgressCard(
-                            ira = uiState.currentYearIRA!!,
-                            calculation = uiState.calculation
-                        )
-                    }
-                    
-                    item {
-                        ContributionCalculatorCard(
-                            ira = uiState.currentYearIRA!!,
-                            calculation = uiState.calculation
-                        )
-                    }
-                    
-                    item {
-                        IRADetailsCard(ira = uiState.currentYearIRA!!)
-                    }
-                    
-                    item {
-                        QuickActionsCard(
-                            onAddContribution = { viewModel.toggleContributionDialog() },
-                            onEditIRA = { viewModel.toggleEditDialog() }
-                        )
-                    }
-                }
+    }
+    
+    // Add IRA Dialog
+    if (uiState.showAddDialog) {
+        AddRothIRADialog(
+            onDismiss = { viewModel.toggleAddDialog() },
+            onConfirm = { ira ->
+                viewModel.addIRA(ira)
             }
-        }
-        
-        // Add IRA Dialog
-        if (uiState.showAddDialog) {
-            AddRothIRADialog(
-                onDismiss = { viewModel.toggleAddDialog() },
-                onConfirm = { ira ->
-                    viewModel.addIRA(ira)
-                }
-            )
-        }
+        )
+    }
+    
+    // Add Contribution Dialog
+    if (uiState.showContributionDialog && uiState.currentYearIRA != null) {
+        AddContributionDialog(
+            ira = uiState.currentYearIRA!!,
+            onDismiss = { viewModel.toggleContributionDialog() },
+            onConfirm = { iraId, amount, taxYear ->
+                viewModel.recordContribution(iraId, amount, taxYear)
+            }
+        )
+    }
+    
+    // Edit IRA Dialog
+    if (uiState.showEditDialog && uiState.currentYearIRA != null) {
+        EditIRADialog(
+            ira = uiState.currentYearIRA!!,
+            onDismiss = { viewModel.toggleEditDialog() },
+            onConfirm = { updatedIRA ->
+                viewModel.updateIRA(updatedIRA)
+            }
+        )
     }
 }
 
