@@ -254,6 +254,10 @@ class ETFPortfolioViewModel @Inject constructor(
         _uiState.update { it.copy(showTransactionDialog = !it.showTransactionDialog) }
     }
     
+    fun toggleDeleteDialog() {
+        _uiState.update { it.copy(showDeleteDialog = !it.showDeleteDialog) }
+    }
+    
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -301,6 +305,7 @@ data class ETFPortfolioUiState(
     val showEditPortfolioDialog: Boolean = false,
     val showAddHoldingDialog: Boolean = false,
     val showEditHoldingDialog: Boolean = false,
-    val showTransactionDialog: Boolean = false
+    val showTransactionDialog: Boolean = false,
+    val showDeleteDialog: Boolean = false
 )
 

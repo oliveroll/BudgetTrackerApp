@@ -298,6 +298,31 @@ class RothIRAViewModel @Inject constructor(
         _uiState.update { it.copy(showContributionDialog = !it.showContributionDialog) }
     }
     
+    fun toggleDeleteDialog() {
+        _uiState.update { it.copy(showDeleteDialog = !it.showDeleteDialog) }
+    }
+    
+    fun deleteIRA(iraId: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            when (val result = repository.deleteIRA(iraId)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        currentYearIRA = null,
+                        showDeleteDialog = false
+                    )}
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = result.message
+                    )}
+                }
+            }
+        }
+    }
+    
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -312,6 +337,7 @@ data class RothIRAUiState(
     val error: String? = null,
     val showAddDialog: Boolean = false,
     val showEditDialog: Boolean = false,
-    val showContributionDialog: Boolean = false
+    val showContributionDialog: Boolean = false,
+    val showDeleteDialog: Boolean = false
 )
 

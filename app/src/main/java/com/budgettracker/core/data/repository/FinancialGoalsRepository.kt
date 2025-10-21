@@ -344,6 +344,28 @@ class RothIRARepository @Inject constructor(
         }
     }
     
+    suspend fun deleteIRA(iraId: String): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            val ira = rothIRADao.getIRAById(iraId) ?: return Result.Error("IRA not found")
+            
+            // Delete from local database
+            rothIRADao.deleteIRA(ira)
+            
+            // Delete from Firebase
+            firestore.collection("users")
+                .document(userId)
+                .collection("rothIRAs")
+                .document(iraId)
+                .delete()
+                .await()
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Failed to delete IRA: ${e.message}")
+        }
+    }
+    
     private suspend fun syncIRAToFirebase(ira: RothIRAEntity) {
         try {
             val userId = currentUserId ?: return

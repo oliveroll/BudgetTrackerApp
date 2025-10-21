@@ -163,6 +163,10 @@ class EmergencyFundViewModel @Inject constructor(
         _uiState.update { it.copy(showDepositDialog = !it.showDepositDialog) }
     }
     
+    fun toggleDeleteDialog() {
+        _uiState.update { it.copy(showDeleteDialog = !it.showDeleteDialog) }
+    }
+    
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -177,6 +181,7 @@ data class EmergencyFundUiState(
     val error: String? = null,
     val showAddDialog: Boolean = false,
     val showEditDialog: Boolean = false,
-    val showDepositDialog: Boolean = false
+    val showDepositDialog: Boolean = false,
+    val showDeleteDialog: Boolean = false
 )
 
