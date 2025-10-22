@@ -57,9 +57,13 @@ class BudgetOverviewRepository @Inject constructor(
      * 
      * **CALCULATED DYNAMICALLY**: Current Balance = Total Income - Total Expenses
      * 
-     * Includes:
+     * Simple calculation:
      * - Income: All income transactions for current month
-     * - Expenses: Transaction expenses + Paid fixed expenses + Subscriptions
+     * - Expenses: All expense transactions for current month
+     * - Balance = Income - Expenses
+     * 
+     * Note: Does NOT include "Paid Fixed Expenses" from Budget tab to avoid
+     * double counting (those should already be recorded as transactions).
      */
     suspend fun getCurrentBalance(): Result<Double> {
         return try {
@@ -77,24 +81,30 @@ class BudgetOverviewRepository @Inject constructor(
                 .filter { it.type == TransactionType.INCOME }
                 .sumOf { it.amount }
             
-            // Calculate total expenses
+            // Calculate total expenses (transactions already include everything spent)
             val transactionExpenses = transactions
                 .filter { it.type == TransactionType.EXPENSE }
                 .sumOf { it.amount }
             
-            // Add paid fixed expenses
-            val paidFixedExpenses = dao.getEssentialExpenses(userId, currentPeriod)
-                .filter { it.paid }
-                .sumOf { it.actualAmount ?: it.plannedAmount }
+            // IMPORTANT: We DO NOT add "Paid Fixed Expenses" here because:
+            // - If you marked Rent as "Paid" AND recorded a Rent transaction, 
+            //   it would be counted TWICE (once in transactions, once here)
+            // - Transaction Expenses already includes all money you spent
+            // 
+            // "Paid Fixed Expenses" in Budget tab is just for TRACKING which bills
+            // you paid, not for calculating how much money you have left.
             
-            // Add subscriptions
-            val subscriptions = dao.getActiveSubscriptions(userId)
-                .sumOf { it.getMonthlyCost() }
+            // Current Balance = Income - Transaction Expenses
+            // This is simple and correct: How much you earned minus how much you spent
+            val currentBalance = totalIncome - transactionExpenses
             
-            val totalExpenses = transactionExpenses + paidFixedExpenses + subscriptions
-            
-            // Current Balance = Income - Expenses
-            val currentBalance = totalIncome - totalExpenses
+            // Log detailed breakdown for debugging
+            android.util.Log.d("BalanceCalculation", "=== CURRENT BALANCE BREAKDOWN ===")
+            android.util.Log.d("BalanceCalculation", "Income: $$totalIncome")
+            android.util.Log.d("BalanceCalculation", "Transaction Expenses: $$transactionExpenses")
+            android.util.Log.d("BalanceCalculation", "Current Balance: $$currentBalance")
+            android.util.Log.d("BalanceCalculation", "NOTE: Paid Fixed Expenses NOT included to avoid double counting")
+            android.util.Log.d("BalanceCalculation", "===================================")
             
             Result.Success(currentBalance)
         } catch (e: Exception) {
