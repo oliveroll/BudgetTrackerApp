@@ -112,27 +112,21 @@ fun ModernDashboardScreen(
             Log.d(TAG, "  Transaction: ${txn.type} | ${txn.description} | $${txn.amount} | $dateStr | Category: ${txn.category.displayName}")
         }
         
-        // Only sum expenses that are marked as Fixed (have dueDay set) AND are UNPAID
-        // This prevents double-counting: paid fixed expenses are already in transactions
-        val fixedExpenses = budgetUiState.essentialExpenses.filter { 
-            it.dueDay != null && !it.paid 
-        }
-        val fixedExpensesTotal = fixedExpenses.sumOf { it.plannedAmount }
+        // Get ALL fixed expenses for display (both paid and unpaid)
+        val allFixedExpenses = budgetUiState.essentialExpenses.filter { it.dueDay != null }
+        val allFixedExpensesTotal = allFixedExpenses.sumOf { it.plannedAmount }
         
-        Log.d(TAG, "\nFixed Expenses (dueDay != null AND paid == false):")
-        Log.d(TAG, "  Total Unpaid Fixed Expenses: ${fixedExpenses.size}")
-        fixedExpenses.forEach { exp ->
-            Log.d(TAG, "    - ${exp.name}: $${exp.plannedAmount} | DueDay: ${exp.dueDay} | Paid: ${exp.paid} | Category: ${exp.category}")
-        }
-        Log.d(TAG, "  Fixed Expenses Total (Unpaid): $$fixedExpensesTotal")
+        // For calculation: only count UNPAID fixed expenses to prevent double-counting
+        // (Paid fixed expenses are already reflected in transactions or balance)
+        val unpaidFixedExpenses = allFixedExpenses.filter { !it.paid }
+        val unpaidFixedExpensesTotal = unpaidFixedExpenses.sumOf { it.plannedAmount }
         
-        // Also log PAID fixed expenses for reference
-        val paidFixedExpenses = budgetUiState.essentialExpenses.filter { it.dueDay != null && it.paid }
-        if (paidFixedExpenses.isNotEmpty()) {
-            Log.d(TAG, "\nPaid Fixed Expenses (excluded from calculation):")
-            paidFixedExpenses.forEach { exp ->
-                Log.d(TAG, "    - ${exp.name}: $${exp.plannedAmount} | Already in transactions, not double-counted ✓")
-            }
+        Log.d(TAG, "\nFixed Expenses (All with dueDay != null):")
+        Log.d(TAG, "  Total Fixed Expenses: ${allFixedExpenses.size} (Display: $$allFixedExpensesTotal)")
+        Log.d(TAG, "  Unpaid Fixed Expenses: ${unpaidFixedExpenses.size} (Calculation: $$unpaidFixedExpensesTotal)")
+        allFixedExpenses.forEach { exp ->
+            val status = if (exp.paid) "PAID" else "UNPAID"
+            Log.d(TAG, "    - ${exp.name}: $${exp.plannedAmount} | DueDay: ${exp.dueDay} | Status: $status")
         }
         
         val subscriptionsTotal = budgetUiState.subscriptions.sumOf { it.getMonthlyCost() }
@@ -143,12 +137,19 @@ fun ModernDashboardScreen(
         }
         Log.d(TAG, "  Subscriptions Total: $$subscriptionsTotal")
         
-        val stats = calculateDashboardStats(filteredTransactions, fixedExpensesTotal, subscriptionsTotal)
+        // Use allFixedExpensesTotal for DISPLAY, but unpaidFixedExpensesTotal for CALCULATION
+        val stats = calculateDashboardStats(
+            transactions = filteredTransactions,
+            fixedExpensesCalculation = unpaidFixedExpensesTotal,
+            fixedExpensesDisplay = allFixedExpensesTotal,
+            subscriptionsTotal = subscriptionsTotal
+        )
         
         Log.d(TAG, "\n=== FINAL CALCULATION ===")
         Log.d(TAG, "Income: $${stats.totalIncome}")
         Log.d(TAG, "Transaction Expenses: $${stats.transactionExpenses}")
-        Log.d(TAG, "Fixed Expenses (Unpaid): $${stats.fixedExpenses}")
+        Log.d(TAG, "Fixed Expenses (Display ALL): $${stats.fixedExpenses}")
+        Log.d(TAG, "Fixed Expenses (Calc Unpaid): $$unpaidFixedExpensesTotal")
         Log.d(TAG, "Subscriptions: $${stats.subscriptions}")
         Log.d(TAG, "Total Expenses: $${stats.totalExpenses}")
         Log.d(TAG, "Net Balance: $${stats.netBalance}")
@@ -1986,20 +1987,22 @@ private fun getCategoryColor(index: Int): Color {
 
 private fun calculateDashboardStats(
     transactions: List<Transaction>,
-    fixedExpensesTotal: Double = 0.0,
+    fixedExpensesCalculation: Double = 0.0, // Unpaid only - for calculation
+    fixedExpensesDisplay: Double = 0.0,     // All (paid + unpaid) - for UI display
     subscriptionsTotal: Double = 0.0
 ): DashboardStats {
     val income = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
     val transactionExpenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
     
-    // Total expenses include transaction expenses, fixed expenses, and subscriptions
-    val totalExpenses = transactionExpenses + fixedExpensesTotal + subscriptionsTotal
+    // Total expenses: transaction expenses + UNPAID fixed expenses + subscriptions
+    // We only add unpaid fixed expenses to prevent double-counting with transactions
+    val totalExpenses = transactionExpenses + fixedExpensesCalculation + subscriptionsTotal
     
     return DashboardStats(
         totalIncome = income,
         totalExpenses = totalExpenses,
         transactionExpenses = transactionExpenses,
-        fixedExpenses = fixedExpensesTotal,
+        fixedExpenses = fixedExpensesDisplay, // Display ALL fixed expenses in UI
         subscriptions = subscriptionsTotal,
         netBalance = income - totalExpenses,
         transactionCount = transactions.size

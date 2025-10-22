@@ -52,6 +52,14 @@ class BudgetOverviewRepository @Inject constructor(
         get() = auth.currentUser?.uid
     
     // Balance operations
+    /**
+     * Get Current Balance
+     * 
+     * **IMPORTANT**: Current Balance represents the STARTING BALANCE for the month (e.g., monthly income).
+     * It is NOT a running total that changes when expenses are paid.
+     * 
+     * To calculate remaining balance: Current Balance - Paid Expenses - Subscriptions
+     */
     suspend fun getCurrentBalance(): Result<Double> {
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
@@ -59,7 +67,7 @@ class BudgetOverviewRepository @Inject constructor(
             
             // Initialize balance if it doesn't exist
             if (balanceEntity == null) {
-                // Initialize with monthly income or a default value
+                // Initialize with monthly income (starting balance for the month)
                 val initialBalance = 5191.32 // Monthly income default
                 initializeBalance(initialBalance)
                 Result.Success(initialBalance)
@@ -71,6 +79,13 @@ class BudgetOverviewRepository @Inject constructor(
         }
     }
     
+    /**
+     * Initialize Balance
+     * 
+     * Sets the starting balance for the month (typically monthly income).
+     * This balance represents available funds at the START of the month,
+     * not a running total that changes with expenses.
+     */
     suspend fun initializeBalance(initialAmount: Double = 5191.32): Result<Unit> {
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
@@ -385,9 +400,9 @@ class BudgetOverviewRepository @Inject constructor(
                 .find { it.id == expenseId }
                 ?: return Result.Error("Expense not found")
             
-            // IDEMPOTENCY CHECK: If already paid, return success without updating balance
+            // IDEMPOTENCY CHECK: If already paid, return success without updating
             if (expense.paid) {
-                return Result.Success(Unit) // Already paid, don't deduct balance again
+                return Result.Success(Unit) // Already paid, don't update again
             }
             
             val amountToDeduct = actualAmount ?: expense.plannedAmount
@@ -401,10 +416,10 @@ class BudgetOverviewRepository @Inject constructor(
             
             dao.updateEssentialExpense(updatedExpense)
             
-            // Update balance - only if not already paid
-            val currentBalance = dao.getBalance(userId)?.currentBalance ?: 0.0
-            val newBalance = currentBalance - amountToDeduct
-            updateBalance(newBalance, "expense")
+            // NOTE: Balance is NOT deducted here anymore
+            // Current Balance represents the STARTING balance (monthly income)
+            // The "remaining" balance is calculated dynamically as: Balance - Paid Expenses - Subscriptions
+            // This prevents double-counting and keeps calculations consistent
             
             // Sync to Firebase
             syncEssentialToFirebase(updatedExpense)
