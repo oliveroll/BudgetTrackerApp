@@ -170,7 +170,7 @@ fun ModernDashboardScreen(
             item {
                 PremiumWelcomeHeader(
                     onNavigateToSettings = onNavigateToSettings,
-                    balance = monthlyStats.netBalance
+                    balance = budgetUiState.currentBalance
                 )
             }
             

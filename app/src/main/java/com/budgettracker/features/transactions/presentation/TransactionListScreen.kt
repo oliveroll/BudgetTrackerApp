@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
@@ -41,7 +42,8 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionListScreen(
-    onNavigateToAddTransaction: () -> Unit = {}
+onNavigateToAddTransaction: () -> Unit = {},
+budgetViewModel: com.budgettracker.features.budget.presentation.BudgetOverviewViewModel = hiltViewModel()
 ) {
     var transactions by remember { mutableStateOf(emptyList<Transaction>()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
@@ -51,6 +53,9 @@ fun TransactionListScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    
+    // Get current balance from BudgetOverviewViewModel
+    val budgetUiState by budgetViewModel.uiState.collectAsState()
     
     // Function to reload transactions (force refresh from Firebase)
     fun reloadTransactions() {
@@ -179,6 +184,7 @@ fun TransactionListScreen(
             item {
                 MonthlyStatsCard(
                     stats = monthlyStats,
+                    currentBalance = budgetUiState.currentBalance,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
@@ -389,6 +395,7 @@ private fun MonthNavigationCard(
 @Composable
 private fun MonthlyStatsCard(
     stats: MonthlyStats,
+    currentBalance: Double,
     modifier: Modifier = Modifier
 ) {
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -450,7 +457,7 @@ private fun MonthlyStatsCard(
             ) {
                 Column {
                     Text(
-                        text = "Net Balance",
+                        text = "Current Balance",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -463,10 +470,10 @@ private fun MonthlyStatsCard(
                 }
                 
                 Text(
-                    text = currencyFormat.format(stats.netBalance),
+                    text = currencyFormat.format(currentBalance),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (stats.netBalance >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
+                    color = if (currentBalance >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
                     fontSize = 28.sp
                 )
             }
