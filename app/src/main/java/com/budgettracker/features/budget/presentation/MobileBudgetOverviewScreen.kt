@@ -132,6 +132,7 @@ fun MobileBudgetOverviewScreen(
             item {
                 EssentialExpensesCard(
                     expensesWithSpending = uiState.essentialExpensesWithSpending,
+                    processingExpenseIds = uiState.processingExpenseIds,
                     onAddExpense = { showAddExpenseDialog = true },
                     onEditExpense = { editingExpense = it.expense },
                     onDeleteExpense = { deleteConfirmExpense = it.expense },
@@ -421,6 +422,7 @@ private fun CurrentBalanceCard(
 @Composable
 private fun EssentialExpensesCard(
     expensesWithSpending: List<com.budgettracker.core.data.repository.EssentialExpenseWithSpending>,
+    processingExpenseIds: Set<String>,
     onAddExpense: () -> Unit,
     onEditExpense: (com.budgettracker.core.data.repository.EssentialExpenseWithSpending) -> Unit,
     onDeleteExpense: (com.budgettracker.core.data.repository.EssentialExpenseWithSpending) -> Unit,
@@ -477,6 +479,7 @@ private fun EssentialExpensesCard(
                 expensesWithSpending.forEach { expenseData ->
                     SwipeableExpenseItem(
                         expenseData = expenseData,
+                        isProcessing = processingExpenseIds.contains(expenseData.expense.id),
                         onEdit = { onEditExpense(expenseData) },
                         onDelete = { onDeleteExpense(expenseData) },
                         onToggleFixed = { onToggleFixed(expenseData) },
@@ -505,6 +508,7 @@ private fun EssentialExpensesCard(
 @Composable
 private fun EssentialExpenseItem(
     expenseData: com.budgettracker.core.data.repository.EssentialExpenseWithSpending,
+    isProcessing: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleFixed: () -> Unit,
@@ -614,47 +618,62 @@ private fun EssentialExpenseItem(
                 fontWeight = FontWeight.Medium
             )
             
-            // Mark as Paid button
-            if (!expense.paid) {
-                OutlinedButton(
-                    onClick = onMarkPaid,
-                    modifier = Modifier.height(32.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color(0xFF28a745)
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Mark Paid", style = MaterialTheme.typography.labelMedium)
-                }
-            } else {
-                // Show "Paid" badge
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF28a745).copy(alpha = 0.15f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            // Mark as Paid button - only show for categories that should have it
+            if (expense.category.shouldShowPaidButton()) {
+                if (!expense.paid) {
+                    OutlinedButton(
+                        onClick = onMarkPaid,
+                        enabled = !isProcessing, // Disable while processing
+                        modifier = Modifier.height(32.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = Color(0xFF28a745),
+                            disabledContentColor = Color(0xFF28a745).copy(alpha = 0.5f)
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                     ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = Color(0xFF28a745),
-                            modifier = Modifier.size(14.dp)
-                        )
+                        if (isProcessing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF28a745).copy(alpha = 0.5f)
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            "Paid",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF28a745),
-                            fontWeight = FontWeight.Bold
+                            if (isProcessing) "Processing..." else "Mark Paid",
+                            style = MaterialTheme.typography.labelMedium
                         )
+                    }
+                } else {
+                    // Show "Paid" badge
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF28a745).copy(alpha = 0.15f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF28a745),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Paid",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF28a745),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -1785,6 +1804,7 @@ private fun ConfirmDeleteDialog(
 @Composable
 private fun SwipeableExpenseItem(
     expenseData: com.budgettracker.core.data.repository.EssentialExpenseWithSpending,
+    isProcessing: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleFixed: () -> Unit,
@@ -1897,6 +1917,7 @@ private fun SwipeableExpenseItem(
     ) {
         EssentialExpenseItem(
             expenseData = expenseData,
+            isProcessing = isProcessing,
             onEdit = onEdit,
             onDelete = onDelete,
             onToggleFixed = onToggleFixed,

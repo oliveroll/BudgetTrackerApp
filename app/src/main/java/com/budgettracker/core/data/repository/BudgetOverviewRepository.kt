@@ -385,18 +385,25 @@ class BudgetOverviewRepository @Inject constructor(
                 .find { it.id == expenseId }
                 ?: return Result.Error("Expense not found")
             
+            // IDEMPOTENCY CHECK: If already paid, return success without updating balance
+            if (expense.paid) {
+                return Result.Success(Unit) // Already paid, don't deduct balance again
+            }
+            
+            val amountToDeduct = actualAmount ?: expense.plannedAmount
+            
             val updatedExpense = expense.copy(
                 paid = true,
-                actualAmount = actualAmount ?: expense.plannedAmount,
+                actualAmount = amountToDeduct,
                 updatedAt = System.currentTimeMillis(),
                 pendingSync = true
             )
             
             dao.updateEssentialExpense(updatedExpense)
             
-            // Update balance
+            // Update balance - only if not already paid
             val currentBalance = dao.getBalance(userId)?.currentBalance ?: 0.0
-            val newBalance = currentBalance - (actualAmount ?: expense.plannedAmount)
+            val newBalance = currentBalance - amountToDeduct
             updateBalance(newBalance, "expense")
             
             // Sync to Firebase

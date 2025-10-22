@@ -104,4 +104,19 @@ enum class ExpenseCategory(val displayName: String, val iconEmoji: String) {
             OTHER -> com.budgettracker.core.domain.model.TransactionCategory.MISCELLANEOUS
         }
     }
+    
+    /**
+     * Determine if this category should have a "Mark as Paid" button.
+     * Transaction-driven categories (like Groceries) are tracked by transactions, not manual payment.
+     * Fixed bills (like Rent, Phone) should have a paid button.
+     */
+    fun shouldShowPaidButton(): Boolean {
+        return when (this) {
+            // Transaction-driven categories: tracked by actual transactions, no paid button
+            GROCERIES, TRANSPORTATION -> false
+            
+            // Fixed bills: should have a paid button
+            RENT, UTILITIES, PHONE, INSURANCE, OTHER -> true
+        }
+    }
 }

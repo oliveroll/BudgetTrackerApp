@@ -200,17 +200,27 @@ class BudgetOverviewViewModel @Inject constructor(
     
     fun markEssentialPaid(expenseId: String, actualAmount: Double? = null) {
         viewModelScope.launch {
+            // Add to processing set to disable button immediately
+            _uiState.value = _uiState.value.copy(
+                processingExpenseIds = _uiState.value.processingExpenseIds + expenseId
+            )
+            
             when (val result = repository.markEssentialPaid(expenseId, actualAmount)) {
                 is Result.Success -> {
                     // UI will update automatically through Flow observation
-                    // Show success message or animation
+                    // Remove from processing set
                     _uiState.value = _uiState.value.copy(
                         successMessage = "Expense marked as paid",
-                        lastUpdated = System.currentTimeMillis()
+                        lastUpdated = System.currentTimeMillis(),
+                        processingExpenseIds = _uiState.value.processingExpenseIds - expenseId
                     )
                 }
                 is Result.Error -> {
-                    _uiState.value = _uiState.value.copy(error = result.message)
+                    // Remove from processing set on error
+                    _uiState.value = _uiState.value.copy(
+                        error = result.message,
+                        processingExpenseIds = _uiState.value.processingExpenseIds - expenseId
+                    )
                 }
             }
         }
@@ -495,5 +505,6 @@ data class BudgetOverviewUiState(
     val upcomingPaychecks: List<PaycheckEntity> = emptyList(),
     val upcomingTimeline: List<TimelineItem> = emptyList(),
     val dashboardSummary: DashboardSummary? = null,
-    val lastUpdated: Long = System.currentTimeMillis()
+    val lastUpdated: Long = System.currentTimeMillis(),
+    val processingExpenseIds: Set<String> = emptySet() // Track expenses being marked as paid
 )
