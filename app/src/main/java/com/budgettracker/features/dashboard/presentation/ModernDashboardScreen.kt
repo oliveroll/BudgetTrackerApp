@@ -1305,13 +1305,20 @@ private fun AnimatedIncomeExpensesCard(
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     // Calculate proportions for stacked segments
-                    val totalExpenses = stats.totalExpenses
-                    if (totalExpenses > 0) {
-                        val barFraction = ((stats.totalExpenses / maxValue).coerceIn(0.0, 1.0)).toFloat()
+                    // For bar display, use ALL values (not the calculation total)
+                    val displayTotal = stats.transactionExpenses + stats.fixedExpenses + stats.subscriptions
+                    if (displayTotal > 0) {
+                        val barFraction = ((displayTotal / maxValue).coerceIn(0.0, 1.0)).toFloat()
                         
-                        // Calculate each segment as a fraction of total expenses
-                        val transFraction = (stats.transactionExpenses / totalExpenses).toFloat()
-                        val fixedFraction = (stats.fixedExpenses / totalExpenses).toFloat()
+                        // Calculate each segment as a fraction of display total
+                        val transFraction = (stats.transactionExpenses / displayTotal).toFloat()
+                        val fixedFraction = (stats.fixedExpenses / displayTotal).toFloat()
+                        val subsFraction = (stats.subscriptions / displayTotal).toFloat()
+                        
+                        Log.d(TAG, "Bar display total: $$displayTotal")
+                        Log.d(TAG, "Bar amounts: Trans=$${stats.transactionExpenses}, Fixed=$${stats.fixedExpenses}, Subs=$${stats.subscriptions}")
+                        Log.d(TAG, "Bar fractions: Trans=${String.format("%.1f", transFraction * 100)}%, Fixed=${String.format("%.1f", fixedFraction * 100)}%, Subs=${String.format("%.1f", subsFraction * 100)}%")
+                        Log.d(TAG, "Total fraction: ${String.format("%.1f", (transFraction + fixedFraction + subsFraction) * 100)}%")
                         
                         Row(
                             modifier = Modifier
@@ -1324,7 +1331,7 @@ private fun AnimatedIncomeExpensesCard(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(transFraction)
+                                        .weight(transFraction)
                                         .background(Color(0xFFdc3545))
                                 )
                             }
@@ -1333,7 +1340,7 @@ private fun AnimatedIncomeExpensesCard(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth(fixedFraction / (1f - transFraction))
+                                        .weight(fixedFraction)
                                         .background(Color(0xFFfd7e14))
                                 )
                             }
@@ -1342,7 +1349,7 @@ private fun AnimatedIncomeExpensesCard(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxHeight()
-                                        .fillMaxWidth()
+                                        .weight(subsFraction)
                                         .background(Color(0xFF6f42c1))
                                 )
                             }
