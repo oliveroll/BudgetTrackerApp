@@ -29,7 +29,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
@@ -42,8 +41,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun TransactionListScreen(
-onNavigateToAddTransaction: () -> Unit = {},
-budgetViewModel: com.budgettracker.features.budget.presentation.BudgetOverviewViewModel = hiltViewModel()
+onNavigateToAddTransaction: () -> Unit = {}
 ) {
     var transactions by remember { mutableStateOf(emptyList<Transaction>()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
@@ -53,9 +51,6 @@ budgetViewModel: com.budgettracker.features.budget.presentation.BudgetOverviewVi
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    
-    // Get current balance from BudgetOverviewViewModel
-    val budgetUiState by budgetViewModel.uiState.collectAsState()
     
     // Function to reload transactions (force refresh from Firebase)
     fun reloadTransactions() {
@@ -177,14 +172,6 @@ budgetViewModel: com.budgettracker.features.budget.presentation.BudgetOverviewVi
                             selectedMonth += 1
                         }
                     },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            
-            item {
-                MonthlyStatsCard(
-                    stats = monthlyStats,
-                    currentBalance = budgetUiState.currentBalance,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }

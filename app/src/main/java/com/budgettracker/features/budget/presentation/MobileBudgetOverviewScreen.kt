@@ -116,18 +116,6 @@ fun MobileBudgetOverviewScreen(
                 )
             }
             
-            // Current Balance Card
-            item {
-                CurrentBalanceCard(
-                    balance = uiState.currentBalance,
-                    expenses = uiState.dashboardSummary?.totalPaid ?: 635.0,
-                    subscriptions = viewModel.getTotalMonthlySubscriptions(),
-                    remaining = uiState.currentBalance - (uiState.dashboardSummary?.totalPaid ?: 0.0) - viewModel.getTotalMonthlySubscriptions(),
-                    onEditBalance = { viewModel.showEditBalanceDialog() },
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-            
             // Essential Expenses Section
             item {
                 EssentialExpensesCard(
