@@ -53,31 +53,29 @@
             </intent-filter>
         </activity>
         
-        <!-- Enhanced Firebase Cloud Messaging Service -->
+        <!-- Firebase Cloud Messaging Service for Push Notifications -->
         <service
-            android:name=".core.messaging.EnhancedBudgetMessagingService"
+            android:name=".core.firebase.BudgetTrackerMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
-
-        <!-- Enhanced Notification Action Receiver -->
-        <receiver
-            android:name=".core.messaging.EnhancedNotificationActionReceiver"
-            android:exported="false" />
         
-        <!-- Boot Receiver to reschedule notifications -->
-        <receiver
-            android:name=".core.messaging.BootReceiver"
-            android:exported="false">
-            <intent-filter android:priority="1000">
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <action android:name="android.intent.action.PACKAGE_REPLACED" />
-                <data android:scheme="package" />
-            </intent-filter>
-        </receiver>
+        <!-- Firebase Cloud Messaging default notification icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        
+        <!-- Firebase Cloud Messaging default notification color -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/primary_40" />
+        
+        <!-- Firebase Cloud Messaging default channel ID -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="budget_reminders" />
         
     </application>
 

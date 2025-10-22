@@ -124,6 +124,9 @@ dependencies {
     // Biometric
     implementation("androidx.biometric:biometric:1.1.0")
     
+    // Firebase Cloud Messaging (Push Notifications)
+    implementation("com.google.firebase:firebase-messaging-ktx:23.4.1")
+    
     // PDF Processing
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     
