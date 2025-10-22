@@ -701,12 +701,18 @@ private fun UnifiedFinancialOverviewCard(
             // Modern Interactive Expense Breakdown Bar
             var selectedSegment by remember { mutableStateOf<ExpenseSegment?>(null) }
             
-            val totalExp = stats.totalExpenses
-            if (totalExp > 0) {
-                val barFraction = ((totalExp / maxValue).coerceIn(0.0, 1.0)).toFloat()
-                val transFraction = (stats.transactionExpenses / totalExp).toFloat()
-                val fixedFraction = (stats.fixedExpenses / totalExp).toFloat()
-                val subsFraction = (stats.subscriptions / totalExp).toFloat()
+            // For bar display, calculate total from ALL components to ensure fractions add up
+            val displayTotal = stats.transactionExpenses + stats.fixedExpenses + stats.subscriptions
+            if (displayTotal > 0) {
+                val barFraction = ((displayTotal / maxValue).coerceIn(0.0, 1.0)).toFloat()
+                val transFraction = (stats.transactionExpenses / displayTotal).toFloat()
+                val fixedFraction = (stats.fixedExpenses / displayTotal).toFloat()
+                val subsFraction = (stats.subscriptions / displayTotal).toFloat()
+                
+                Log.d(TAG, "Expense bar - Display Total: $$displayTotal")
+                Log.d(TAG, "  Trans: $${stats.transactionExpenses} (${String.format("%.1f", transFraction * 100)}%)")
+                Log.d(TAG, "  Fixed: $${stats.fixedExpenses} (${String.format("%.1f", fixedFraction * 100)}%)")
+                Log.d(TAG, "  Subs: $${stats.subscriptions} (${String.format("%.1f", subsFraction * 100)}%)")
                 
                 Box(
                     modifier = Modifier
@@ -721,36 +727,36 @@ private fun UnifiedFinancialOverviewCard(
                             .fillMaxWidth(fraction = barFraction),
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        // Transaction expenses segment
+                        // Transaction expenses segment (red)
                         if (stats.transactionExpenses > 0) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(transFraction)
+                                    .weight(transFraction)
                                     .clickable {
                                         selectedSegment = ExpenseSegment.TRANSACTIONS
                                     }
                                     .background(Color(0xFFdc3545))
                             )
                         }
-                        // Fixed expenses segment
+                        // Fixed expenses segment (orange)
                         if (stats.fixedExpenses > 0) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth(fixedFraction / (1f - transFraction))
+                                    .weight(fixedFraction)
                                     .clickable {
                                         selectedSegment = ExpenseSegment.FIXED
                                     }
                                     .background(Color(0xFFfd7e14))
                             )
                         }
-                        // Subscriptions segment
+                        // Subscriptions segment (purple)
                         if (stats.subscriptions > 0) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxHeight()
-                                    .fillMaxWidth()
+                                    .weight(subsFraction)
                                     .clickable {
                                         selectedSegment = ExpenseSegment.SUBSCRIPTIONS
                                     }
