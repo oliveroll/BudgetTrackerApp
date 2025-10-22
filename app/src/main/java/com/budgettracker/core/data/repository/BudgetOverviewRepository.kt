@@ -55,27 +55,50 @@ class BudgetOverviewRepository @Inject constructor(
     /**
      * Get Current Balance
      * 
-     * **IMPORTANT**: Current Balance represents the STARTING BALANCE for the month (e.g., monthly income).
-     * It is NOT a running total that changes when expenses are paid.
+     * **CALCULATED DYNAMICALLY**: Current Balance = Total Income - Total Expenses
      * 
-     * To calculate remaining balance: Current Balance - Paid Expenses - Subscriptions
+     * Includes:
+     * - Income: All income transactions for current month
+     * - Expenses: Transaction expenses + Paid fixed expenses + Subscriptions
      */
     suspend fun getCurrentBalance(): Result<Double> {
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
-            val balanceEntity = dao.getBalance(userId)
+            val currentPeriod = getCurrentPeriod()
             
-            // Initialize balance if it doesn't exist
-            if (balanceEntity == null) {
-                // Initialize with monthly income (starting balance for the month)
-                val initialBalance = 5191.32 // Monthly income default
-                initializeBalance(initialBalance)
-                Result.Success(initialBalance)
-            } else {
-                Result.Success(balanceEntity.currentBalance)
+            // Get transactions for current month
+            val (year, month) = currentPeriod.split("-").let {
+                it[0].toInt() to it[1].toInt() - 1 // Calendar months are 0-indexed
             }
+            val transactions = TransactionDataStore.getTransactionsForMonth(month, year)
+            
+            // Calculate total income
+            val totalIncome = transactions
+                .filter { it.type == TransactionType.INCOME }
+                .sumOf { it.amount }
+            
+            // Calculate total expenses
+            val transactionExpenses = transactions
+                .filter { it.type == TransactionType.EXPENSE }
+                .sumOf { it.amount }
+            
+            // Add paid fixed expenses
+            val paidFixedExpenses = dao.getEssentialExpenses(userId, currentPeriod)
+                .filter { it.paid }
+                .sumOf { it.actualAmount ?: it.plannedAmount }
+            
+            // Add subscriptions
+            val subscriptions = dao.getActiveSubscriptions(userId)
+                .sumOf { it.getMonthlyCost() }
+            
+            val totalExpenses = transactionExpenses + paidFixedExpenses + subscriptions
+            
+            // Current Balance = Income - Expenses
+            val currentBalance = totalIncome - totalExpenses
+            
+            Result.Success(currentBalance)
         } catch (e: Exception) {
-            Result.Error("Failed to get balance: ${e.message}")
+            Result.Error("Failed to calculate current balance: ${e.message}")
         }
     }
     
