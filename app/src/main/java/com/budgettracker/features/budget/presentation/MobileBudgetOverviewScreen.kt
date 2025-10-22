@@ -136,6 +136,7 @@ fun MobileBudgetOverviewScreen(
                     onEditExpense = { editingExpense = it.expense },
                     onDeleteExpense = { deleteConfirmExpense = it.expense },
                     onToggleFixed = { /* TODO: Implement fixed toggle */ },
+                    onMarkPaid = { expenseId, amount -> viewModel.markEssentialPaid(expenseId, amount) },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
@@ -424,6 +425,7 @@ private fun EssentialExpensesCard(
     onEditExpense: (com.budgettracker.core.data.repository.EssentialExpenseWithSpending) -> Unit,
     onDeleteExpense: (com.budgettracker.core.data.repository.EssentialExpenseWithSpending) -> Unit,
     onToggleFixed: (com.budgettracker.core.data.repository.EssentialExpenseWithSpending) -> Unit,
+    onMarkPaid: (String, Double?) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -477,7 +479,8 @@ private fun EssentialExpensesCard(
                         expenseData = expenseData,
                         onEdit = { onEditExpense(expenseData) },
                         onDelete = { onDeleteExpense(expenseData) },
-                        onToggleFixed = { onToggleFixed(expenseData) }
+                        onToggleFixed = { onToggleFixed(expenseData) },
+                        onMarkPaid = { onMarkPaid(expenseData.expense.id, null) }
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -504,7 +507,8 @@ private fun EssentialExpenseItem(
     expenseData: com.budgettracker.core.data.repository.EssentialExpenseWithSpending,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleFixed: () -> Unit
+    onToggleFixed: () -> Unit,
+    onMarkPaid: () -> Unit
 ) {
     val expense = expenseData.expense
     val progress = (expenseData.spendingPercentage / 100f).coerceIn(0f, 1f)
@@ -593,17 +597,68 @@ private fun EssentialExpenseItem(
         
         Spacer(modifier = Modifier.height(4.dp))
         
-        // Remaining amount
-        Text(
-            text = if (expenseData.remainingBudget >= 0) {
-                "Remaining: $${String.format("%.2f", expenseData.remainingBudget)}"
+        // Remaining amount and Mark as Paid button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (expenseData.remainingBudget >= 0) {
+                    "Remaining: $${String.format("%.2f", expenseData.remainingBudget)}"
+                } else {
+                    "Over budget: $${String.format("%.2f", -expenseData.remainingBudget)}"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (expenseData.remainingBudget >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
+                fontWeight = FontWeight.Medium
+            )
+            
+            // Mark as Paid button
+            if (!expense.paid) {
+                OutlinedButton(
+                    onClick = onMarkPaid,
+                    modifier = Modifier.height(32.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFF28a745)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Mark Paid", style = MaterialTheme.typography.labelMedium)
+                }
             } else {
-                "Over budget: $${String.format("%.2f", -expenseData.remainingBudget)}"
-            },
-            style = MaterialTheme.typography.labelSmall,
-            color = if (expenseData.remainingBudget >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
-            fontWeight = FontWeight.Medium
-        )
+                // Show "Paid" badge
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF28a745).copy(alpha = 0.15f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = Color(0xFF28a745),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            "Paid",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF28a745),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1733,6 +1788,7 @@ private fun SwipeableExpenseItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleFixed: () -> Unit,
+    onMarkPaid: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showEditDialog by remember { mutableStateOf(false) }
@@ -1843,7 +1899,8 @@ private fun SwipeableExpenseItem(
             expenseData = expenseData,
             onEdit = onEdit,
             onDelete = onDelete,
-            onToggleFixed = onToggleFixed
+            onToggleFixed = onToggleFixed,
+            onMarkPaid = onMarkPaid
         )
     }
     

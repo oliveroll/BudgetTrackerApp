@@ -35,9 +35,17 @@ class BudgetOverviewViewModel @Inject constructor(
     private var selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
     
     init {
+        initializeBalance()
         syncFromFirebase()
         loadBudgetData()
         observeDataChanges()
+    }
+    
+    private fun initializeBalance() {
+        viewModelScope.launch {
+            // Initialize balance if not set (will auto-set to monthly income)
+            repository.initializeBalance()
+        }
     }
     
     private fun syncFromFirebase() {

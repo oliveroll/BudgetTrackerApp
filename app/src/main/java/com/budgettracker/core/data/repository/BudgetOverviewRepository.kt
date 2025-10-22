@@ -55,10 +55,34 @@ class BudgetOverviewRepository @Inject constructor(
     suspend fun getCurrentBalance(): Result<Double> {
         return try {
             val userId = currentUserId ?: return Result.Error("User not authenticated")
-            val balance = dao.getBalance(userId)?.currentBalance ?: 0.0
-            Result.Success(balance)
+            val balanceEntity = dao.getBalance(userId)
+            
+            // Initialize balance if it doesn't exist
+            if (balanceEntity == null) {
+                // Initialize with monthly income or a default value
+                val initialBalance = 5191.32 // Monthly income default
+                initializeBalance(initialBalance)
+                Result.Success(initialBalance)
+            } else {
+                Result.Success(balanceEntity.currentBalance)
+            }
         } catch (e: Exception) {
             Result.Error("Failed to get balance: ${e.message}")
+        }
+    }
+    
+    suspend fun initializeBalance(initialAmount: Double = 5191.32): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            
+            // Check if balance already exists
+            val existing = dao.getBalance(userId)
+            if (existing == null) {
+                updateBalance(initialAmount, "system_init")
+            }
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error("Failed to initialize balance: ${e.message}")
         }
     }
     
