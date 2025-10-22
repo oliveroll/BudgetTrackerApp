@@ -67,11 +67,21 @@ fun ModernDashboardScreen(
         TransactionDataStore.initializeFromFirebase()
         transactions = TransactionDataStore.getTransactions()
         isDataLoaded = true
+        
+        // Recalculate balance after initial load
+        budgetViewModel.recalculateBalance()
     }
     
     // Reload transactions when budget state changes (e.g., after adding/editing expenses)
     LaunchedEffect(budgetUiState.lastUpdated) {
         transactions = TransactionDataStore.getTransactions()
+    }
+    
+    // Recalculate balance whenever transactions change
+    LaunchedEffect(transactions.size) {
+        if (isDataLoaded) {
+            budgetViewModel.recalculateBalance()
+        }
     }
     
     // Update budget data when month changes

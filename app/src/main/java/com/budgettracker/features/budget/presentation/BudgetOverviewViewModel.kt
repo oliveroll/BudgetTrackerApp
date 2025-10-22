@@ -35,10 +35,30 @@ class BudgetOverviewViewModel @Inject constructor(
     private var selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
     
     init {
+        // Load balance immediately on initialization
+        loadBalanceImmediately()
+        
         initializeBalance()
         syncFromFirebase()
         loadBudgetData()
         observeDataChanges()
+    }
+    
+    /**
+     * Load balance immediately on app start to prevent showing "0"
+     */
+    private fun loadBalanceImmediately() {
+        viewModelScope.launch {
+            val balanceResult = repository.getCurrentBalance()
+            val balance = when (balanceResult) {
+                is Result.Success -> balanceResult.data
+                is Result.Error -> 0.0
+            }
+            _uiState.value = _uiState.value.copy(
+                currentBalance = balance,
+                lastUpdated = System.currentTimeMillis() // Trigger UI refresh
+            )
+        }
     }
     
     private fun initializeBalance() {
@@ -52,6 +72,8 @@ class BudgetOverviewViewModel @Inject constructor(
         viewModelScope.launch {
             // Sync data from Firebase to restore after database migration
             repository.syncAllFromFirebase()
+            // Recalculate balance after sync
+            loadBalanceImmediately()
         }
     }
     
@@ -145,21 +167,23 @@ class BudgetOverviewViewModel @Inject constructor(
     }
     
     private fun observeDataChanges() {
+        // Recalculate balance periodically whenever transaction data might have changed
         viewModelScope.launch {
-            // Observe balance changes (not month-specific)
-            repository.getBalanceFlow()
-                .collect { balance ->
-                    _uiState.value = _uiState.value.copy(currentBalance = balance)
-                }
-        }
-        
-        viewModelScope.launch {
-            // Observe subscriptions changes (not month-specific)
+            // Observe subscriptions changes (affects balance calculation)
             repository.getActiveSubscriptionsFlow()
                 .collect { subscriptions ->
                     _uiState.value = _uiState.value.copy(subscriptions = subscriptions)
+                    // Recalculate balance whenever subscriptions change
+                    loadBalanceImmediately()
                 }
         }
+        
+        // Note: Balance is now CALCULATED dynamically from transactions, not stored
+        // We recalculate whenever:
+        // 1. App starts (loadBalanceImmediately in init)
+        // 2. Month changes (loadBudgetData)
+        // 3. Subscriptions change (above)
+        // 4. User adds/edits transactions (via loadBudgetData after actions)
         
         // Note: Month-specific data (essentials, spending) is loaded via loadBudgetData()
         // when the user changes months. Real-time observation would overwrite selected month data.
@@ -171,6 +195,13 @@ class BudgetOverviewViewModel @Inject constructor(
     
     fun refreshData() {
         loadBudgetData()
+    }
+    
+    /**
+     * Recalculate balance from transactions (called when transactions change)
+     */
+    fun recalculateBalance() {
+        loadBalanceImmediately()
     }
     
     fun showEditBalanceDialog() {
