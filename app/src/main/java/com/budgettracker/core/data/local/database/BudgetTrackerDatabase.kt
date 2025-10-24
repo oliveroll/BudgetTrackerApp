@@ -267,6 +267,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6) // Add migrations
                 .fallbackToDestructiveMigration() // Allow database recreation on schema changes (dev mode)
                 .build()
                 INSTANCE = instance

@@ -23,6 +23,10 @@ class EmergencyFundViewModel @Inject constructor(
     val uiState: StateFlow<EmergencyFundUiState> = _uiState.asStateFlow()
     
     init {
+        // Initialize from Firebase first to restore data after database wipe
+        viewModelScope.launch {
+            repository.initializeFromFirebase()
+        }
         loadFunds()
     }
     

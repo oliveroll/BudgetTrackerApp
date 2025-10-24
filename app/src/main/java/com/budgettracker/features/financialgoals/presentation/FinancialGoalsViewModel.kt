@@ -22,6 +22,10 @@ class DebtJourneyViewModel @Inject constructor(
     val uiState: StateFlow<DebtJourneyUiState> = _uiState.asStateFlow()
     
     init {
+        // Initialize from Firebase first to restore data after database wipe
+        viewModelScope.launch {
+            repository.initializeFromFirebase()
+        }
         loadLoans()
     }
     
@@ -176,6 +180,10 @@ class RothIRAViewModel @Inject constructor(
     val uiState: StateFlow<RothIRAUiState> = _uiState.asStateFlow()
     
     init {
+        // Initialize from Firebase first to restore data after database wipe
+        viewModelScope.launch {
+            repository.initializeFromFirebase()
+        }
         loadIRAs()
     }
     

@@ -22,6 +22,10 @@ class ETFPortfolioViewModel @Inject constructor(
     val uiState: StateFlow<ETFPortfolioUiState> = _uiState.asStateFlow()
     
     init {
+        // Initialize from Firebase first to restore data after database wipe
+        viewModelScope.launch {
+            repository.initializeFromFirebase()
+        }
         loadPortfolios()
     }
     
