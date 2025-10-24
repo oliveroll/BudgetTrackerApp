@@ -186,6 +186,7 @@ class DebtLoanRepository @Inject constructor(
     suspend fun initializeFromFirebase() {
         try {
             val userId = currentUserId ?: return
+            android.util.Log.d("DebtLoanRepo", "Initializing from Firebase for user: $userId")
             
             // Fetch loans from Firebase
             val loansSnapshot = firestore.collection("users")
@@ -194,12 +195,17 @@ class DebtLoanRepository @Inject constructor(
                 .get()
                 .await()
             
+            android.util.Log.d("DebtLoanRepo", "Found ${loansSnapshot.size()} loans in Firebase")
+            
             loansSnapshot.documents.forEach { doc ->
                 val entity = doc.toDebtLoanEntity()
+                android.util.Log.d("DebtLoanRepo", "Inserting loan: ${entity.loanProvider} - ${entity.currentBalance}")
                 debtLoanDao.insertLoan(entity)
             }
+            
+            android.util.Log.d("DebtLoanRepo", "Loans successfully loaded from Firebase")
         } catch (e: Exception) {
-            // Fail silently, use local data
+            android.util.Log.e("DebtLoanRepo", "Failed to initialize from Firebase: ${e.message}", e)
         }
     }
     
