@@ -84,6 +84,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-messaging-ktx") // Add FCM
+    implementation("com.google.firebase:firebase-functions-ktx") // Cloud Functions
     
     // Google Sign-In
     implementation("com.google.android.gms:play-services-auth:21.2.0")

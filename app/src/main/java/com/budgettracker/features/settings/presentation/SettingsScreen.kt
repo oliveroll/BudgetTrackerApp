@@ -17,7 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.budgettracker.features.auth.data.HybridAuthManager
 import com.budgettracker.core.data.repository.DataInitializer
+import com.google.firebase.ktx.Firebase
+import com.google.firebase.functions.ktx.functions
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import android.widget.Toast
 
 /**
  * Settings screen with user profile and logout
@@ -76,6 +80,11 @@ fun SettingsScreen(
             // App Settings
             item {
                 AppSettingsCard()
+            }
+            
+            // Developer Tools (Test Notifications)
+            item {
+                DeveloperToolsCard(scope = scope)
             }
             
             // Financial Settings
@@ -269,6 +278,102 @@ private fun AppSettingsCard() {
                 title = "Theme",
                 subtitle = "Dark mode, colors",
                 onClick = { /* TODO: Theme settings */ }
+            )
+        }
+    }
+}
+
+@Composable
+private fun DeveloperToolsCard(scope: kotlinx.coroutines.CoroutineScope) {
+    val context = LocalContext.current
+    var isTestingSending by remember { mutableStateOf(false) }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.BugReport,
+                    contentDescription = "Developer Tools",
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Developer Tools",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Test Notification Button
+            Button(
+                onClick = {
+                    scope.launch {
+                        isTestingSending = true
+                        try {
+                            // Call Cloud Function to send test notification
+                            val result = Firebase.functions
+                                .getHttpsCallable("sendTestNotification")
+                                .call()
+                                .await()
+                            
+                            Toast.makeText(
+                                context,
+                                "✅ Test notification sent! Check your notification tray.",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } catch (e: Exception) {
+                            Toast.makeText(
+                                context,
+                                "❌ Error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } finally {
+                            isTestingSending = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isTestingSending,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.tertiary
+                )
+            ) {
+                if (isTestingSending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onTertiary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sending...")
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.NotificationAdd,
+                        contentDescription = "Test Notification"
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("🔔 Send Test Notification")
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            Text(
+                text = "This will send a test push notification to verify Firebase Cloud Messaging is working.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
             )
         }
     }
