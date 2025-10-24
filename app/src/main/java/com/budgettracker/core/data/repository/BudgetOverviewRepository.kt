@@ -1,5 +1,6 @@
 package com.budgettracker.core.data.repository
 
+import android.util.Log
 import com.budgettracker.core.data.local.dao.BudgetOverviewDao
 import com.budgettracker.core.data.local.dao.DashboardSummary
 import com.budgettracker.core.data.local.dao.TimelineItem
@@ -47,6 +48,10 @@ class BudgetOverviewRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth
 ) {
+    
+    companion object {
+        private const val TAG = "BudgetOverviewRepo"
+    }
     
     private val currentUserId: String?
         get() = auth.currentUser?.uid
@@ -900,6 +905,7 @@ class BudgetOverviewRepository @Inject constructor(
                     reminderDaysBefore = (data["reminderDaysBefore"] as? List<*>)?.mapNotNull { (it as? Number)?.toInt() } ?: listOf(1, 3, 7),
                     fcmReminderEnabled = data["fcmReminderEnabled"] as? Boolean ?: true,
                     active = data["active"] as? Boolean ?: true,
+                    isAutoPay = data["isAutoPay"] as? Boolean ?: true,
                     iconEmoji = data["iconEmoji"] as? String ?: "",
                     category = data["category"] as? String ?: "Other",
                     notes = data["notes"] as? String,
@@ -915,6 +921,45 @@ class BudgetOverviewRepository @Inject constructor(
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error("Failed to sync subscriptions from Firebase: ${e.message}")
+        }
+    }
+    
+    /**
+     * Roll forward auto-pay subscriptions that have passed their billing date
+     * Call this on app start and when refreshing data
+     */
+    suspend fun rollForwardOverdueSubscriptions(): Result<Int> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            
+            // Get all active subscriptions
+            val subscriptions = dao.getActiveSubscriptions(userId)
+            var updatedCount = 0
+            
+            subscriptions.forEach { subscription ->
+                if (subscription.needsRollForward()) {
+                    val rolledForward = subscription.rollForwardBillingDate()
+                    
+                    // Update in local database
+                    dao.updateSubscription(rolledForward)
+                    
+                    // Sync to Firebase
+                    firestore.collection("users")
+                        .document(userId)
+                        .collection("subscriptions")
+                        .document(subscription.id)
+                        .update("nextBillingDate", Timestamp(Date(rolledForward.nextBillingDate)))
+                        .await()
+                    
+                    updatedCount++
+                    Log.d(TAG, "Rolled forward subscription: ${subscription.name} to ${Date(rolledForward.nextBillingDate)}")
+                }
+            }
+            
+            Result.Success(updatedCount)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to roll forward subscriptions", e)
+            Result.Error("Failed to roll forward subscriptions: ${e.message}")
         }
     }
     
@@ -961,6 +1006,7 @@ private fun EnhancedSubscriptionEntity.toFirestoreMap(): Map<String, Any?> = map
     "reminderDaysBefore" to reminderDaysBefore,
     "fcmReminderEnabled" to fcmReminderEnabled,
     "active" to active,
+    "isAutoPay" to isAutoPay,
     "iconEmoji" to iconEmoji,
     "category" to category,
     "notes" to notes,

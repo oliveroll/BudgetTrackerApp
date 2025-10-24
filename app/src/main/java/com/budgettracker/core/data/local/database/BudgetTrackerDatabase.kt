@@ -43,7 +43,7 @@ import com.budgettracker.core.data.local.entities.*
         ETFHoldingEntity::class,
         InvestmentTransactionEntity::class
     ],
-    version = 5, // Increment version for financial goals entities
+    version = 6, // Add isAutoPay field to subscriptions
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -243,6 +243,19 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                         `pendingSync` INTEGER NOT NULL DEFAULT 0,
                         PRIMARY KEY(`deviceId`)
                     )
+                """)
+            }
+        }
+        
+        /**
+         * Migration from version 5 to 6: Add isAutoPay field to subscriptions
+         */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add isAutoPay column to enhanced_subscriptions table
+                database.execSQL("""
+                    ALTER TABLE `enhanced_subscriptions` 
+                    ADD COLUMN `isAutoPay` INTEGER NOT NULL DEFAULT 1
                 """)
             }
         }

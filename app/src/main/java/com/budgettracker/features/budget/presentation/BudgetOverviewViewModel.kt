@@ -1,5 +1,6 @@
 package com.budgettracker.features.budget.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgettracker.core.data.local.dao.DashboardSummary
@@ -40,6 +41,7 @@ class BudgetOverviewViewModel @Inject constructor(
         
         initializeBalance()
         syncFromFirebase()
+        rollForwardSubscriptions() // Automatically roll forward auto-pay subscriptions
         loadBudgetData()
         observeDataChanges()
     }
@@ -72,8 +74,31 @@ class BudgetOverviewViewModel @Inject constructor(
         viewModelScope.launch {
             // Sync data from Firebase to restore after database migration
             repository.syncAllFromFirebase()
+            // Roll forward subscriptions after sync
+            repository.rollForwardOverdueSubscriptions()
             // Recalculate balance after sync
             loadBalanceImmediately()
+        }
+    }
+    
+    /**
+     * Roll forward auto-pay subscriptions that have passed their billing date
+     */
+    private fun rollForwardSubscriptions() {
+        viewModelScope.launch {
+            val result = repository.rollForwardOverdueSubscriptions()
+            when (result) {
+                is Result.Success -> {
+                    if (result.data > 0) {
+                        Log.d("BudgetOverview", "Rolled forward ${result.data} subscription(s)")
+                        // Reload data to reflect changes
+                        loadBudgetData()
+                    }
+                }
+                is Result.Error -> {
+                    Log.e("BudgetOverview", "Failed to roll forward subscriptions: ${result.message}")
+                }
+            }
         }
     }
     

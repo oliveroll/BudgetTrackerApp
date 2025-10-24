@@ -782,12 +782,7 @@ private fun SubscriptionItem(
 ) {
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     val daysUntil = subscription.getDaysUntilBilling()
-    val reminderText = when {
-        daysUntil < 0 -> "Overdue"
-        daysUntil == 0 -> "Due today"
-        daysUntil <= 7 -> "$daysUntil day${if (daysUntil > 1) "s" else ""} left"
-        else -> "${daysUntil}d reminder"
-    }
+    val reminderText = subscription.getStatusText() // Use new status method
     
     Row(
         modifier = Modifier
