@@ -48,6 +48,8 @@ object TransactionDataStore {
     /**
      * Initialize and load transactions from Firebase
      * Set forceReload = true to bypass initialization check
+     * 
+     * MIGRATION STRATEGY: Read from BOTH legacy root collection AND new user subcollection
      */
     suspend fun initializeFromFirebase(forceReload: Boolean = false) {
         if (isInitialized && !forceReload) return
@@ -56,13 +58,30 @@ object TransactionDataStore {
             val userId = getCurrentUserId()
             android.util.Log.d("TransactionDataStore", "Loading transactions from Firebase for user: $userId")
             
-            val snapshot = firestore.collection("transactions")
+            // 1. Load from NEW user subcollection (preferred)
+            val userSubcollectionSnapshot = firestore.collection("users")
+                .document(userId)
+                .collection("transactions")
+                .whereEqualTo("isDeleted", false)
+                .get()
+                .await()
+            
+            android.util.Log.d("TransactionDataStore", "Found ${userSubcollectionSnapshot.size()} transactions in user subcollection")
+            
+            // 2. Load from LEGACY root collection (for backward compatibility)
+            val legacySnapshot = firestore.collection("transactions")
                 .whereEqualTo("userId", userId)
                 .whereEqualTo("isDeleted", false)
                 .get()
                 .await()
             
-            val firebaseTransactions = snapshot.documents.mapNotNull { doc ->
+            android.util.Log.d("TransactionDataStore", "Found ${legacySnapshot.size()} transactions in legacy root collection")
+            
+            // Combine both sources (use Set to deduplicate by ID)
+            val allDocuments = (userSubcollectionSnapshot.documents + legacySnapshot.documents)
+                .distinctBy { it.id }
+            
+            val firebaseTransactions = allDocuments.mapNotNull { doc ->
                 try {
                     val data = doc.data ?: return@mapNotNull null
                     Transaction(
@@ -89,7 +108,7 @@ object TransactionDataStore {
             if (firebaseTransactions.isNotEmpty()) {
                 _transactions.clear()
                 _transactions.addAll(firebaseTransactions)
-                android.util.Log.d("TransactionDataStore", "Loaded ${firebaseTransactions.size} transactions from Firebase")
+                android.util.Log.d("TransactionDataStore", "Loaded ${firebaseTransactions.size} transactions total (merged from both locations)")
             } else {
                 android.util.Log.d("TransactionDataStore", "No Firebase transactions found, initializing with demo data")
                 initializeWithDemoData()
@@ -539,10 +558,15 @@ object TransactionDataStore {
     /**
      * Save single transaction to Firebase
      */
+    /**
+     * Save transaction to Firebase USER SUBCOLLECTION (new structure)
+     * Also deletes from legacy root collection if exists (automatic migration)
+     */
     private suspend fun saveTransactionToFirebase(transaction: Transaction) {
         try {
+            val userId = getCurrentUserId()
             val transactionData = mapOf(
-                "userId" to getCurrentUserId(),
+                "userId" to userId,
                 "amount" to transaction.amount,
                 "category" to transaction.category.name,
                 "type" to transaction.type.name,
@@ -555,12 +579,26 @@ object TransactionDataStore {
                 "updatedAt" to com.google.firebase.Timestamp.now()
             )
             
-            firestore.collection("transactions")
+            // 1. Save to NEW user subcollection
+            firestore.collection("users")
+                .document(userId)
+                .collection("transactions")
                 .document(transaction.id)
                 .set(transactionData)
                 .await()
             
-            android.util.Log.d("TransactionDataStore", "Saved transaction to Firebase: ${transaction.id}")
+            android.util.Log.d("TransactionDataStore", "✓ Saved transaction to user subcollection: ${transaction.id}")
+            
+            // 2. Delete from LEGACY root collection if exists (automatic migration)
+            try {
+                firestore.collection("transactions")
+                    .document(transaction.id)
+                    .delete()
+                    .await()
+                android.util.Log.d("TransactionDataStore", "✓ Deleted legacy transaction: ${transaction.id}")
+            } catch (e: Exception) {
+                // Ignore if doesn't exist in legacy location
+            }
             
         } catch (e: Exception) {
             android.util.Log.e("TransactionDataStore", "Error saving transaction to Firebase: ${e.message}")
@@ -579,8 +617,13 @@ object TransactionDataStore {
     /**
      * Update transaction in Firebase
      */
+    /**
+     * Update transaction in Firebase USER SUBCOLLECTION (new structure)
+     * Also updates in legacy location if exists (automatic migration)
+     */
     private suspend fun updateTransactionInFirebase(transaction: Transaction) {
         try {
+            val userId = getCurrentUserId()
             val updateData = mapOf(
                 "amount" to transaction.amount,
                 "category" to transaction.category.name,
@@ -590,12 +633,26 @@ object TransactionDataStore {
                 "updatedAt" to com.google.firebase.Timestamp.now()
             )
             
-            firestore.collection("transactions")
+            // 1. Update in NEW user subcollection
+            firestore.collection("users")
+                .document(userId)
+                .collection("transactions")
                 .document(transaction.id)
                 .update(updateData)
                 .await()
             
-            android.util.Log.d("TransactionDataStore", "Updated transaction in Firebase: ${transaction.id}")
+            android.util.Log.d("TransactionDataStore", "✓ Updated transaction in user subcollection: ${transaction.id}")
+            
+            // 2. Also update in LEGACY root collection if exists (automatic migration)
+            try {
+                firestore.collection("transactions")
+                    .document(transaction.id)
+                    .update(updateData)
+                    .await()
+                android.util.Log.d("TransactionDataStore", "✓ Updated legacy transaction: ${transaction.id}")
+            } catch (e: Exception) {
+                // Ignore if doesn't exist in legacy location
+            }
             
         } catch (e: Exception) {
             android.util.Log.e("TransactionDataStore", "Error updating transaction in Firebase: ${e.message}")
@@ -603,16 +660,33 @@ object TransactionDataStore {
     }
     
     /**
-     * Delete transaction from Firebase (hard delete - actually removes from database)
+     * Delete transaction from Firebase USER SUBCOLLECTION (new structure)
+     * Also deletes from legacy location if exists (automatic migration)
      */
     private suspend fun deleteTransactionFromFirebase(transactionId: String) {
         try {
-            firestore.collection("transactions")
+            val userId = getCurrentUserId()
+            
+            // 1. Delete from NEW user subcollection
+            firestore.collection("users")
+                .document(userId)
+                .collection("transactions")
                 .document(transactionId)
                 .delete()
                 .await()
             
-            android.util.Log.d("TransactionDataStore", "Permanently deleted transaction from Firebase: $transactionId")
+            android.util.Log.d("TransactionDataStore", "✓ Permanently deleted transaction from user subcollection: $transactionId")
+            
+            // 2. Also delete from LEGACY root collection if exists (automatic migration)
+            try {
+                firestore.collection("transactions")
+                    .document(transactionId)
+                    .delete()
+                    .await()
+                android.util.Log.d("TransactionDataStore", "✓ Deleted legacy transaction: $transactionId")
+            } catch (e: Exception) {
+                // Ignore if doesn't exist in legacy location
+            }
             
         } catch (e: Exception) {
             android.util.Log.e("TransactionDataStore", "Error deleting transaction from Firebase: ${e.message}")
