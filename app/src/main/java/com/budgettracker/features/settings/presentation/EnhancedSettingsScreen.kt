@@ -131,7 +131,6 @@ fun EnhancedSettingsScreen(
                         NotificationSettingsCard(
                             settings = userSettings?.notificationSettings ?: NotificationSettings(),
                             onSettingsChanged = { viewModel.updateNotificationSettings(it) },
-                            onTestNotifications = { viewModel.testNotifications() },
                             context = context
                         )
                     }
@@ -379,7 +378,6 @@ fun AccountSettingsCard(
 fun NotificationSettingsCard(
     settings: NotificationSettings,
     onSettingsChanged: (NotificationSettings) -> Unit,
-    onTestNotifications: () -> Unit,
     context: Context
 ) {
     // Request permission launcher
@@ -473,33 +471,8 @@ fun NotificationSettingsCard(
                 onFrequencyChange = { onSettingsChanged(settings.copy(goalMilestoneFrequency = it)) }
             )
             
-            // Test Notifications Button
-            Divider(modifier = Modifier.padding(vertical = 12.dp))
-            
-            OutlinedButton(
-                onClick = onTestNotifications,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = settings.notificationPermissionGranted
-            ) {
-                Icon(
-                    Icons.Default.NotificationsActive,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Test Notifications Now")
-            }
-            
-            if (!settings.notificationPermissionGranted) {
-                Text(
-                    "Enable notifications to test",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-            
             // Fix Firebase Notifications Button
+            Divider(modifier = Modifier.padding(vertical = 12.dp))
             Spacer(modifier = Modifier.height(8.dp))
             
             var isRefreshingToken by remember { mutableStateOf(false) }
