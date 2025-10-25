@@ -19,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.ETFPortfolio
 import com.budgettracker.core.domain.model.ETFHolding
 import com.budgettracker.core.domain.model.PortfolioPerformance
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -146,6 +147,7 @@ fun PortfolioSummaryCard(
     holdings: List<ETFHolding>,
     onDelete: () -> Unit = {}
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val totalValue = performance?.totalValue ?: 0.0
     val gainLoss = performance?.totalGainLoss ?: 0.0
     val gainLossPercentage = performance?.gainLossPercentage ?: 0f
@@ -200,7 +202,7 @@ fun PortfolioSummaryCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(totalValue),
+                        currencyFormatter.format(totalValue),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -214,7 +216,7 @@ fun PortfolioSummaryCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        "${if (isPositive) "+" else ""}${NumberFormat.getCurrencyInstance().format(gainLoss)}",
+                        "${if (isPositive) "+" else ""}${currencyFormatter.format(gainLoss)}",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (isPositive) Color(0xFF28a745) else Color(0xFFdc3545)
@@ -235,7 +237,7 @@ fun PortfolioSummaryCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 QuickStat("Holdings", holdings.size.toString())
-                QuickStat("Cost Basis", NumberFormat.getCurrencyInstance().format(performance?.totalCostBasis ?: 0.0))
+                QuickStat("Cost Basis", currencyFormatter.format(performance?.totalCostBasis ?: 0.0))
                 QuickStat("Diversification", "${performance?.diversificationScore?.toInt() ?: 0}%")
             }
         }
@@ -261,6 +263,8 @@ fun QuickStat(label: String, value: String) {
 
 @Composable
 fun PerformanceMetricsCard(performance: PortfolioPerformance) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -282,14 +286,14 @@ fun PerformanceMetricsCard(performance: PortfolioPerformance) {
                 MetricItem(
                     icon = Icons.Default.TrendingUp,
                     label = "Annual Dividends",
-                    value = NumberFormat.getCurrencyInstance().format(performance.annualDividendIncome),
+                    value = currencyFormatter.format(performance.annualDividendIncome),
                     color = Color(0xFF28a745)
                 )
                 
                 MetricItem(
                     icon = Icons.Default.Receipt,
                     label = "Annual Fees",
-                    value = NumberFormat.getCurrencyInstance().format(performance.annualExpenseRatio),
+                    value = currencyFormatter.format(performance.annualExpenseRatio),
                     color = Color(0xFFdc3545)
                 )
             }
@@ -335,6 +339,7 @@ fun HoldingCard(
     holding: ETFHolding,
     onClick: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val currentValue = holding.getCurrentValue()
     val gainLoss = holding.getGainLoss()
     val gainLossPercentage = holding.getGainLossPercentage()
@@ -371,7 +376,7 @@ fun HoldingCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "@ ${NumberFormat.getCurrencyInstance().format(holding.currentPrice)}",
+                        "@ ${currencyFormatter.format(holding.currentPrice)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
@@ -380,7 +385,7 @@ fun HoldingCard(
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    NumberFormat.getCurrencyInstance().format(currentValue),
+                    currencyFormatter.format(currentValue),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.RothIRA
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 import java.util.Calendar
 
@@ -143,6 +144,7 @@ fun IRAProgressCard(
     calculation: com.budgettracker.core.domain.model.IRACalculation?,
     onDelete: () -> Unit = {}
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val progressPercentage = ira.getProgressPercentage()
     val isOnTrack = ira.isOnTrackToMaxOut()
     
@@ -226,7 +228,7 @@ fun IRAProgressCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(ira.contributionsThisYear),
+                        currencyFormatter.format(ira.contributionsThisYear),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF28a745)
@@ -240,7 +242,7 @@ fun IRAProgressCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(ira.getRemainingContributionRoom()),
+                        currencyFormatter.format(ira.getRemainingContributionRoom()),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = if (ira.isLimitReached()) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
@@ -262,7 +264,7 @@ fun IRAProgressCard(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(ira.annualContributionLimit),
+                        currencyFormatter.format(ira.annualContributionLimit),
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -316,6 +318,7 @@ fun ContributionCalculatorCard(
     ira: RothIRA,
     calculation: com.budgettracker.core.domain.model.IRACalculation?
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     if (calculation == null || ira.isLimitReached()) return
     
     Card(
@@ -388,7 +391,7 @@ fun ContributionCalculatorCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        "Current projection: ${NumberFormat.getCurrencyInstance().format(calculation.projectedYearEnd)} by year-end",
+                        "Current projection: ${currencyFormatter.format(calculation.projectedYearEnd)} by year-end",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
@@ -405,6 +408,8 @@ fun CalculatorOption(
     periods: Int,
     icon: androidx.compose.ui.graphics.vector.ImageVector
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -426,7 +431,7 @@ fun CalculatorOption(
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            NumberFormat.getCurrencyInstance().format(amount),
+            currencyFormatter.format(amount),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF6f42c1)
@@ -441,6 +446,8 @@ fun CalculatorOption(
 
 @Composable
 fun IRADetailsCard(ira: RothIRA) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -454,8 +461,8 @@ fun IRADetailsCard(ira: RothIRA) {
             
             InfoRow("Brokerage", ira.brokerageName)
             InfoRow("Account", "****${ira.accountNumber.takeLast(4)}")
-            InfoRow("Current Balance", NumberFormat.getCurrencyInstance().format(ira.currentBalance))
-            InfoRow("Annual Limit", NumberFormat.getCurrencyInstance().format(ira.annualContributionLimit))
+            InfoRow("Current Balance", currencyFormatter.format(ira.currentBalance))
+            InfoRow("Annual Limit", currencyFormatter.format(ira.annualContributionLimit))
             
             if (ira.recurringContributionAmount != null) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -470,7 +477,7 @@ fun IRADetailsCard(ira: RothIRA) {
                 Spacer(modifier = Modifier.height(8.dp))
                 InfoRow(
                     "Amount",
-                    "${NumberFormat.getCurrencyInstance().format(ira.recurringContributionAmount)} ${ira.recurringContributionFrequency.displayName}"
+                    "${currencyFormatter.format(ira.recurringContributionAmount)} ${ira.recurringContributionFrequency.displayName}"
                 )
             }
         }

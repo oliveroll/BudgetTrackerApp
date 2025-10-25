@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.EmergencyFund
 import com.budgettracker.core.domain.model.EmergencyFundProjection
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -139,6 +140,7 @@ fun FundProgressCard(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val progressPercentage = fund.getProgressPercentage()
     val monthsToGoal = fund.getMonthsToReachGoal()
     val isGoalReached = fund.isGoalReached()
@@ -232,7 +234,7 @@ fun FundProgressCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(fund.currentBalance),
+                        currencyFormatter.format(fund.currentBalance),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF28a745)
@@ -246,7 +248,7 @@ fun FundProgressCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(
+                        currencyFormatter.format(
                             if (isGoalReached) fund.currentBalance - fund.targetGoal 
                             else fund.getRemainingToGoal()
                         ),
@@ -270,7 +272,7 @@ fun FundProgressCard(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Target: ${NumberFormat.getCurrencyInstance().format(fund.targetGoal)}",
+                        "Target: ${currencyFormatter.format(fund.targetGoal)}",
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -324,6 +326,8 @@ fun ProjectionCard(
     projections: List<EmergencyFundProjection>,
     onMonthsChange: (Int) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -359,13 +363,13 @@ fun ProjectionCard(
                 ) {
                     ProjectionMetric(
                         label = "In ${projections.size} months",
-                        value = NumberFormat.getCurrencyInstance().format(finalProjection.balance),
+                        value = currencyFormatter.format(finalProjection.balance),
                         icon = Icons.Default.TrendingUp
                     )
                     
                     ProjectionMetric(
                         label = "Interest Earned",
-                        value = NumberFormat.getCurrencyInstance().format(
+                        value = currencyFormatter.format(
                             finalProjection.balance - fund.currentBalance - (fund.monthlyContribution * projections.size)
                         ),
                         icon = Icons.Default.AttachMoney
@@ -407,6 +411,8 @@ fun ProjectionMetric(
 
 @Composable
 fun FundDetailsCard(fund: EmergencyFund) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -420,14 +426,15 @@ fun FundDetailsCard(fund: EmergencyFund) {
             InfoRow("Account Type", fund.accountType)
             InfoRow("APY", "${fund.apy}%")
             InfoRow("Compounding", fund.compoundingFrequency.displayName)
-            InfoRow("Monthly Contribution", NumberFormat.getCurrencyInstance().format(fund.monthlyContribution))
-            InfoRow("Target Goal", NumberFormat.getCurrencyInstance().format(fund.targetGoal))
+            InfoRow("Monthly Contribution", currencyFormatter.format(fund.monthlyContribution))
+            InfoRow("Target Goal", currencyFormatter.format(fund.targetGoal))
         }
     }
 }
 
 @Composable
 fun ProjectionRow(projection: EmergencyFundProjection) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val dateFormat = SimpleDateFormat("MMM yyyy", Locale.getDefault())
     
     Card(
@@ -458,13 +465,13 @@ fun ProjectionRow(projection: EmergencyFundProjection) {
             
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    NumberFormat.getCurrencyInstance().format(projection.balance),
+                    currencyFormatter.format(projection.balance),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF28a745)
                 )
                 Text(
-                    "+${NumberFormat.getCurrencyInstance().format(projection.interestEarned)} interest",
+                    "+${currencyFormatter.format(projection.interestEarned)} interest",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )

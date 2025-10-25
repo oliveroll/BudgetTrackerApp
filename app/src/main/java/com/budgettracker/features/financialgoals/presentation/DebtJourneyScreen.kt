@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.DebtLoan
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -134,6 +135,7 @@ fun DebtJourneyScreen(
 
 @Composable
 fun DebtSummaryCard(loans: List<DebtLoan>) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val totalDebt = loans.sumOf { it.currentBalance }
     val totalOriginal = loans.sumOf { it.originalAmount }
     val totalPaid = totalOriginal - totalDebt
@@ -170,7 +172,7 @@ fun DebtSummaryCard(loans: List<DebtLoan>) {
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(totalDebt),
+                        currencyFormatter.format(totalDebt),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFdc3545)
@@ -184,7 +186,7 @@ fun DebtSummaryCard(loans: List<DebtLoan>) {
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(totalPaid),
+                        currencyFormatter.format(totalPaid),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF28a745)
@@ -231,6 +233,8 @@ fun DebtLoanCard(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -260,7 +264,7 @@ fun DebtLoanCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        NumberFormat.getCurrencyInstance().format(loan.currentBalance),
+                        currencyFormatter.format(loan.currentBalance),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFdc3545)
@@ -321,7 +325,7 @@ fun DebtLoanCard(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                     Text(
-                        NumberFormat.getCurrencyInstance().format(loan.getEffectiveMonthlyPayment()),
+                        currencyFormatter.format(loan.getEffectiveMonthlyPayment()),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -373,6 +377,7 @@ fun LoanDetailSheet(
     onEdit: () -> Unit,
     onDelete: (String) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val dateFormat = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     
     ModalBottomSheet(
@@ -402,8 +407,8 @@ fun LoanDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                MetricColumn("Current Balance", NumberFormat.getCurrencyInstance().format(loan.currentBalance))
-                MetricColumn("Original Amount", NumberFormat.getCurrencyInstance().format(loan.originalAmount))
+                MetricColumn("Current Balance", currencyFormatter.format(loan.currentBalance))
+                MetricColumn("Original Amount", currencyFormatter.format(loan.originalAmount))
                 MetricColumn("Interest Rate", "${loan.interestRate}%")
             }
             
@@ -423,7 +428,7 @@ fun LoanDetailSheet(
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    InfoRow("Monthly Payment", NumberFormat.getCurrencyInstance().format(loan.getEffectiveMonthlyPayment()))
+                    InfoRow("Monthly Payment", currencyFormatter.format(loan.getEffectiveMonthlyPayment()))
                     InfoRow("Next Due Date", dateFormat.format(loan.nextPaymentDueDate))
                     InfoRow("Estimated Payoff", "${loan.getEstimatedMonthsRemaining()} months")
                     InfoRow("Projected Date", dateFormat.format(loan.getProjectedPayoffDate()))
