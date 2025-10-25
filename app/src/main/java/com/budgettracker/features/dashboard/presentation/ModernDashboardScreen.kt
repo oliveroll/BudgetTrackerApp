@@ -28,6 +28,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import com.budgettracker.features.budget.presentation.BudgetOverviewViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -278,7 +279,7 @@ private fun PremiumWelcomeHeader(
     balance: Double,
     modifier: Modifier = Modifier
 ) {
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = rememberCurrencyFormatter()
     val greeting = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         when (hour) {
@@ -412,7 +413,7 @@ private fun PremiumWelcomeHeader(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = currencyFormat.format(balance),
+                                text = currencyFormatter.format(balance),
                                 style = MaterialTheme.typography.displaySmall,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -485,7 +486,7 @@ private fun UnifiedFinancialOverviewCard(
         label = "chart_anim"
     )
     
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = rememberCurrencyFormatter()
     val maxValue = maxOf(stats.totalIncome, stats.totalExpenses, 1.0)
     
     val expenseTransactions = transactions.filter { it.type == TransactionType.EXPENSE }
@@ -624,7 +625,7 @@ private fun UnifiedFinancialOverviewCard(
                 }
                 
                 Text(
-                    text = currencyFormat.format(animatedIncome.toDouble()),
+                    text = currencyFormatter.format(animatedIncome.toDouble()),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF28a745),
@@ -688,7 +689,7 @@ private fun UnifiedFinancialOverviewCard(
                 }
                 
                 Text(
-                    text = currencyFormat.format(animatedExpenses.toDouble()),
+                    text = currencyFormatter.format(animatedExpenses.toDouble()),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFdc3545),
@@ -935,7 +936,7 @@ private fun CompactCategoryItem(
     color: Color,
     progress: Float
 ) {
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = rememberCurrencyFormatter()
     val percentage = if (total > 0) (amount / total * 100).toInt() else 0
     
     Column {
@@ -972,7 +973,7 @@ private fun CompactCategoryItem(
                 horizontalAlignment = Alignment.End
             ) {
                 Text(
-                    text = currencyFormat.format(amount),
+                    text = currencyFormatter.format(amount),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = color,
