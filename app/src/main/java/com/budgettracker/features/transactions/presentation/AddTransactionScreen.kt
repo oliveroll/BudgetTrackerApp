@@ -19,11 +19,14 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.DisplayMode
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.features.settings.data.models.CategoryType
+import com.budgettracker.features.settings.presentation.SettingsViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -35,7 +38,8 @@ import java.util.*
 @Composable
 fun AddTransactionScreen(
     onNavigateBack: () -> Unit = {},
-    onSaveTransaction: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> }
+    onSaveTransaction: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
     val scope = rememberCoroutineScope()
@@ -47,6 +51,9 @@ fun AddTransactionScreen(
     var selectedDate by remember { mutableStateOf(Date()) }
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+    
+    // Get custom categories from settings
+    val customCategories by settingsViewModel.categories.collectAsState()
     
     val datePickerState = rememberDatePickerState(
         initialSelectedDateMillis = selectedDate.time
@@ -181,13 +188,15 @@ fun AddTransactionScreen(
                     expanded = showCategoryDropdown,
                     onDismissRequest = { showCategoryDropdown = false }
                 ) {
-                    val categories = if (selectedType == TransactionType.INCOME) {
+                    // Get built-in categories
+                    val builtInCategories = if (selectedType == TransactionType.INCOME) {
                         TransactionCategory.getIncomeCategories()
                     } else {
                         TransactionCategory.getExpenseCategories()
                     }
                     
-                    categories.forEach { category ->
+                    // Display built-in categories
+                    builtInCategories.forEach { category ->
                         DropdownMenuItem(
                             text = { 
                                 Row {
@@ -201,6 +210,40 @@ fun AddTransactionScreen(
                                 showCategoryDropdown = false
                             }
                         )
+                    }
+                    
+                    // Add divider if there are custom categories
+                    val relevantCustomCategories = customCategories.filter {
+                        when (selectedType) {
+                            TransactionType.INCOME -> it.type == CategoryType.INCOME
+                            TransactionType.EXPENSE -> it.type == CategoryType.EXPENSE
+                            else -> false
+                        }
+                    }
+                    
+                    if (relevantCustomCategories.isNotEmpty()) {
+                        HorizontalDivider()
+                        
+                        // Display custom categories
+                        relevantCustomCategories.forEach { customCat ->
+                            DropdownMenuItem(
+                                text = { 
+                                    Row {
+                                        Text("⭐") // Custom category indicator
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(customCat.name)
+                                    }
+                                },
+                                onClick = {
+                                    // Try to find matching built-in category or use MISCELLANEOUS
+                                    selectedCategory = TransactionCategory.entries.firstOrNull { 
+                                        it.displayName.equals(customCat.name, ignoreCase = true) 
+                                    } ?: TransactionCategory.MISCELLANEOUS
+                                    description = customCat.name // Set description to custom category name
+                                    showCategoryDropdown = false
+                                }
+                            )
+                        }
                     }
                 }
             }
