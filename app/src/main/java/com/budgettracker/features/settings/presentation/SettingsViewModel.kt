@@ -3,6 +3,7 @@ package com.budgettracker.features.settings.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.budgettracker.core.utils.Result
+import com.budgettracker.core.workers.NotificationSchedulerImpl
 import com.budgettracker.features.settings.data.models.*
 import com.budgettracker.features.settings.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,7 +13,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: SettingsRepository
+    private val repository: SettingsRepository,
+    private val notificationScheduler: NotificationSchedulerImpl
 ) : ViewModel() {
     
     // State flows
@@ -122,11 +124,29 @@ class SettingsViewModel @Inject constructor(
                 updatedAt = System.currentTimeMillis()
             ))) {
                 is Result.Success -> {
+                    // Schedule/update notifications based on new settings
+                    notificationScheduler.scheduleAll(
+                        lowBalanceEnabled = settings.lowBalanceAlertEnabled,
+                        lowBalanceFrequency = settings.lowBalanceFrequency,
+                        goalMilestoneEnabled = settings.goalMilestoneEnabled,
+                        goalMilestoneFrequency = settings.goalMilestoneFrequency
+                    )
                     setMessage("Notification settings updated")
                 }
                 is Result.Error -> {
                     setError("Failed to update notification settings")
                 }
+            }
+        }
+    }
+    
+    fun testNotifications() {
+        viewModelScope.launch {
+            try {
+                notificationScheduler.triggerImmediateCheck()
+                setMessage("Testing notifications... Check your notifications panel!")
+            } catch (e: Exception) {
+                setError("Failed to test notifications: ${e.message}")
             }
         }
     }
