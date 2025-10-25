@@ -540,6 +540,63 @@ fun NotificationSettingsCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
+            
+            // Test Firebase Notification Button
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            var isTestingFirebase by remember { mutableStateOf(false) }
+            
+            OutlinedButton(
+                onClick = {
+                    isTestingFirebase = true
+                    // Call Firebase Cloud Function
+                    com.google.firebase.functions.FirebaseFunctions.getInstance()
+                        .getHttpsCallable("sendTestNotification")
+                        .call()
+                        .addOnSuccessListener {
+                            isTestingFirebase = false
+                            android.widget.Toast.makeText(
+                                context,
+                                "✅ Firebase notification sent! Check your notification tray.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        .addOnFailureListener { e ->
+                            isTestingFirebase = false
+                            android.widget.Toast.makeText(
+                                context,
+                                "❌ Error: ${e.message}",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isTestingFirebase && settings.notificationPermissionGranted
+            ) {
+                if (isTestingFirebase) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sending...")
+                } else {
+                    Icon(
+                        Icons.Default.Cloud,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Test Firebase 9 AM Notifications")
+                }
+            }
+            
+            Text(
+                "Tests if Firebase Cloud Functions can send you notifications",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
