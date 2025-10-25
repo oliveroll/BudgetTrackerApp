@@ -9,7 +9,7 @@ admin.initializeApp();
  */
 exports.sendDailyReminders = functions.pubsub
   .schedule('0 9 * * *') // Cron: 9 AM every day
-  .timeZone('America/New_York') // Change to your timezone
+  .timeZone('America/Indiana/Indianapolis') // Indiana Eastern Time
   .onRun(async (context) => {
     const db = admin.firestore();
     const today = new Date();
@@ -35,8 +35,9 @@ exports.sendDailyReminders = functions.pubsub
         
         // Check Essential Expenses (Fixed expenses with due dates)
         const expensesSnapshot = await db
-          .collection('essentialExpenses')
-          .where('userId', '==', userId)
+          .collection('users')
+          .doc(userId)
+          .collection('essentials')
           .where('paid', '==', false)
           .get();
         
@@ -89,8 +90,9 @@ exports.sendDailyReminders = functions.pubsub
         
         // Check Subscriptions (3 days before and on the day)
         const subscriptionsSnapshot = await db
+          .collection('users')
+          .doc(userId)
           .collection('subscriptions')
-          .where('userId', '==', userId)
           .where('active', '==', true)
           .get();
         
