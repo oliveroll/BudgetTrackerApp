@@ -27,7 +27,7 @@ import com.budgettracker.features.savings.presentation.AddGoalScreen
 import com.budgettracker.features.savings.presentation.GoalsScreen
 import com.budgettracker.features.financialgoals.presentation.FinancialGoalsMainScreen
 import com.budgettracker.features.reports.presentation.ReportsScreen
-import com.budgettracker.features.settings.presentation.SettingsScreen
+import com.budgettracker.features.settings.presentation.EnhancedSettingsScreen
 
 /**
  * Main navigation component for Budget Tracker app
@@ -219,7 +219,7 @@ fun BudgetTrackerNavigation(
         }
         
         composable(BudgetTrackerDestinations.SETTINGS_ROUTE) {
-            SettingsScreen(
+            EnhancedSettingsScreen(
                 onNavigateToLogin = {
                     navController.navigate(BudgetTrackerDestinations.LOGIN_ROUTE) {
                         popUpTo(BudgetTrackerDestinations.DASHBOARD_ROUTE) { inclusive = true }
