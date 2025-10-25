@@ -23,6 +23,7 @@ import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -36,6 +37,7 @@ fun AddTransactionScreen(
     onNavigateBack: () -> Unit = {},
     onSaveTransaction: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> }
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val scope = rememberCoroutineScope()
     var amount by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -144,7 +146,7 @@ fun AddTransactionScreen(
                 value = amount,
                 onValueChange = { amount = it },
                 label = { Text("Amount") },
-                leadingIcon = { Text("$") },
+                leadingIcon = { Text(currencyFormatter.getSymbol()) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true

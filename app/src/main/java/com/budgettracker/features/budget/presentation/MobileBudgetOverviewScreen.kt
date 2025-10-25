@@ -599,15 +599,15 @@ private fun EssentialExpenseItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = if (expenseData.remainingBudget >= 0) {
+        Text(
+            text = if (expenseData.remainingBudget >= 0) {
                     "Remaining: ${currencyFormatter.format(expenseData.remainingBudget)}"
-                } else {
+            } else {
                     "Over budget: ${currencyFormatter.format(-expenseData.remainingBudget)}"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = if (expenseData.remainingBudget >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
-                fontWeight = FontWeight.Medium
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = if (expenseData.remainingBudget >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
+            fontWeight = FontWeight.Medium
             )
             
             // Mark as Paid button - only show for categories that should have it
@@ -682,6 +682,8 @@ private fun SubscriptionsCard(
     onDeleteSubscription: (EnhancedSubscriptionEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -754,7 +756,7 @@ private fun SubscriptionsCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "$${String.format("%.2f", totalMonthly)}",
+                        text = currencyFormatter.format(totalMonthly),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF6f42c1)
@@ -784,6 +786,7 @@ private fun SubscriptionItem(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     val daysUntil = subscription.getDaysUntilBilling()
     val reminderText = subscription.getStatusText() // Use new status method
@@ -855,7 +858,7 @@ private fun SubscriptionItem(
         ) {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "$${String.format("%.2f", subscription.amount)}",
+                    text = currencyFormatter.format(subscription.amount),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -868,14 +871,14 @@ private fun SubscriptionItem(
             }
             
             // Reminder indicator
-            if (daysUntil <= 7 && daysUntil >= 0) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Reminder active",
-                    tint = Color(0xFFff9800),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+                if (daysUntil <= 7 && daysUntil >= 0) {
+                    Icon(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Reminder active",
+                        tint = Color(0xFFff9800),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
         }
     }
 }
@@ -1148,7 +1151,7 @@ private fun EditExpenseDialog(
                                     modifier = Modifier.size(28.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
+                Text(
                                     text = "Edit Expense",
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
@@ -1180,10 +1183,10 @@ private fun EditExpenseDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                 
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Expense Name") },
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Expense Name") },
                         leadingIcon = {
                             Icon(Icons.Default.Description, contentDescription = null)
                         },
@@ -1192,50 +1195,50 @@ private fun EditExpenseDialog(
                     )
                     
                     // Category dropdown
-                    Box {
-                        OutlinedTextField(
-                            value = "${selectedCategory.iconEmoji} ${selectedCategory.displayName}",
-                            onValueChange = { },
-                            readOnly = true,
-                            label = { Text("Category") },
-                            trailingIcon = {
-                                IconButton(onClick = { showCategoryDropdown = true }) {
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
+                Box {
+                    OutlinedTextField(
+                        value = "${selectedCategory.iconEmoji} ${selectedCategory.displayName}",
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = {
+                            IconButton(onClick = { showCategoryDropdown = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
                                 .clickable { showCategoryDropdown = true },
                             shape = RoundedCornerShape(12.dp)
-                        )
-                        
-                        DropdownMenu(
-                            expanded = showCategoryDropdown,
-                            onDismissRequest = { showCategoryDropdown = false }
-                        ) {
-                            ExpenseCategory.values().forEach { category ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row {
-                                            Text(category.iconEmoji)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(category.displayName)
-                                        }
-                                    },
-                                    onClick = {
-                                        selectedCategory = category
-                                        showCategoryDropdown = false
+                    )
+                    
+                    DropdownMenu(
+                        expanded = showCategoryDropdown,
+                        onDismissRequest = { showCategoryDropdown = false }
+                    ) {
+                        ExpenseCategory.values().forEach { category ->
+                            DropdownMenuItem(
+                                text = {
+                                    Row {
+                                        Text(category.iconEmoji)
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(category.displayName)
                                     }
-                                )
-                            }
+                                },
+                                onClick = {
+                                    selectedCategory = category
+                                    showCategoryDropdown = false
+                                }
+                            )
                         }
                     }
-                    
+                }
+                
                     // Amount input
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount") },
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Amount") },
                         leadingIcon = {
                             Text(
                                 currencyFormatter.getSymbol(),
@@ -1243,41 +1246,41 @@ private fun EditExpenseDialog(
                                 fontWeight = FontWeight.Bold
                             )
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
-                    )
-                    
+                )
+                
                     // Fixed expense toggle
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = isFixed,
-                            onCheckedChange = { isFixed = it }
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = isFixed,
+                        onCheckedChange = { isFixed = it }
+                    )
                         Text("Fixed expense (recurring monthly)")
-                    }
-                    
+                }
+                
                     // Due day (if fixed)
-                    if (isFixed) {
-                        OutlinedTextField(
-                            value = dueDay,
-                            onValueChange = { dueDay = it },
-                            label = { Text("Due day (1-31)") },
+                if (isFixed) {
+                    OutlinedTextField(
+                        value = dueDay,
+                        onValueChange = { dueDay = it },
+                        label = { Text("Due day (1-31)") },
                             leadingIcon = {
                                 Icon(Icons.Default.Event, contentDescription = null)
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
-                        )
-                    }
-                    
+                    )
+                }
+                
                     // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
@@ -1285,23 +1288,23 @@ private fun EditExpenseDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                val parsedAmount = amount.toDoubleOrNull()
-                                val parsedDueDay = if (isFixed) dueDay.toIntOrNull() else null
-                                if (name.isNotBlank() && parsedAmount != null) {
-                                    onConfirm(name, selectedCategory, parsedAmount, parsedDueDay)
-                                }
-                            },
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            val parsedAmount = amount.toDoubleOrNull()
+                            val parsedDueDay = if (isFixed) dueDay.toIntOrNull() else null
+                            if (name.isNotBlank() && parsedAmount != null) {
+                                onConfirm(name, selectedCategory, parsedAmount, parsedDueDay)
+                            }
+                        },
                             enabled = name.isNotBlank() && amount.toDoubleOrNull() != null,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
-                        ) {
+                    ) {
                             Icon(Icons.Default.Save, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Update")
+                        Text("Update")
                         }
                     }
                 }
@@ -1540,8 +1543,8 @@ private fun EditSubscriptionDialog(
                                     modifier = Modifier.size(28.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(
-                                    text = "Edit Subscription",
+                Text(
+                    text = "Edit Subscription",
                                     style = MaterialTheme.typography.headlineSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -1572,10 +1575,10 @@ private fun EditSubscriptionDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Service name
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Service Name") },
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Service Name") },
                         leadingIcon = {
                             Text(
                                 iconEmoji,
@@ -1587,10 +1590,10 @@ private fun EditSubscriptionDialog(
                     )
                     
                     // Amount
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { amount = it },
-                        label = { Text("Amount") },
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Amount") },
                         leadingIcon = {
                             Text(
                                 currencyFormatter.getSymbol(),
@@ -1598,48 +1601,48 @@ private fun EditSubscriptionDialog(
                                 fontWeight = FontWeight.Bold
                             )
                         },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
-                    )
+                )
                 
                     // Billing frequency dropdown
-                    Box {
-                        OutlinedTextField(
-                            value = selectedFrequency.displayName,
-                            onValueChange = { },
-                            readOnly = true,
-                            label = { Text("Billing Frequency") },
+                Box {
+                    OutlinedTextField(
+                        value = selectedFrequency.displayName,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Billing Frequency") },
                             leadingIcon = {
                                 Icon(Icons.Default.Refresh, contentDescription = null)
                             },
-                            trailingIcon = {
-                                IconButton(onClick = { showFrequencyDropdown = true }) {
-                                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
+                        trailingIcon = {
+                            IconButton(onClick = { showFrequencyDropdown = true }) {
+                                Icon(Icons.Default.ArrowDropDown, contentDescription = "Select")
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
                                 .clickable { showFrequencyDropdown = true },
                             shape = RoundedCornerShape(12.dp)
-                        )
-                        
-                        DropdownMenu(
-                            expanded = showFrequencyDropdown,
-                            onDismissRequest = { showFrequencyDropdown = false }
-                        ) {
-                            BillingFrequency.values().forEach { frequency ->
-                                DropdownMenuItem(
-                                    text = { Text(frequency.displayName) },
-                                    onClick = {
-                                        selectedFrequency = frequency
-                                        showFrequencyDropdown = false
-                                    }
-                                )
-                            }
+                    )
+                    
+                    DropdownMenu(
+                        expanded = showFrequencyDropdown,
+                        onDismissRequest = { showFrequencyDropdown = false }
+                    ) {
+                        BillingFrequency.values().forEach { frequency ->
+                            DropdownMenuItem(
+                                text = { Text(frequency.displayName) },
+                                onClick = {
+                                    selectedFrequency = frequency
+                                    showFrequencyDropdown = false
+                                }
+                            )
                         }
                     }
-                    
+                }
+                
                     // Next billing date picker
                     OutlinedTextField(
                         value = dateFormat.format(Date(nextBillingDate)),
@@ -1663,17 +1666,17 @@ private fun EditSubscriptionDialog(
                     )
                     
                     // Icon emoji
-                    OutlinedTextField(
-                        value = iconEmoji,
-                        onValueChange = { if (it.length <= 2) iconEmoji = it },
-                        label = { Text("Icon (emoji)") },
-                        modifier = Modifier.fillMaxWidth(),
+                OutlinedTextField(
+                    value = iconEmoji,
+                    onValueChange = { if (it.length <= 2) iconEmoji = it },
+                    label = { Text("Icon (emoji)") },
+                    modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     )
                     
                     // Action buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
@@ -1681,22 +1684,22 @@ private fun EditSubscriptionDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                val parsedAmount = amount.toDoubleOrNull()
-                                if (name.isNotBlank() && parsedAmount != null) {
-                                    onConfirm(name, parsedAmount, selectedFrequency, nextBillingDate, iconEmoji)
-                                }
-                            },
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            val parsedAmount = amount.toDoubleOrNull()
+                            if (name.isNotBlank() && parsedAmount != null) {
+                                onConfirm(name, parsedAmount, selectedFrequency, nextBillingDate, iconEmoji)
+                            }
+                        },
                             enabled = name.isNotBlank() && amount.toDoubleOrNull() != null,
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
-                        ) {
+                    ) {
                             Icon(Icons.Default.Save, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Update")
+                        Text("Update")
                         }
                     }
                 }
