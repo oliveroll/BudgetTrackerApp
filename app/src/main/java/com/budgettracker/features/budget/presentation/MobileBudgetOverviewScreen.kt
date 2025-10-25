@@ -887,6 +887,7 @@ private fun EditBalanceDialog(
     onConfirm: (Double) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var balanceText by remember { mutableStateOf(String.format("%.2f", currentBalance)) }
     var isError by remember { mutableStateOf(false) }
     
@@ -914,7 +915,7 @@ private fun EditBalanceDialog(
                         isError = it.toDoubleOrNull() == null
                     },
                     label = { Text("Balance") },
-                    prefix = { Text("$") },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = isError,
                     modifier = Modifier.fillMaxWidth()
@@ -950,6 +951,7 @@ private fun AddExpenseDialog(
     onConfirm: (String, ExpenseCategory, Double, Int?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var name by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(ExpenseCategory.OTHER) }
     var amount by remember { mutableStateOf("") }
@@ -1030,7 +1032,7 @@ private fun AddExpenseDialog(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Amount") },
-                    prefix = { Text("$") },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1094,6 +1096,7 @@ private fun EditExpenseDialog(
     onConfirm: (String, ExpenseCategory, Double, Int?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var name by remember { mutableStateOf(expense.name) }
     var selectedCategory by remember { mutableStateOf(expense.category) }
     var amount by remember { mutableStateOf(expense.plannedAmount.toString()) }
@@ -1235,7 +1238,7 @@ private fun EditExpenseDialog(
                         label = { Text("Amount") },
                         leadingIcon = {
                             Text(
-                                "$",
+                                currencyFormatter.getSymbol(),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1313,6 +1316,7 @@ private fun AddSubscriptionDialog(
     onConfirm: (String, Double, BillingFrequency, Long, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var selectedFrequency by remember { mutableStateOf(BillingFrequency.MONTHLY) }
@@ -1358,7 +1362,7 @@ private fun AddSubscriptionDialog(
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text("Amount") },
-                    prefix = { Text("$") },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1478,6 +1482,7 @@ private fun EditSubscriptionDialog(
     onConfirm: (String, Double, BillingFrequency, Long, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var name by remember { mutableStateOf(subscription.name) }
     var amount by remember { mutableStateOf(subscription.amount.toString()) }
     var selectedFrequency by remember { mutableStateOf(subscription.frequency) }
@@ -1588,7 +1593,7 @@ private fun EditSubscriptionDialog(
                         label = { Text("Amount") },
                         leadingIcon = {
                             Text(
-                                "$",
+                                currencyFormatter.getSymbol(),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
