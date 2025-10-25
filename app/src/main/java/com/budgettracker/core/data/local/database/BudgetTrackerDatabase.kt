@@ -41,9 +41,13 @@ import com.budgettracker.core.data.local.entities.*
         EmergencyFundDepositEntity::class,
         ETFPortfolioEntity::class,
         ETFHoldingEntity::class,
-        InvestmentTransactionEntity::class
+        InvestmentTransactionEntity::class,
+        // Settings entities
+        com.budgettracker.features.settings.data.models.UserSettings::class,
+        com.budgettracker.features.settings.data.models.EmploymentSettings::class,
+        com.budgettracker.features.settings.data.models.CustomCategory::class
     ],
-    version = 6, // Add isAutoPay field to subscriptions
+    version = 7, // Add Settings tables
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -64,6 +68,11 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
     abstract fun rothIRADao(): RothIRADao
     abstract fun emergencyFundDao(): EmergencyFundDao
     abstract fun etfPortfolioDao(): ETFPortfolioDao
+    
+    // Settings DAOs
+    abstract fun userSettingsDao(): com.budgettracker.features.settings.data.dao.UserSettingsDao
+    abstract fun employmentSettingsDao(): com.budgettracker.features.settings.data.dao.EmploymentSettingsDao
+    abstract fun customCategoryDao(): com.budgettracker.features.settings.data.dao.CustomCategoryDao
     
     companion object {
         @Volatile
@@ -260,6 +269,84 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * Migration from version 6 to 7: Add Settings tables
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Create user_settings table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `user_settings` (
+                        `userId` TEXT NOT NULL,
+                        `email` TEXT NOT NULL,
+                        `displayName` TEXT,
+                        `photoUrl` TEXT,
+                        `lowBalanceAlertEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `lowBalanceThreshold` REAL NOT NULL DEFAULT 100.0,
+                        `lowBalanceFrequency` TEXT NOT NULL DEFAULT 'DAILY',
+                        `upcomingBillReminderEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `upcomingBillDaysBefore` INTEGER NOT NULL DEFAULT 3,
+                        `upcomingBillFrequency` TEXT NOT NULL DEFAULT 'DAILY',
+                        `subscriptionRenewalEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `subscriptionRenewalDaysBefore` INTEGER NOT NULL DEFAULT 3,
+                        `subscriptionRenewalFrequency` TEXT NOT NULL DEFAULT 'DAILY',
+                        `goalMilestoneEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `goalMilestoneFrequency` TEXT NOT NULL DEFAULT 'WEEKLY',
+                        `notificationPermissionGranted` INTEGER NOT NULL DEFAULT 0,
+                        `currency` TEXT NOT NULL DEFAULT 'USD',
+                        `currencySymbol` TEXT NOT NULL DEFAULT '$',
+                        `themeMode` TEXT NOT NULL DEFAULT 'SYSTEM',
+                        `biometricEnabled` INTEGER NOT NULL DEFAULT 0,
+                        `lastSyncedAt` INTEGER,
+                        `updatedAt` INTEGER NOT NULL,
+                        `createdAt` INTEGER NOT NULL,
+                        PRIMARY KEY(`userId`)
+                    )
+                """)
+                
+                // Create employment_settings table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `employment_settings` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `optStatus` TEXT,
+                        `employmentType` TEXT NOT NULL DEFAULT 'FULL_TIME',
+                        `employer` TEXT,
+                        `jobTitle` TEXT,
+                        `annualSalary` REAL NOT NULL DEFAULT 0.0,
+                        `payFrequency` TEXT NOT NULL DEFAULT 'BI_WEEKLY',
+                        `nextPayDate` INTEGER,
+                        `isActive` INTEGER NOT NULL DEFAULT 1,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `lastSyncedAt` INTEGER,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Create custom_categories table
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `custom_categories` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `colorHex` TEXT NOT NULL DEFAULT '#FF6B6B',
+                        `iconName` TEXT NOT NULL DEFAULT 'category',
+                        `budgetedAmount` REAL,
+                        `budgetPeriod` TEXT NOT NULL DEFAULT 'MONTHLY',
+                        `isArchived` INTEGER NOT NULL DEFAULT 0,
+                        `isSystem` INTEGER NOT NULL DEFAULT 0,
+                        `transactionCount` INTEGER NOT NULL DEFAULT 0,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `lastSyncedAt` INTEGER,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+            }
+        }
+        
         fun getDatabase(context: Context): BudgetTrackerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -267,7 +354,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6) // Add migrations
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7) // Add migrations
                 .fallbackToDestructiveMigration() // Allow database recreation on schema changes (dev mode)
                 .build()
                 INSTANCE = instance

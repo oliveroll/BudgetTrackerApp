@@ -94,7 +94,7 @@ fun SettingsScreen(
             
             // Account Actions
             item {
-                AccountActionsCard(
+                LegacyAccountActionsCard(
                     onLogout = { showLogoutDialog = true },
                     onExportData = { /* TODO: Export data */ },
                     onDeleteAccount = { /* TODO: Delete account */ }
@@ -420,7 +420,7 @@ private fun FinancialSettingsCard() {
 }
 
 @Composable
-private fun AccountActionsCard(
+private fun LegacyAccountActionsCard(
     onLogout: () -> Unit,
     onExportData: () -> Unit,
     onDeleteAccount: () -> Unit
