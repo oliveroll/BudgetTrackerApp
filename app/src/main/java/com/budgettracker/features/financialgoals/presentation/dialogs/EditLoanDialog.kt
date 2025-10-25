@@ -13,6 +13,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.domain.model.DebtLoan
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,6 +23,7 @@ fun EditLoanDialog(
     onConfirm: (DebtLoan) -> Unit,
     onDelete: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var loanProvider by remember { mutableStateOf(loan.loanProvider) }
     var loanType by remember { mutableStateOf(loan.loanType) }
     var accountNumber by remember { mutableStateOf(loan.accountNumber) }
@@ -98,7 +100,7 @@ fun EditLoanDialog(
                     value = originalAmount,
                     onValueChange = { originalAmount = it },
                     label = { Text("Original Amount") },
-                    leadingIcon = { Icon(Icons.Default.AttachMoney, null) },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -107,7 +109,7 @@ fun EditLoanDialog(
                     value = currentBalance,
                     onValueChange = { currentBalance = it },
                     label = { Text("Current Balance *") },
-                    leadingIcon = { Icon(Icons.Default.AccountBalanceWallet, null) },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -126,7 +128,7 @@ fun EditLoanDialog(
                     value = monthlyPayment,
                     onValueChange = { monthlyPayment = it },
                     label = { Text("Monthly Payment *") },
-                    leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+                    prefix = { Text(currencyFormatter.getSymbol()) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
