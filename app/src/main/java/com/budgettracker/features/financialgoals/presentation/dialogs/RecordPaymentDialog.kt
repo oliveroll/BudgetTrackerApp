@@ -102,7 +102,7 @@ fun RecordPaymentDialog(
                                 color = Color.White.copy(alpha = 0.8f)
                             )
                             Text(
-                                NumberFormat.getCurrencyInstance().format(loan.currentBalance),
+                                currencyFormatter.format(loan.currentBalance),
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -159,7 +159,7 @@ fun RecordPaymentDialog(
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
                                 Text(
-                                    NumberFormat.getCurrencyInstance().format(principalPaid),
+                                    currencyFormatter.format(principalPaid),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -176,7 +176,7 @@ fun RecordPaymentDialog(
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
                                 Text(
-                                    NumberFormat.getCurrencyInstance().format(interestPaid),
+                                    currencyFormatter.format(interestPaid),
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -199,7 +199,7 @@ fun RecordPaymentDialog(
                                     color = Color.White
                                 )
                                 Text(
-                                    NumberFormat.getCurrencyInstance().format(newBalance),
+                                    currencyFormatter.format(newBalance),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White

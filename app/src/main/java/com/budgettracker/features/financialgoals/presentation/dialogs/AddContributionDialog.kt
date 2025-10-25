@@ -105,7 +105,7 @@ fun AddContributionDialog(
                                         color = Color.White.copy(alpha = 0.8f)
                                     )
                                     Text(
-                                        NumberFormat.getCurrencyInstance().format(ira.annualContributionLimit),
+                                        currencyFormatter.format(ira.annualContributionLimit),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
@@ -118,7 +118,7 @@ fun AddContributionDialog(
                                         color = Color.White.copy(alpha = 0.8f)
                                     )
                                     Text(
-                                        NumberFormat.getCurrencyInstance().format(ira.contributionsThisYear),
+                                        currencyFormatter.format(ira.contributionsThisYear),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
@@ -139,7 +139,7 @@ fun AddContributionDialog(
                             Spacer(modifier = Modifier.height(8.dp))
                             
                             Text(
-                                "Remaining: ${NumberFormat.getCurrencyInstance().format(remainingRoom)}",
+                                "Remaining: ${currencyFormatter.format(remainingRoom)}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Medium
@@ -201,13 +201,13 @@ fun AddContributionDialog(
                                         color = Color.White.copy(alpha = 0.9f)
                                     )
                                     Text(
-                                        "New total: ${NumberFormat.getCurrencyInstance().format(ira.contributionsThisYear + amount)}",
+                                        "New total: ${currencyFormatter.format(ira.contributionsThisYear + amount)}",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
                                     )
                                     Text(
-                                        "Remaining: ${NumberFormat.getCurrencyInstance().format(remainingRoom - amount)}",
+                                        "Remaining: ${currencyFormatter.format(remainingRoom - amount)}",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = Color.White.copy(alpha = 0.9f)
                                     )
