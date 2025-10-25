@@ -84,7 +84,12 @@ class NotificationSchedulerImpl @Inject constructor(
      * Trigger an immediate notification check (for testing)
      */
     fun triggerImmediateCheck() {
+        val inputData = androidx.work.Data.Builder()
+            .putBoolean("is_test", true)
+            .build()
+            
         val workRequest = OneTimeWorkRequestBuilder<SimpleNotificationWorker>()
+            .setInputData(inputData)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .build()
 

@@ -38,22 +38,41 @@ class SimpleNotificationWorker(
 
     override suspend fun doWork(): Result {
         try {
-            // Get user settings from database
+            createNotificationChannel()
+            
+            // Check if this is a test run
+            val isTest = inputData.getBoolean("is_test", false)
+            
+            if (isTest) {
+                // Send test notification immediately
+                sendTestNotification()
+                return Result.success()
+            }
+            
+            // For periodic checks, get user settings
             val settingsDao = database.userSettingsDao()
-            val userId = applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-                .getString("current_user_id", null) ?: return Result.success()
             
-            val settings = settingsDao.getUserSettingsFlow(userId).first() ?: return Result.success()
+            // Try to get userId from Firebase Auth first
+            val userId = try {
+                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            } catch (e: Exception) {
+                null
+            } ?: applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .getString("current_user_id", null) 
             
-            if (!settings.notificationSettings.notificationPermissionGranted) {
+            if (userId == null) {
+                return Result.success()
+            }
+            
+            val settings = settingsDao.getUserSettingsFlow(userId).first()
+            
+            if (settings == null || !settings.notificationSettings.notificationPermissionGranted) {
                 return Result.success()
             }
 
-            createNotificationChannel()
-
             // Check Low Balance Alert
             if (settings.notificationSettings.lowBalanceAlertEnabled) {
-                checkLowBalance(settings.notificationSettings.lowBalanceThreshold)
+                checkLowBalance(settings.notificationSettings.lowBalanceThreshold, userId)
             }
 
             // Check Goal Milestones
@@ -68,11 +87,35 @@ class SimpleNotificationWorker(
         }
     }
 
-    private suspend fun checkLowBalance(threshold: Double) {
-        val budgetOverviewDao = database.budgetOverviewDao()
-        val userId = applicationContext.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            .getString("current_user_id", null) ?: return
+    private fun sendTestNotification() {
+        val intent = Intent(applicationContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
         
+        val pendingIntent = PendingIntent.getActivity(
+            applicationContext,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("✅ Test Notification Success!")
+            .setContentText("Your notification system is working perfectly!")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("Budget Tracker notifications are set up correctly. You'll receive alerts for low balance, bills, subscriptions, and goal milestones."))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .build()
+
+        val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(999, notification) // Use unique ID for test
+    }
+    
+    private suspend fun checkLowBalance(threshold: Double, userId: String) {
+        val budgetOverviewDao = database.budgetOverviewDao()
         val balance = budgetOverviewDao.getBalance(userId) ?: return
         val currentBalance = balance.currentBalance
         
