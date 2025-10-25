@@ -37,6 +37,7 @@ import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.utils.rememberCurrencyFormatter
 import com.budgettracker.features.settings.data.models.CategoryType
 import com.budgettracker.features.settings.presentation.SettingsViewModel
+import com.budgettracker.ui.components.MonthSwitcher
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -51,7 +52,6 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
     var transactions by remember { mutableStateOf(emptyList<Transaction>()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }
-    var showMonthPicker by remember { mutableStateOf(false) }
     
     // Get custom categories from settings
     val customCategories by settingsViewModel.categories.collectAsState()
@@ -160,25 +160,12 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
             item { Spacer(modifier = Modifier.height(4.dp)) }
             
             item {
-                MonthNavigationCard(
+                MonthSwitcher(
                     selectedMonth = selectedMonth,
                     selectedYear = selectedYear,
-                    onMonthClick = { showMonthPicker = true },
-                    onPreviousMonth = {
-                        if (selectedMonth == 0) {
-                            selectedMonth = 11
-                            selectedYear -= 1
-                        } else {
-                            selectedMonth -= 1
-                        }
-                    },
-                    onNextMonth = {
-                        if (selectedMonth == 11) {
-                            selectedMonth = 0
-                            selectedYear += 1
-                        } else {
-                            selectedMonth += 1
-                        }
+                    onMonthYearSelected = { month, year ->
+                        selectedMonth = month
+                        selectedYear = year
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
@@ -275,19 +262,6 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
         }
     }
     
-    if (showMonthPicker) {
-        MonthPickerDialog(
-            selectedMonth = selectedMonth,
-            selectedYear = selectedYear,
-            onMonthSelected = { month, year ->
-                selectedMonth = month
-                selectedYear = year
-                showMonthPicker = false
-            },
-            onDismiss = { showMonthPicker = false }
-        )
-    }
-    
     // Modern Delete Confirmation Dialog
     transactionToDelete?.let { transaction ->
         ModernDeleteConfirmationDialog(
@@ -302,89 +276,6 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
                 TransactionDataStore.deleteTransaction(transaction.id)
             }
         )
-    }
-}
-
-@Composable
-private fun MonthNavigationCard(
-    selectedMonth: Int,
-    selectedYear: Int,
-    onMonthClick: () -> Unit,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onPreviousMonth,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronLeft,
-                    contentDescription = "Previous Month",
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            
-            Card(
-                onClick = onMonthClick,
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarMonth,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(8.dp))
-                    
-                    Text(
-                        text = "${getMonthName(selectedMonth)} $selectedYear",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            
-            IconButton(
-                onClick = onNextMonth,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = "Next Month",
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
     }
 }
 
@@ -716,93 +607,6 @@ private fun EmptyStateCard(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MonthPickerDialog(
-    selectedMonth: Int,
-    selectedYear: Int,
-    onMonthSelected: (Int, Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var tempMonth by remember { mutableStateOf(selectedMonth) }
-    var tempYear by remember { mutableStateOf(selectedYear) }
-    
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Select Month",
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = { tempYear -= 1 }) {
-                        Icon(Icons.Default.ChevronLeft, contentDescription = "Previous Year")
-                    }
-                    
-                    Text(
-                        text = tempYear.toString(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
-                    )
-                    
-                    IconButton(onClick = { tempYear += 1 }) {
-                        Icon(Icons.Default.ChevronRight, contentDescription = "Next Year")
-                    }
-                }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    (0..11).chunked(3).forEach { monthRow ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            monthRow.forEach { month ->
-                                FilterChip(
-                                    selected = tempMonth == month,
-                                    onClick = { tempMonth = month },
-                                    label = { 
-                                        Text(
-                                            text = getMonthName(month),
-                                            modifier = Modifier.fillMaxWidth(),
-                                            textAlign = TextAlign.Center
-                                        ) 
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onMonthSelected(tempMonth, tempYear) }
-            ) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }
 
 private fun calculateMonthlyStats(transactions: List<Transaction>): MonthlyStats {

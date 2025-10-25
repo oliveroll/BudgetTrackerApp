@@ -298,31 +298,19 @@ class FirebaseRepository(context: Context) {
                 .whereEqualTo("isActive", true)
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
-                        trySend(getDefaultFixedExpenses(userId))
+                        trySend(emptyList()) // Return empty list on error
                         return@addSnapshotListener
                     }
                     
                     if (snapshot != null) {
                         val expenses = snapshot.toObjects(FixedExpense::class.java)
-                        if (expenses.isEmpty()) {
-                            // Create default data and return it
-                            val defaultExpenses = getDefaultFixedExpenses(userId)
-                            trySend(defaultExpenses)
-                            // Save to Firebase in background
-                            defaultExpenses.forEach { expense ->
-                                firestore.collection("fixedExpenses")
-                                    .document(expense.id)
-                                    .set(expense)
-                            }
-                        } else {
-                            trySend(expenses)
-                        }
+                        trySend(expenses) // Return empty list if no expenses exist
                     }
                 }
             
             awaitClose { listener.remove() }
         } else {
-            trySend(getDefaultFixedExpenses(""))
+            trySend(emptyList()) // Return empty list for unauthenticated users
             awaitClose { }
         }
     }

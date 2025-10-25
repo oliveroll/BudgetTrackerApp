@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.entities.*
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.ui.components.MonthSwitcher
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -101,16 +102,13 @@ fun MobileBudgetOverviewScreen(
         ) {
             // Month Navigation Header
             item {
-                MonthNavigationHeader(
-                    currentMonth = monthFormat.format(currentMonth.time),
-                    onPreviousMonth = {
-                        currentMonth = (currentMonth.clone() as Calendar).apply {
-                            add(Calendar.MONTH, -1)
-                        }
-                    },
-                    onNextMonth = {
-                        currentMonth = (currentMonth.clone() as Calendar).apply {
-                            add(Calendar.MONTH, 1)
+                MonthSwitcher(
+                    selectedMonth = currentMonth.get(Calendar.MONTH),
+                    selectedYear = currentMonth.get(Calendar.YEAR),
+                    onMonthYearSelected = { month, year ->
+                        currentMonth = Calendar.getInstance().apply {
+                            set(Calendar.MONTH, month)
+                            set(Calendar.YEAR, year)
                         }
                     },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -219,61 +217,6 @@ fun MobileBudgetOverviewScreen(
             },
             onDismiss = { deleteConfirmSubscription = null }
         )
-    }
-}
-
-@Composable
-private fun MonthNavigationHeader(
-    currentMonth: String,
-    onPreviousMonth: () -> Unit,
-    onNextMonth: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPreviousMonth) {
-                    Icon(
-                        Icons.Default.ChevronLeft,
-                        contentDescription = "Previous Month",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
-                Text(
-                    text = currentMonth,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                
-                IconButton(onClick = onNextMonth) {
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Next Month",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            
-            Text(
-                text = "Budget Overview",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        }
     }
 }
 

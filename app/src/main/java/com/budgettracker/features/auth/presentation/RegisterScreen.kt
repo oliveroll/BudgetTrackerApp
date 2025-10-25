@@ -60,6 +60,7 @@ fun RegisterScreen(
                     scope.launch {
                         val authResult = authManager.signInWithGoogle(idToken)
                         if (authResult.isSuccess) {
+                            // Navigate to onboarding for new Google users
                             onNavigateToDashboard()
                         } else {
                             errorMessage = "Google Sign-In failed: ${authResult.exceptionOrNull()?.message}"

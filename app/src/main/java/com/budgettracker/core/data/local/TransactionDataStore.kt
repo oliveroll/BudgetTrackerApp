@@ -110,17 +110,15 @@ object TransactionDataStore {
                 _transactions.addAll(firebaseTransactions)
                 android.util.Log.d("TransactionDataStore", "Loaded ${firebaseTransactions.size} transactions total (merged from both locations)")
             } else {
-                android.util.Log.d("TransactionDataStore", "No Firebase transactions found, initializing with demo data")
-                initializeWithDemoData()
-                // Save demo data to Firebase
-                saveDemoDataToFirebase()
+                android.util.Log.d("TransactionDataStore", "No Firebase transactions found, starting with empty data for new user")
+                _transactions.clear()
             }
             
             isInitialized = true
             
         } catch (e: Exception) {
             android.util.Log.e("TransactionDataStore", "Error loading from Firebase: ${e.message}")
-            initializeWithDemoData()
+            _transactions.clear()
             isInitialized = true
         }
     }

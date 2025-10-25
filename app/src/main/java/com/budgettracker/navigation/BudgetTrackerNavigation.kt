@@ -28,6 +28,7 @@ import com.budgettracker.features.savings.presentation.GoalsScreen
 import com.budgettracker.features.financialgoals.presentation.FinancialGoalsMainScreen
 import com.budgettracker.features.reports.presentation.ReportsScreen
 import com.budgettracker.features.settings.presentation.EnhancedSettingsScreen
+import com.budgettracker.features.onboarding.presentation.OnboardingFlow
 
 /**
  * Main navigation component for Budget Tracker app
@@ -75,7 +76,8 @@ fun BudgetTrackerNavigation(
         composable(BudgetTrackerDestinations.REGISTER_ROUTE) {
             RegisterScreen(
                 onNavigateToDashboard = {
-                    navController.navigate(BudgetTrackerDestinations.DASHBOARD_ROUTE) {
+                    // Navigate to onboarding for new users
+                    navController.navigate(BudgetTrackerDestinations.ONBOARDING_ROUTE) {
                         popUpTo(BudgetTrackerDestinations.REGISTER_ROUTE) { inclusive = true }
                     }
                 },
@@ -86,7 +88,13 @@ fun BudgetTrackerNavigation(
         }
         
         composable(BudgetTrackerDestinations.ONBOARDING_ROUTE) {
-            // TODO: OnboardingScreen()
+            OnboardingFlow(
+                onComplete = {
+                    navController.navigate(BudgetTrackerDestinations.DASHBOARD_ROUTE) {
+                        popUpTo(BudgetTrackerDestinations.ONBOARDING_ROUTE) { inclusive = true }
+                    }
+                }
+            )
         }
         
         // Main App Flow
