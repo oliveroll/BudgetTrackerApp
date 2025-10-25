@@ -498,6 +498,48 @@ fun NotificationSettingsCard(
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
+            
+            // Fix Firebase Notifications Button
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            var isRefreshingToken by remember { mutableStateOf(false) }
+            
+            Button(
+                onClick = {
+                    isRefreshingToken = true
+                    com.budgettracker.ForceTokenRefresh.refreshAndSaveToken { success, message ->
+                        isRefreshingToken = false
+                        android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_LONG).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isRefreshingToken
+            ) {
+                if (isRefreshingToken) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Fixing...")
+                } else {
+                    Icon(
+                        Icons.Default.Sync,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Fix Firebase Notifications (9 AM Reminders)")
+                }
+            }
+            
+            Text(
+                "Click if you're not receiving 9 AM bill/subscription reminders",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
