@@ -78,14 +78,6 @@ class SettingsRepository @Inject constructor(
             // Sync to Firestore
             syncUserSettingsToFirestore(settings)
             
-            // Schedule/update notifications based on new settings
-            notificationScheduler.scheduleAll(
-                lowBalanceEnabled = settings.notificationSettings.lowBalanceAlertEnabled,
-                lowBalanceFrequency = settings.notificationSettings.lowBalanceFrequency,
-                goalMilestoneEnabled = settings.notificationSettings.goalMilestoneEnabled,
-                goalMilestoneFrequency = settings.notificationSettings.goalMilestoneFrequency
-            )
-            
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to update user settings", e)

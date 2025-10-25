@@ -12,6 +12,7 @@ import androidx.work.WorkerParameters
 import com.budgettracker.MainActivity
 import com.budgettracker.R
 import com.budgettracker.core.data.local.database.BudgetTrackerDatabase
+import com.budgettracker.features.settings.data.models.UserSettings
 import kotlinx.coroutines.flow.first
 
 /**
@@ -33,7 +34,7 @@ class SimpleNotificationWorker(
         const val GOAL_MILESTONE_ID = 1002
     }
 
-    private val database = BudgetTrackerDatabase.getInstance(context)
+    private val database = BudgetTrackerDatabase.getDatabase(context)
 
     override suspend fun doWork(): Result {
         try {
