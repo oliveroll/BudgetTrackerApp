@@ -30,6 +30,7 @@ import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.utils.rememberCurrencyFormatter
 import com.budgettracker.features.budget.presentation.BudgetOverviewViewModel
+import com.budgettracker.features.settings.presentation.SettingsViewModel
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,7 +52,8 @@ fun ModernDashboardScreen(
     onNavigateToFinancialGoals: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToAddTransaction: () -> Unit = {},
-    budgetViewModel: BudgetOverviewViewModel = hiltViewModel()
+    budgetViewModel: BudgetOverviewViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
@@ -60,6 +62,8 @@ fun ModernDashboardScreen(
     var isDataLoaded by remember { mutableStateOf(false) }
     
     val budgetUiState by budgetViewModel.uiState.collectAsState()
+    val userSettings by settingsViewModel.userSettings.collectAsState()
+    val employment by settingsViewModel.employment.collectAsState()
     
     LaunchedEffect(Unit) {
         // Initialize TransactionDataStore with budget repository for auto-pay
@@ -181,7 +185,10 @@ fun ModernDashboardScreen(
             item {
                 PremiumWelcomeHeader(
                     onNavigateToSettings = onNavigateToSettings,
-                    balance = budgetUiState.currentBalance
+                    balance = budgetUiState.currentBalance,
+                    userDisplayName = userSettings?.displayName,
+                    jobTitle = employment?.jobTitle,
+                    employer = employment?.employer
                 )
             }
             
@@ -277,6 +284,9 @@ fun ModernDashboardScreen(
 private fun PremiumWelcomeHeader(
     onNavigateToSettings: () -> Unit,
     balance: Double,
+    userDisplayName: String?,
+    jobTitle: String?,
+    employer: String?,
     modifier: Modifier = Modifier
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
@@ -338,7 +348,7 @@ private fun PremiumWelcomeHeader(
                             Spacer(modifier = Modifier.height(4.dp))
                             
                             Text(
-                                text = "Oliver Ollesch",
+                                text = userDisplayName ?: "User",
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
@@ -378,7 +388,16 @@ private fun PremiumWelcomeHeader(
                         Spacer(modifier = Modifier.width(8.dp))
                         
                         Text(
-                            text = "Hardware Test Engineer at Ixana",
+                            text = buildString {
+                                jobTitle?.let { append("$it") }
+                                if (jobTitle != null && employer != null) {
+                                    append(" at ")
+                                }
+                                employer?.let { append(it) }
+                                if (jobTitle == null && employer == null) {
+                                    append("Update your employment in Settings")
+                                }
+                            },
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.White.copy(alpha = 0.9f),
                             fontWeight = FontWeight.Medium,
