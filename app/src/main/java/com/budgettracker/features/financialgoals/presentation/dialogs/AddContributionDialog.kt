@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.domain.model.RothIRA
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 import java.util.Calendar
 
@@ -28,6 +29,7 @@ fun AddContributionDialog(
     onDismiss: () -> Unit,
     onConfirm: (iraId: String, amount: Double, taxYear: Int) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var contributionAmount by remember { mutableStateOf("") }
     val amount = contributionAmount.toDoubleOrNull() ?: 0.0
     val remainingRoom = ira.getRemainingContributionRoom()
@@ -153,7 +155,7 @@ fun AddContributionDialog(
                         onValueChange = { contributionAmount = it },
                         label = { Text("Contribution Amount *", color = Color.White.copy(alpha = 0.8f)) },
                         placeholder = { Text("0.00", color = Color.White.copy(alpha = 0.5f)) },
-                        prefix = { Text("$", color = Color.White) },
+                        prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = willExceedLimit,
                         supportingText = if (willExceedLimit) {

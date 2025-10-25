@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.domain.model.RothIRA
 import com.budgettracker.core.domain.model.ContributionFrequency
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,6 +32,7 @@ fun EditIRADialog(
     onDismiss: () -> Unit,
     onConfirm: (RothIRA) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var brokerageName by rememberSaveable { mutableStateOf(ira.brokerageName) }
     var annualLimit by rememberSaveable { mutableStateOf(ira.annualContributionLimit.toString()) }
     var recurringAmount by rememberSaveable { mutableStateOf(ira.recurringContributionAmount?.toString() ?: "") }
@@ -116,7 +118,7 @@ fun EditIRADialog(
                         onValueChange = { annualLimit = it },
                         label = { Text("Annual Contribution Limit *", color = Color.White.copy(alpha = 0.8f)) },
                         placeholder = { Text("7000", color = Color.White.copy(alpha = 0.5f)) },
-                        prefix = { Text("$", color = Color.White) },
+                        prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -165,7 +167,7 @@ fun EditIRADialog(
                                 onValueChange = { recurringAmount = it },
                                 label = { Text("Amount (Optional)", color = Color.White.copy(alpha = 0.8f)) },
                                 placeholder = { Text("0.00", color = Color.White.copy(alpha = 0.5f)) },
-                                prefix = { Text("$", color = Color.White) },
+                                prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedTextColor = Color.White,

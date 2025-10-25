@@ -18,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.domain.model.DebtLoan
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +28,7 @@ fun RecordPaymentDialog(
     onDismiss: () -> Unit,
     onConfirm: (loanId: String, amount: Double, principalPaid: Double, interestPaid: Double) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var paymentAmount by remember { mutableStateOf(loan.getEffectiveMonthlyPayment().toString()) }
     
     // Calculate interest and principal
@@ -116,7 +118,7 @@ fun RecordPaymentDialog(
                         onValueChange = { paymentAmount = it },
                         label = { Text("Payment Amount *", color = Color.White.copy(alpha = 0.8f)) },
                         placeholder = { Text(loan.getEffectiveMonthlyPayment().toString(), color = Color.White.copy(alpha = 0.5f)) },
-                        prefix = { Text("$", color = Color.White) },
+                        prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,

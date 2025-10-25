@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.budgettracker.core.domain.model.DebtLoan
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +28,7 @@ fun AddLoanDialog(
     onDismiss: () -> Unit,
     onConfirm: (DebtLoan) -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     var loanProvider by remember { mutableStateOf("") }
     var loanType by remember { mutableStateOf("") }
     var accountNumber by remember { mutableStateOf("") }
@@ -147,7 +149,7 @@ fun AddLoanDialog(
                         onValueChange = { currentBalance = it },
                         label = { Text("Current Balance *", color = Color.White.copy(alpha = 0.8f)) },
                         placeholder = { Text("0.00", color = Color.White.copy(alpha = 0.5f)) },
-                        prefix = { Text("$", color = Color.White) },
+                        prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -191,7 +193,7 @@ fun AddLoanDialog(
                         onValueChange = { monthlyPayment = it },
                         label = { Text("Monthly Payment *", color = Color.White.copy(alpha = 0.8f)) },
                         placeholder = { Text("0.00", color = Color.White.copy(alpha = 0.5f)) },
-                        prefix = { Text("$", color = Color.White) },
+                        prefix = { Text(currencyFormatter.getSymbol(), color = Color.White) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
