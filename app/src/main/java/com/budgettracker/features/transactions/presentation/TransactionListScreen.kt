@@ -33,6 +33,7 @@ import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -385,7 +386,7 @@ private fun MonthlyStatsCard(
     currentBalance: Double,
     modifier: Modifier = Modifier
 ) {
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = rememberCurrencyFormatter()
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -415,7 +416,7 @@ private fun MonthlyStatsCard(
             ) {
                 StatsChip(
                     label = "Income",
-                    amount = currencyFormat.format(stats.totalIncome),
+                    amount = currencyFormatter.format(stats.totalIncome),
                     icon = "📈",
                     color = Color(0xFF28a745),
                     modifier = Modifier.weight(1f)
@@ -423,7 +424,7 @@ private fun MonthlyStatsCard(
                 
                 StatsChip(
                     label = "Expenses",
-                    amount = currencyFormat.format(stats.totalExpenses),
+                    amount = currencyFormatter.format(stats.totalExpenses),
                     icon = "📉",
                     color = Color(0xFFdc3545),
                     modifier = Modifier.weight(1f)
@@ -457,7 +458,7 @@ private fun MonthlyStatsCard(
                 }
                 
                 Text(
-                    text = currencyFormat.format(currentBalance),
+                    text = currencyFormatter.format(currentBalance),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (currentBalance >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
@@ -518,7 +519,7 @@ private fun TransactionCard(
     transaction: Transaction,
     modifier: Modifier = Modifier
 ) {
-    val currencyFormat = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = rememberCurrencyFormatter()
     
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -617,9 +618,9 @@ private fun TransactionCard(
             ) {
                 Text(
                     text = if (transaction.type == TransactionType.INCOME) 
-                        "+${currencyFormat.format(transaction.amount)}"
+                        "+${currencyFormatter.format(transaction.amount)}"
                     else 
-                        "-${currencyFormat.format(transaction.amount)}",
+                        "-${currencyFormatter.format(transaction.amount)}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = if (transaction.type == TransactionType.INCOME) 
@@ -1318,6 +1319,8 @@ private fun ModernDeleteConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1433,7 +1436,7 @@ private fun ModernDeleteConfirmationDialog(
                                 modifier = Modifier.padding(4.dp)
                             ) {
                                 Text(
-                                    text = NumberFormat.getCurrencyInstance().format(transaction.amount),
+                                    text = currencyFormatter.format(transaction.amount),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,

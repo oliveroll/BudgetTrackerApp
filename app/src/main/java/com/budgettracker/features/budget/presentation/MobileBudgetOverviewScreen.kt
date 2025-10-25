@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.entities.*
+import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -285,6 +286,8 @@ private fun CurrentBalanceCard(
     onEditBalance: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
+    
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -332,7 +335,7 @@ private fun CurrentBalanceCard(
             
             // Large balance amount
             Text(
-                text = "$${String.format("%.2f", balance)}",
+                text = currencyFormatter.format(balance),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF28a745),
@@ -354,7 +357,7 @@ private fun CurrentBalanceCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "-$${String.format("%.2f", expenses)}",
+                        text = "-${currencyFormatter.format(expenses)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFdc3545)
@@ -372,7 +375,7 @@ private fun CurrentBalanceCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "-$${String.format("%.2f", subscriptions)}",
+                        text = "-${currencyFormatter.format(subscriptions)}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFdc3545)
@@ -397,7 +400,7 @@ private fun CurrentBalanceCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "$${String.format("%.2f", remaining)}",
+                    text = currencyFormatter.format(remaining),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (remaining >= 0) Color(0xFF28a745) else Color(0xFFdc3545)
@@ -502,6 +505,7 @@ private fun EssentialExpenseItem(
     onToggleFixed: () -> Unit,
     onMarkPaid: () -> Unit
 ) {
+    val currencyFormatter = rememberCurrencyFormatter()
     val expense = expenseData.expense
     val progress = (expenseData.spendingPercentage / 100f).coerceIn(0f, 1f)
     val progressColor = when {
@@ -563,7 +567,7 @@ private fun EssentialExpenseItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "$${String.format("%.2f", expenseData.actualSpending)} / $${String.format("%.2f", expense.plannedAmount)}",
+                text = "${currencyFormatter.format(expenseData.actualSpending)} / ${currencyFormatter.format(expense.plannedAmount)}",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = progressColor
@@ -597,9 +601,9 @@ private fun EssentialExpenseItem(
         ) {
             Text(
                 text = if (expenseData.remainingBudget >= 0) {
-                    "Remaining: $${String.format("%.2f", expenseData.remainingBudget)}"
+                    "Remaining: ${currencyFormatter.format(expenseData.remainingBudget)}"
                 } else {
-                    "Over budget: $${String.format("%.2f", -expenseData.remainingBudget)}"
+                    "Over budget: ${currencyFormatter.format(-expenseData.remainingBudget)}"
                 },
                 style = MaterialTheme.typography.labelSmall,
                 color = if (expenseData.remainingBudget >= 0) Color(0xFF28a745) else Color(0xFFdc3545),
