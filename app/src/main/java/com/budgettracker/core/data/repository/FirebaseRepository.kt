@@ -88,23 +88,48 @@ class FirebaseRepository(context: Context) {
         return try {
             val userId = getCurrentUserId()
             if (userId != null) {
-                val goalWithUserId = goal.copy(userId = userId)
+                val goalWithUserId = goal.copy(
+                    userId = userId,
+                    isActive = true, // FIXED: Explicitly set isActive
+                    updatedAt = Date()
+                )
                 
-                // Save locally first
+                // FIXED: Save locally first (optimistic update)
                 localDataManager.saveSavingsGoal(goalWithUserId)
                 
-                // Sync to Firebase
+                // FIXED: Sync to Firebase with explicit field mapping
+                val goalData = hashMapOf(
+                    "id" to goalWithUserId.id,
+                    "userId" to goalWithUserId.userId,
+                    "name" to goalWithUserId.name,
+                    "description" to goalWithUserId.description,
+                    "targetAmount" to goalWithUserId.targetAmount,
+                    "currentAmount" to goalWithUserId.currentAmount,
+                    "deadline" to com.google.firebase.Timestamp(goalWithUserId.deadline),
+                    "priority" to goalWithUserId.priority.name,
+                    "monthlyContribution" to goalWithUserId.monthlyContribution,
+                    "category" to goalWithUserId.category.name,
+                    "isCompleted" to goalWithUserId.isCompleted,
+                    "isActive" to true, // CRITICAL: Explicitly include isActive field
+                    "color" to goalWithUserId.color,
+                    "icon" to goalWithUserId.icon,
+                    "createdAt" to com.google.firebase.Timestamp(goalWithUserId.createdAt),
+                    "updatedAt" to com.google.firebase.Timestamp(goalWithUserId.updatedAt)
+                )
+                
                 firestore.collection("savingsGoals")
                     .document(goal.id)
-                    .set(goalWithUserId)
+                    .set(goalData)
                     .await()
                 
+                android.util.Log.d("FirebaseRepository", "✅ Saved goal: ${goalWithUserId.name} with isActive=true")
                 Result.success(goal.id)
             } else {
                 // Not authenticated, save only locally
                 localDataManager.saveSavingsGoal(goal)
             }
         } catch (e: Exception) {
+            android.util.Log.e("FirebaseRepository", "❌ Error saving goal: ${e.message}", e)
             // Always save locally as fallback
             localDataManager.saveSavingsGoal(goal)
             Result.failure(e)
@@ -114,30 +139,87 @@ class FirebaseRepository(context: Context) {
     fun getSavingsGoalsFlow(): Flow<List<SavingsGoal>> = callbackFlow {
         val userId = getCurrentUserId()
         
+        android.util.Log.d("FirebaseRepository", "📊 Loading savings goals for userId: $userId")
+        
         if (userId != null) {
-            // Listen to Firestore changes
+            // FIXED: Listen to Firestore changes without isActive filter to see all goals
             val listener = firestore.collection("savingsGoals")
                 .whereEqualTo("userId", userId)
-                .whereEqualTo("isActive", true)
+                // REMOVED: .whereEqualTo("isActive", true) to see all goals
                 .orderBy("priority")
                 .addSnapshotListener { snapshot, error ->
                     if (error != null) {
+                        android.util.Log.e("FirebaseRepository", "❌ Error loading goals: ${error.message}", error)
                         // Fallback to local data
                         trySend(localDataManager.getSavingsGoals())
                         return@addSnapshotListener
                     }
                     
                     if (snapshot != null) {
-                        val goals = snapshot.toObjects(SavingsGoal::class.java)
-                        // Update local cache
+                        android.util.Log.d("FirebaseRepository", "📦 Firestore returned ${snapshot.documents.size} goal documents")
+                        
+                        // FIXED: Manual deserialization with defensive handling
+                        val goals = snapshot.documents.mapNotNull { doc ->
+                            try {
+                                val data = doc.data ?: return@mapNotNull null
+                                
+                                // Defensive field extraction with defaults
+                                SavingsGoal(
+                                    id = doc.id,
+                                    userId = data["userId"] as? String ?: userId,
+                                    name = data["name"] as? String ?: "Unnamed Goal",
+                                    description = data["description"] as? String ?: "",
+                                    targetAmount = (data["targetAmount"] as? Number)?.toDouble() ?: 0.0,
+                                    currentAmount = (data["currentAmount"] as? Number)?.toDouble() ?: 0.0,
+                                    deadline = (data["deadline"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+                                    priority = try {
+                                        com.budgettracker.core.domain.model.Priority.valueOf(
+                                            data["priority"] as? String ?: "MEDIUM"
+                                        )
+                                    } catch (e: Exception) {
+                                        com.budgettracker.core.domain.model.Priority.MEDIUM
+                                    },
+                                    monthlyContribution = (data["monthlyContribution"] as? Number)?.toDouble() ?: 0.0,
+                                    category = try {
+                                        com.budgettracker.core.domain.model.GoalCategory.valueOf(
+                                            data["category"] as? String ?: "OTHER"
+                                        )
+                                    } catch (e: Exception) {
+                                        com.budgettracker.core.domain.model.GoalCategory.OTHER
+                                    },
+                                    isCompleted = data["isCompleted"] as? Boolean ?: false,
+                                    isActive = data["isActive"] as? Boolean ?: true, // CRITICAL: Default to true if missing
+                                    color = data["color"] as? String ?: "#6f42c1",
+                                    icon = data["icon"] as? String ?: "🎯",
+                                    createdAt = (data["createdAt"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+                                    updatedAt = (data["updatedAt"] as? com.google.firebase.Timestamp)?.toDate() ?: Date()
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("FirebaseRepository", "Failed to parse goal ${doc.id}: ${e.message}")
+                                null
+                            }
+                        }
+                        
+                        // FIXED: Filter out inactive/archived goals in code
+                        val activeGoals = goals.filter { it.isActive && !it.isCompleted }
+                        
+                        android.util.Log.d("FirebaseRepository", "✅ Loaded ${goals.size} total goals, ${activeGoals.size} active")
+                        goals.forEach { goal ->
+                            android.util.Log.d("FirebaseRepository", "  Goal: ${goal.name} | isActive=${goal.isActive} | currentAmount=${goal.currentAmount}")
+                        }
+                        
+                        // Update local cache with ALL goals
                         goals.forEach { localDataManager.saveSavingsGoal(it) }
-                        trySend(goals)
+                        
+                        // Send active goals to UI
+                        trySend(activeGoals)
                     }
                 }
             
             awaitClose { listener.remove() }
         } else {
             // Not authenticated, use local data
+            android.util.Log.d("FirebaseRepository", "⚠️ No userId, using local data")
             trySend(localDataManager.getSavingsGoals())
             awaitClose { }
         }

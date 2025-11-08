@@ -55,11 +55,18 @@ class LocalDataManager(context: Context) {
     fun saveSavingsGoal(goal: SavingsGoal): Result<String> {
         return try {
             val goals = getSavingsGoals().toMutableList()
+            
+            // FIXED: Remove existing goal with same ID to prevent duplicates
+            goals.removeAll { it.id == goal.id }
             goals.add(goal)
+            
             val json = gson.toJson(goals)
             prefs.edit().putString(KEY_SAVINGS_GOALS, json).apply()
+            
+            android.util.Log.d("LocalDataManager", "💾 Saved goal locally: ${goal.name} (isActive=${goal.isActive})")
             Result.success(goal.id)
         } catch (e: Exception) {
+            android.util.Log.e("LocalDataManager", "Failed to save goal: ${e.message}")
             Result.failure(e)
         }
     }
