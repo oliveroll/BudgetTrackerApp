@@ -93,9 +93,9 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
     
     val filteredTransactions = remember(transactions, selectedMonth, selectedYear) {
         transactions.filter { transaction ->
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            calendar.get(Calendar.MONTH) == selectedMonth && 
-            calendar.get(Calendar.YEAR) == selectedYear
+            // FIXED: Use LocalDate methods instead of Calendar
+            transaction.date.monthValue == (selectedMonth + 1) && 
+            transaction.date.year == selectedYear
         }
     }
     
@@ -815,8 +815,9 @@ private fun ModernEditTransactionDialog(
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     
+    // FIXED: Convert LocalDate to UTC millis for DatePicker
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.time
+        initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
     )
     
     Dialog(onDismissRequest = onDismiss) {
@@ -1122,18 +1123,10 @@ private fun ModernEditTransactionDialog(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            // Preserve current time, only update date
-                            val calendar = Calendar.getInstance()
-                            calendar.time = selectedDate
-                            
-                            val pickedCalendar = Calendar.getInstance()
-                            pickedCalendar.timeInMillis = millis
-                            
-                            calendar.set(Calendar.YEAR, pickedCalendar.get(Calendar.YEAR))
-                            calendar.set(Calendar.MONTH, pickedCalendar.get(Calendar.MONTH))
-                            calendar.set(Calendar.DAY_OF_MONTH, pickedCalendar.get(Calendar.DAY_OF_MONTH))
-                            
-                            selectedDate = calendar.time
+                            // FIXED: Convert UTC millis directly to LocalDate (no timezone shifts!)
+                            selectedDate = java.time.Instant.ofEpochMilli(millis)
+                                .atZone(java.time.ZoneId.of("UTC"))
+                                .toLocalDate()
                         }
                         showDatePicker = false
                     }

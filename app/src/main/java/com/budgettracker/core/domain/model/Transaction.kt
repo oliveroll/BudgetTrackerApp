@@ -1,14 +1,18 @@
 package com.budgettracker.core.domain.model
 
+import android.os.Parcel
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import java.time.LocalDate
 import java.util.Date
 import java.util.UUID
 
 /**
  * Transaction data model representing income and expense transactions
+ * 
+ * FIXED: Uses LocalDate for transaction date to prevent timezone bugs.
+ * No more "picked Nov 24, saved as Nov 23" issues!
  */
-@Parcelize
 data class Transaction(
     val id: String = UUID.randomUUID().toString(),
     val userId: String = "",
@@ -16,7 +20,7 @@ data class Transaction(
     val category: TransactionCategory = TransactionCategory.MISCELLANEOUS,
     val type: TransactionType = TransactionType.EXPENSE,
     val description: String = "",
-    val date: Date = Date(),
+    val date: LocalDate = LocalDate.now(),
     val isRecurring: Boolean = false,
     val recurringPeriod: RecurringPeriod? = null,
     val tags: List<String> = emptyList(),
@@ -42,20 +46,78 @@ data class Transaction(
      * Check if transaction is from current month
      */
     fun isCurrentMonth(): Boolean {
-        val now = Date()
-        val transactionMonth = date.month
-        val transactionYear = date.year
-        return transactionMonth == now.month && transactionYear == now.year
+        val now = LocalDate.now()
+        return date.month == now.month && date.year == now.year
+    }
+    
+    // Manual Parcelable implementation for LocalDate support
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeString(id)
+        parcel.writeString(userId)
+        parcel.writeDouble(amount)
+        parcel.writeString(category.name)
+        parcel.writeString(type.name)
+        parcel.writeString(description)
+        parcel.writeString(date.toString()) // ISO format: yyyy-MM-dd
+        parcel.writeByte(if (isRecurring) 1 else 0)
+        parcel.writeString(recurringPeriod?.name)
+        parcel.writeStringList(tags)
+        parcel.writeString(attachmentUrl)
+        parcel.writeString(location)
+        parcel.writeString(notes)
+        parcel.writeLong(createdAt.time)
+        parcel.writeLong(updatedAt.time)
+        parcel.writeByte(if (isDeleted) 1 else 0)
+    }
+
+    override fun describeContents(): Int = 0
+
+    companion object CREATOR : Parcelable.Creator<Transaction> {
+        override fun createFromParcel(parcel: Parcel): Transaction {
+            return Transaction(
+                id = parcel.readString() ?: UUID.randomUUID().toString(),
+                userId = parcel.readString() ?: "",
+                amount = parcel.readDouble(),
+                category = TransactionCategory.valueOf(parcel.readString() ?: "MISCELLANEOUS"),
+                type = TransactionType.valueOf(parcel.readString() ?: "EXPENSE"),
+                description = parcel.readString() ?: "",
+                date = LocalDate.parse(parcel.readString() ?: LocalDate.now().toString()),
+                isRecurring = parcel.readByte() != 0.toByte(),
+                recurringPeriod = parcel.readString()?.let { RecurringPeriod.valueOf(it) },
+                tags = parcel.createStringArrayList() ?: emptyList(),
+                attachmentUrl = parcel.readString(),
+                location = parcel.readString(),
+                notes = parcel.readString(),
+                createdAt = Date(parcel.readLong()),
+                updatedAt = Date(parcel.readLong()),
+                isDeleted = parcel.readByte() != 0.toByte()
+            )
+        }
+
+        override fun newArray(size: Int): Array<Transaction?> = arrayOfNulls(size)
     }
 }
 
 /**
  * Transaction type enum
  */
-@Parcelize
 enum class TransactionType : Parcelable {
     INCOME,
-    EXPENSE
+    EXPENSE;
+    
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeString(name)
+    }
+
+    override fun describeContents(): Int = 0
+
+    companion object CREATOR : Parcelable.Creator<TransactionType> {
+        override fun createFromParcel(parcel: Parcel): TransactionType {
+            return valueOf(parcel.readString() ?: "EXPENSE")
+        }
+
+        override fun newArray(size: Int): Array<TransactionType?> = arrayOfNulls(size)
+    }
 }
 
 /**

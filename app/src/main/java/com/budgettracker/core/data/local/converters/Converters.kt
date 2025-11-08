@@ -7,6 +7,7 @@ import com.budgettracker.core.data.local.entities.ExpenseCategory
 import com.budgettracker.core.data.local.entities.ReminderType
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.time.LocalDate
 import java.util.Date
 
 /**
@@ -16,7 +17,18 @@ class Converters {
     
     private val gson = Gson()
     
-    // Date converters
+    // LocalDate converters (FIXED: No timezone issues)
+    @TypeConverter
+    fun localDateToString(date: LocalDate?): String? {
+        return date?.toString() // ISO format: yyyy-MM-dd
+    }
+    
+    @TypeConverter
+    fun stringToLocalDate(dateString: String?): LocalDate? {
+        return dateString?.let { LocalDate.parse(it) }
+    }
+    
+    // Legacy Date converters (kept for createdAt/updatedAt)
     @TypeConverter
     fun fromTimestamp(value: Long?): Date? {
         return value?.let { Date(it) }

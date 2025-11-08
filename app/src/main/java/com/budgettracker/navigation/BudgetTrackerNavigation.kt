@@ -142,7 +142,7 @@ fun BudgetTrackerNavigation(
                         category = TransactionCategory.values().find { it.displayName == category } ?: TransactionCategory.MISCELLANEOUS,
                         type = TransactionType.valueOf(type),
                         notes = notes.ifBlank { null },
-                        date = Date()
+                        date = java.time.LocalDate.now()
                     )
                     // This will be handled by the screen's repository
                 }

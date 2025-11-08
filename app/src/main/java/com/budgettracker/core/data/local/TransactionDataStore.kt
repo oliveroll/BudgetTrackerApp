@@ -95,7 +95,12 @@ object TransactionDataStore {
                             data["type"] as? String ?: "EXPENSE"
                         ),
                         description = data["description"] as? String ?: "",
-                        date = (data["date"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+                        date = when (val dateValue = data["date"]) {
+                            is String -> java.time.LocalDate.parse(dateValue) // New format: ISO string
+                            is com.google.firebase.Timestamp -> dateValue.toDate().toInstant()
+                                .atZone(java.time.ZoneId.of("UTC")).toLocalDate() // Legacy format
+                            else -> java.time.LocalDate.now()
+                        },
                         notes = data["notes"] as? String,
                         isRecurring = data["isRecurring"] as? Boolean ?: false
                     )
@@ -226,8 +231,10 @@ object TransactionDataStore {
         // Exact amount match
         val sameAmount = kotlin.math.abs(transaction1.amount - transaction2.amount) < 0.01
         
-        // Date within 2 days
-        val dateRange = kotlin.math.abs(transaction1.date.time - transaction2.date.time) < 172800000 // 48 hours
+        // Date within 2 days (using LocalDate)
+        val dateRange = kotlin.math.abs(
+            java.time.temporal.ChronoUnit.DAYS.between(transaction1.date, transaction2.date)
+        ) <= 2
         
         // Similar description (normalize and compare)
         val desc1 = normalizeDescription(transaction1.description)
@@ -329,8 +336,8 @@ object TransactionDataStore {
      */
     fun getTransactionsForMonth(month: Int, year: Int): List<Transaction> {
         return _transactions.filter { transaction ->
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            calendar.get(Calendar.MONTH) == month && calendar.get(Calendar.YEAR) == year
+            // FIXED: Use LocalDate methods instead of Calendar
+            transaction.date.monthValue == (month + 1) && transaction.date.year == year
         }.sortedByDescending { it.date }
     }
     
@@ -408,7 +415,7 @@ object TransactionDataStore {
                     category = TransactionCategory.SALARY,
                     type = TransactionType.INCOME,
                     description = "Salary Deposit - Ixana Quasistatics",
-                    date = Date(),
+                    date = java.time.LocalDate.now(),
                     notes = "Bi-weekly salary deposit"
                 ),
                 Transaction(
@@ -418,7 +425,7 @@ object TransactionDataStore {
                     category = TransactionCategory.LOAN_PAYMENT,
                     type = TransactionType.EXPENSE,
                     description = "German Student Loan Payment",
-                    date = Date(System.currentTimeMillis() - 86400000),
+                    date = java.time.LocalDate.now().minusDays(1),
                     notes = "€450 monthly payment"
                 ),
                 Transaction(
@@ -428,7 +435,7 @@ object TransactionDataStore {
                     category = TransactionCategory.GROCERIES,
                     type = TransactionType.EXPENSE,
                     description = "Grocery Shopping - Walmart",
-                    date = Date(System.currentTimeMillis() - 3600000),
+                    date = java.time.LocalDate.now(),
                     notes = "Weekly groceries"
                 ),
                 Transaction(
@@ -438,7 +445,7 @@ object TransactionDataStore {
                     category = TransactionCategory.RENT,
                     type = TransactionType.EXPENSE,
                     description = "Monthly Rent Payment",
-                    date = Date(System.currentTimeMillis() - 172800000),
+                    date = java.time.LocalDate.now().minusDays(2),
                     notes = "Apartment rent"
                 ),
                 // Add some from previous months for testing
@@ -449,7 +456,7 @@ object TransactionDataStore {
                     category = TransactionCategory.SALARY,
                     type = TransactionType.INCOME,
                     description = "Salary Deposit - August",
-                    date = Date(System.currentTimeMillis() - 86400000L * 30),
+                    date = java.time.LocalDate.now().minusDays(30),
                     notes = "Previous month salary"
                 ),
                 Transaction(
@@ -459,7 +466,7 @@ object TransactionDataStore {
                     category = TransactionCategory.INSURANCE,
                     type = TransactionType.EXPENSE,
                     description = "Car Insurance - August",
-                    date = Date(System.currentTimeMillis() - 86400000L * 32),
+                    date = java.time.LocalDate.now().minusDays(32),
                     notes = "Monthly car insurance"
                 )
             )
@@ -480,9 +487,9 @@ object TransactionDataStore {
             }
             
             // Get the period from the transaction date (YYYY-MM format)
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            val year = calendar.get(Calendar.YEAR)
-            val month = calendar.get(Calendar.MONTH) + 1 // Calendar.MONTH is 0-based
+            // FIXED: Use LocalDate methods directly
+            val year = transaction.date.year
+            val month = transaction.date.monthValue // Already 1-based
             val period = String.format("%04d-%02d", year, month)
             
             Log.d("AutoPay", "=== AUTO-PAY CHECK ===")
@@ -569,7 +576,7 @@ object TransactionDataStore {
                 "category" to transaction.category.name,
                 "type" to transaction.type.name,
                 "description" to transaction.description,
-                "date" to com.google.firebase.Timestamp(transaction.date),
+                "date" to transaction.date.toString(), // FIXED: ISO string (yyyy-MM-dd) no timezone
                 "notes" to transaction.notes,
                 "isRecurring" to transaction.isRecurring,
                 "isDeleted" to false,

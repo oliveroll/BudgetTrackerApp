@@ -1053,7 +1053,7 @@ private fun getSampleTransactions(): List<com.budgettracker.core.domain.model.Tr
             category = com.budgettracker.core.domain.model.TransactionCategory.SALARY,
             type = com.budgettracker.core.domain.model.TransactionType.INCOME,
             description = "Salary Deposit - Ixana Quasistatics",
-            date = java.util.Date(),
+            date = java.time.LocalDate.now(),
             notes = "Bi-weekly salary"
         ),
         com.budgettracker.core.domain.model.Transaction(
@@ -1063,7 +1063,7 @@ private fun getSampleTransactions(): List<com.budgettracker.core.domain.model.Tr
             category = com.budgettracker.core.domain.model.TransactionCategory.LOAN_PAYMENT,
             type = com.budgettracker.core.domain.model.TransactionType.EXPENSE,
             description = "German Student Loan Payment",
-            date = java.util.Date(System.currentTimeMillis() - 86400000), // Yesterday
+            date = java.time.LocalDate.now().minusDays(1), // Yesterday
             notes = "€450 monthly payment"
         ),
         com.budgettracker.core.domain.model.Transaction(
@@ -1073,7 +1073,7 @@ private fun getSampleTransactions(): List<com.budgettracker.core.domain.model.Tr
             category = com.budgettracker.core.domain.model.TransactionCategory.GROCERIES,
             type = com.budgettracker.core.domain.model.TransactionType.EXPENSE,
             description = "Grocery Shopping - Walmart",
-            date = java.util.Date(System.currentTimeMillis() - 3600000), // 1 hour ago
+            date = java.time.LocalDate.now(), // Today
             notes = "Weekly groceries"
         )
     )

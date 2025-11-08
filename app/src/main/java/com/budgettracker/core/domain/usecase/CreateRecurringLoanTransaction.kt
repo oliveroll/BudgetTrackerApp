@@ -37,7 +37,7 @@ class CreateRecurringLoanTransaction @Inject constructor(
                 category = TransactionCategory.LOAN_PAYMENT,
                 type = TransactionType.EXPENSE,
                 description = "$loanName Payment",
-                date = startDate,
+                date = startDate.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate(),
                 isRecurring = true,
                 recurringPeriod = RecurringPeriod.MONTHLY,
                 tags = listOf("loan", "german-student-loan", "accelerated-payoff"),

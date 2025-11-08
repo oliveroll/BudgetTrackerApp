@@ -96,9 +96,9 @@ fun ModernDashboardScreen(
     
     val filteredTransactions = remember(transactions, selectedMonth, selectedYear) {
         transactions.filter { transaction ->
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            calendar.get(Calendar.MONTH) == selectedMonth && 
-            calendar.get(Calendar.YEAR) == selectedYear
+            // FIXED: Use LocalDate methods instead of Calendar
+            transaction.date.monthValue == (selectedMonth + 1) && 
+            transaction.date.year == selectedYear
         }
     }
     

@@ -47,7 +47,7 @@ import com.budgettracker.core.data.local.entities.*
         com.budgettracker.features.settings.data.models.EmploymentSettings::class,
         com.budgettracker.features.settings.data.models.CustomCategory::class
     ],
-    version = 8, // Fix essential expenses duplication with unique constraint
+    version = 9, // Fix date picker timezone bug: Long → LocalDate (TEXT)
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -407,6 +407,73 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * Migration from version 8 to 9: Fix date picker timezone bug
+         * Convert transaction dates from Long (millis since epoch) to LocalDate (TEXT ISO format)
+         * 
+         * PROBLEM: Selecting "Nov 24" saved as "Nov 23" due to timezone conversion
+         * SOLUTION: Use LocalDate (yyyy-MM-dd) with no time or timezone
+         */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Step 1: Create new transactions table with LocalDate (TEXT) for date column
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `transactions_new` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `amount` REAL NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `type` TEXT NOT NULL,
+                        `description` TEXT NOT NULL,
+                        `date` TEXT NOT NULL,
+                        `isRecurring` INTEGER NOT NULL,
+                        `recurringPeriod` TEXT,
+                        `tags` TEXT NOT NULL,
+                        `attachmentUrl` TEXT,
+                        `location` TEXT,
+                        `notes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `isDeleted` INTEGER NOT NULL,
+                        `syncStatus` TEXT NOT NULL DEFAULT 'PENDING',
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Step 2: Copy data, converting Long millis to LocalDate ISO string (yyyy-MM-dd)
+                database.execSQL("""
+                    INSERT INTO transactions_new 
+                    SELECT 
+                        id,
+                        userId,
+                        amount,
+                        category,
+                        type,
+                        description,
+                        date(date / 1000, 'unixepoch') as date,
+                        isRecurring,
+                        recurringPeriod,
+                        tags,
+                        attachmentUrl,
+                        location,
+                        notes,
+                        createdAt,
+                        updatedAt,
+                        isDeleted,
+                        syncStatus
+                    FROM transactions
+                """)
+                
+                // Step 3: Drop old table
+                database.execSQL("DROP TABLE transactions")
+                
+                // Step 4: Rename new table to original name
+                database.execSQL("ALTER TABLE transactions_new RENAME TO transactions")
+                
+                android.util.Log.d("Migration", "Successfully migrated to version 9: Fixed date picker timezone bug (Long → LocalDate)")
+            }
+        }
+        
         fun getDatabase(context: Context): BudgetTrackerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -414,7 +481,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8) // Add migrations
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9) // Add migrations
                 .fallbackToDestructiveMigration() // Allow database recreation on schema changes (dev mode)
                 .build()
                 INSTANCE = instance

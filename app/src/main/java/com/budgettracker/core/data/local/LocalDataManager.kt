@@ -120,7 +120,7 @@ class LocalDataManager(context: Context) {
                 category = TransactionCategory.SALARY,
                 type = TransactionType.INCOME,
                 description = "Salary Deposit - Ixana Quasistatics",
-                date = Date(),
+                date = java.time.LocalDate.now(),
                 notes = "Bi-weekly salary"
             ),
             Transaction(
@@ -130,7 +130,7 @@ class LocalDataManager(context: Context) {
                 category = TransactionCategory.LOAN_PAYMENT,
                 type = TransactionType.EXPENSE,
                 description = "German Student Loan Payment",
-                date = Date(System.currentTimeMillis() - 86400000), // Yesterday
+                date = java.time.LocalDate.now().minusDays(1), // Yesterday
                 notes = "€450 monthly payment"
             ),
             Transaction(
@@ -140,7 +140,7 @@ class LocalDataManager(context: Context) {
                 category = TransactionCategory.GROCERIES,
                 type = TransactionType.EXPENSE,
                 description = "Grocery Shopping - Walmart",
-                date = Date(System.currentTimeMillis() - 3600000), // 1 hour ago
+                date = java.time.LocalDate.now(), // Today
                 notes = "Weekly groceries"
             )
         )

@@ -64,7 +64,12 @@ class TransactionRepository @Inject constructor() {
                                         data["type"] as? String ?: "EXPENSE"
                                     ),
                                     description = data["description"] as? String ?: "",
-                                    date = (data["date"] as? com.google.firebase.Timestamp)?.toDate() ?: Date(),
+                                    date = when (val dateValue = data["date"]) {
+                                        is String -> java.time.LocalDate.parse(dateValue) // New format: ISO string
+                                        is com.google.firebase.Timestamp -> dateValue.toDate().toInstant()
+                                            .atZone(java.time.ZoneId.of("UTC")).toLocalDate() // Legacy format
+                                        else -> java.time.LocalDate.now()
+                                    },
                                     notes = data["notes"] as? String,
                                     isRecurring = data["isRecurring"] as? Boolean ?: false
                                 )
@@ -114,7 +119,7 @@ class TransactionRepository @Inject constructor() {
                 "category" to transaction.category.name,
                 "type" to transaction.type.name,
                 "description" to transaction.description,
-                "date" to com.google.firebase.Timestamp(transaction.date),
+                "date" to transaction.date.toString(), // FIXED: ISO string (yyyy-MM-dd) no timezone
                 "notes" to transaction.notes,
                 "isRecurring" to transaction.isRecurring,
                 "isDeleted" to false,
@@ -232,7 +237,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.SALARY,
                 type = TransactionType.INCOME,
                 description = "Salary Deposit - Ixana Quasistatics",
-                date = Date(),
+                date = java.time.LocalDate.now(),
                 notes = "Bi-weekly salary deposit"
             ),
             Transaction(
@@ -242,7 +247,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.LOAN_PAYMENT,
                 type = TransactionType.EXPENSE,
                 description = "German Student Loan Payment",
-                date = Date(System.currentTimeMillis() - 86400000),
+                date = java.time.LocalDate.now().minusDays(1),
                 notes = "€450 monthly payment"
             ),
             Transaction(
@@ -252,7 +257,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.GROCERIES,
                 type = TransactionType.EXPENSE,
                 description = "Grocery Shopping - Walmart",
-                date = Date(System.currentTimeMillis() - 3600000),
+                date = java.time.LocalDate.now(),
                 notes = "Weekly groceries"
             ),
             Transaction(
@@ -262,7 +267,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.RENT,
                 type = TransactionType.EXPENSE,
                 description = "Monthly Rent Payment",
-                date = Date(System.currentTimeMillis() - 172800000),
+                date = java.time.LocalDate.now().minusDays(2),
                 notes = "Apartment rent"
             ),
             Transaction(
@@ -272,7 +277,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.PHONE,
                 type = TransactionType.EXPENSE,
                 description = "Phone Plan - Verizon",
-                date = Date(System.currentTimeMillis() - 259200000),
+                date = java.time.LocalDate.now().minusDays(3),
                 notes = "Monthly phone bill"
             ),
             // Add some transactions from previous months for testing
@@ -283,7 +288,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.SALARY,
                 type = TransactionType.INCOME,
                 description = "Salary Deposit - August",
-                date = Date(System.currentTimeMillis() - 86400000L * 30), // Last month
+                date = java.time.LocalDate.now().minusDays(30), // Last month
                 notes = "Previous month salary"
             ),
             Transaction(
@@ -293,7 +298,7 @@ class TransactionRepository @Inject constructor() {
                 category = TransactionCategory.INSURANCE,
                 type = TransactionType.EXPENSE,
                 description = "Car Insurance - August",
-                date = Date(System.currentTimeMillis() - 86400000L * 32), // Last month
+                date = java.time.LocalDate.now().minusDays(32), // Last month
                 notes = "Monthly car insurance"
             )
         )

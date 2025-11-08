@@ -8,10 +8,14 @@ import com.budgettracker.core.domain.model.RecurringPeriod
 import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
+import java.time.LocalDate
 import java.util.Date
 
 /**
  * Room entity for Transaction
+ * 
+ * FIXED: Uses LocalDate for transaction date (stored as ISO string in DB)
+ * This prevents timezone bugs where "Nov 24" becomes "Nov 23"
  */
 @Entity(tableName = "transactions")
 @TypeConverters(Converters::class)
@@ -23,7 +27,7 @@ data class TransactionEntity(
     val category: TransactionCategory,
     val type: TransactionType,
     val description: String,
-    val date: Long,
+    val date: LocalDate, // FIXED: LocalDate instead of Long
     val isRecurring: Boolean,
     val recurringPeriod: RecurringPeriod?,
     val tags: List<String>,
@@ -43,7 +47,7 @@ data class TransactionEntity(
             category = category,
             type = type,
             description = description,
-            date = Date(date),
+            date = date, // Already LocalDate
             isRecurring = isRecurring,
             recurringPeriod = recurringPeriod,
             tags = tags,
@@ -65,7 +69,7 @@ data class TransactionEntity(
                 category = transaction.category,
                 type = transaction.type,
                 description = transaction.description,
-                date = transaction.date.time,
+                date = transaction.date, // Already LocalDate
                 isRecurring = transaction.isRecurring,
                 recurringPeriod = transaction.recurringPeriod,
                 tags = transaction.tags,

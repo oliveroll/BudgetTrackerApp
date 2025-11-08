@@ -28,7 +28,10 @@ import com.budgettracker.core.utils.rememberCurrencyFormatter
 import com.budgettracker.features.settings.data.models.CategoryType
 import com.budgettracker.features.settings.presentation.SettingsViewModel
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 
 /**
@@ -48,15 +51,16 @@ fun AddTransactionScreen(
     var selectedCategory by remember { mutableStateOf(TransactionCategory.MISCELLANEOUS) }
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var notes by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(Date()) }
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) } // FIXED: Use LocalDate
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     
     // Get custom categories from settings
     val customCategories by settingsViewModel.categories.collectAsState()
     
+    // FIXED: Convert LocalDate to millis for DatePicker (UTC midnight)
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.time
+        initialSelectedDateMillis = selectedDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
     )
     
     Scaffold(
@@ -276,7 +280,7 @@ fun AddTransactionScreen(
                     Text("Transaction Date")
                     Row {
                         Text(
-                            text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(selectedDate),
+                            text = selectedDate.format(DateTimeFormatter.ofPattern("MMM dd, yyyy")),
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -324,19 +328,11 @@ fun AddTransactionScreen(
                 TextButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
-                            // FIX: Preserve current time, only update the date portion
-                            val calendar = Calendar.getInstance()
-                            calendar.time = selectedDate // Keep current time
-                            
-                            val pickedCalendar = Calendar.getInstance()
-                            pickedCalendar.timeInMillis = millis // Get selected date
-                            
-                            // Update only year, month, and day - preserve time
-                            calendar.set(Calendar.YEAR, pickedCalendar.get(Calendar.YEAR))
-                            calendar.set(Calendar.MONTH, pickedCalendar.get(Calendar.MONTH))
-                            calendar.set(Calendar.DAY_OF_MONTH, pickedCalendar.get(Calendar.DAY_OF_MONTH))
-                            
-                            selectedDate = calendar.time
+                            // FIXED: Convert UTC millis directly to LocalDate
+                            // No timezone shifts! DatePicker gives UTC midnight, we convert to LocalDate
+                            selectedDate = Instant.ofEpochMilli(millis)
+                                .atZone(ZoneId.of("UTC"))
+                                .toLocalDate()
                         }
                         showDatePicker = false
                     }

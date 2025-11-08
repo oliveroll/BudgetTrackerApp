@@ -89,8 +89,8 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
      */
     fun getTransactionsForMonth(month: Int, year: Int): List<Transaction> {
         return _transactions.value.filter { transaction ->
-            val calendar = Calendar.getInstance().apply { time = transaction.date }
-            calendar.get(Calendar.MONTH) == month && calendar.get(Calendar.YEAR) == year
+            // FIXED: Use LocalDate methods instead of Calendar
+            transaction.date.monthValue == (month + 1) && transaction.date.year == year
         }
     }
     
@@ -160,7 +160,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.SALARY,
                 type = TransactionType.INCOME,
                 description = "Salary Deposit - Ixana Quasistatics",
-                date = Date(),
+                date = java.time.LocalDate.now(),
                 notes = "Bi-weekly salary deposit"
             ),
             Transaction(
@@ -170,7 +170,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.LOAN_PAYMENT,
                 type = TransactionType.EXPENSE,
                 description = "German Student Loan Payment",
-                date = Date(System.currentTimeMillis() - 86400000),
+                date = java.time.LocalDate.now().minusDays(1),
                 notes = "€450 monthly payment"
             ),
             Transaction(
@@ -180,7 +180,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.GROCERIES,
                 type = TransactionType.EXPENSE,
                 description = "Grocery Shopping - Walmart",
-                date = Date(System.currentTimeMillis() - 3600000),
+                date = java.time.LocalDate.now(),
                 notes = "Weekly groceries"
             ),
             Transaction(
@@ -190,7 +190,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.RENT,
                 type = TransactionType.EXPENSE,
                 description = "Monthly Rent Payment",
-                date = Date(System.currentTimeMillis() - 172800000),
+                date = java.time.LocalDate.now().minusDays(2),
                 notes = "Apartment rent"
             ),
             Transaction(
@@ -200,7 +200,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.PHONE,
                 type = TransactionType.EXPENSE,
                 description = "Phone Plan - Verizon",
-                date = Date(System.currentTimeMillis() - 259200000),
+                date = java.time.LocalDate.now().minusDays(3),
                 notes = "Monthly phone bill"
             ),
             // Add some transactions from previous months for testing
@@ -211,7 +211,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.SALARY,
                 type = TransactionType.INCOME,
                 description = "Salary Deposit - August",
-                date = Date(System.currentTimeMillis() - 86400000L * 30), // Last month
+                date = java.time.LocalDate.now().minusDays(30), // Last month
                 notes = "Previous month salary"
             ),
             Transaction(
@@ -221,7 +221,7 @@ class TransactionsViewModel @Inject constructor() : ViewModel() {
                 category = TransactionCategory.INSURANCE,
                 type = TransactionType.EXPENSE,
                 description = "Car Insurance - August",
-                date = Date(System.currentTimeMillis() - 86400000L * 32), // Last month
+                date = java.time.LocalDate.now().minusDays(32), // Last month
                 notes = "Monthly car insurance"
             )
         )
