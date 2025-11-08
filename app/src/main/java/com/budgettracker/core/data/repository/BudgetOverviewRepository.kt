@@ -207,15 +207,19 @@ class BudgetOverviewRepository @Inject constructor(
     }
     
     /**
-     * Automatically create fixed expenses for a new period based on previous month's fixed expenses
+     * Automatically create fixed expenses for a new period based on previous month's fixed expenses.
+     * 
+     * ANTI-DUPLICATION LOGIC:
+     * - Checks each category individually instead of just checking if ANY expenses exist
+     * - Uses IGNORE conflict strategy at database level to prevent duplicates
+     * - Idempotent: Multiple calls won't create duplicates due to unique constraint on (userId, category, period)
+     * - Only creates missing categories, preserves existing ones
      */
     private suspend fun ensureFixedExpensesForPeriod(userId: String, targetPeriod: String) {
         try {
-            // Check if expenses already exist for this period
+            // Get existing expenses for this period
             val existingExpenses = dao.getEssentialExpenses(userId, targetPeriod)
-            if (existingExpenses.isNotEmpty()) {
-                return // Already has expenses for this period
-            }
+            val existingCategories = existingExpenses.map { it.category }.toSet()
             
             // Get previous month's period
             val (year, month) = targetPeriod.split("-").let {
@@ -232,11 +236,22 @@ class BudgetOverviewRepository @Inject constructor(
             val fixedExpenses = previousExpenses.filter { it.dueDay != null }
             
             if (fixedExpenses.isEmpty()) {
+                Log.d(TAG, "No fixed expenses to roll forward from $previousPeriod")
                 return // No fixed expenses to copy
             }
             
-            // Create new instances for current period
+            // Create new instances ONLY for categories that don't exist yet
+            var createdCount = 0
+            var skippedCount = 0
+            
             fixedExpenses.forEach { template ->
+                // Skip if this category already exists for the current period
+                if (existingCategories.contains(template.category)) {
+                    Log.d(TAG, "Skipping ${template.category} - already exists for $targetPeriod")
+                    skippedCount++
+                    return@forEach
+                }
+                
                 val newExpense = template.copy(
                     id = UUID.randomUUID().toString(),
                     period = targetPeriod,
@@ -248,22 +263,35 @@ class BudgetOverviewRepository @Inject constructor(
                     pendingSync = true
                 )
                 
-                // Insert into local database
-                dao.insertEssentialExpense(newExpense)
+                // Insert into local database (IGNORE conflict strategy prevents duplicates)
+                val insertResult = dao.insertEssentialExpense(newExpense)
                 
-                // Sync to Firebase
-                try {
-                    firestore.collection("users")
-                        .document(userId)
-                        .collection("essentials")
-                        .document(newExpense.id)
-                        .set(newExpense.toFirestoreMap())
-                        .await()
-                } catch (e: Exception) {
-                    // Keep as pending sync for retry
+                // insertResult > 0 means successful insert, -1 means conflict (duplicate)
+                if (insertResult > 0) {
+                    createdCount++
+                    Log.d(TAG, "Created new ${template.category} expense for $targetPeriod")
+                    
+                    // Sync to Firebase with merge to be idempotent
+                    try {
+                        firestore.collection("users")
+                            .document(userId)
+                            .collection("essentials")
+                            .document(newExpense.id)
+                            .set(newExpense.toFirestoreMap(), SetOptions.merge())
+                            .await()
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to sync ${template.category} to Firebase: ${e.message}")
+                        // Keep as pending sync for retry
+                    }
+                } else {
+                    skippedCount++
+                    Log.d(TAG, "Duplicate detected for ${template.category} in $targetPeriod, skipped")
                 }
             }
+            
+            Log.d(TAG, "Month rollover complete for $targetPeriod: Created $createdCount, Skipped $skippedCount")
         } catch (e: Exception) {
+            Log.e(TAG, "Error in ensureFixedExpensesForPeriod: ${e.message}", e)
             // Don't throw - allow getting expenses to continue even if auto-creation fails
         }
     }
@@ -338,14 +366,19 @@ class BudgetOverviewRepository @Inject constructor(
                 pendingSync = true
             )
             
-            dao.insertEssentialExpense(expense)
+            // Insert with IGNORE strategy - will fail silently if duplicate exists
+            val insertResult = dao.insertEssentialExpense(expense)
             
-            // Sync to Firestore
+            if (insertResult <= 0) {
+                return Result.Error("Duplicate expense: ${category.displayName} already exists for this period")
+            }
+            
+            // Sync to Firestore with merge for idempotency
             firestore.collection("users")
                 .document(userId)
                 .collection("essentials")
                 .document(expense.id)
-                .set(expense.toFirestoreMap())
+                .set(expense.toFirestoreMap(), SetOptions.merge())
                 .await()
             
             Result.Success(expense.id)
@@ -401,12 +434,12 @@ class BudgetOverviewRepository @Inject constructor(
             
             dao.updateEssentialExpense(updatedExpense)
             
-            // Sync to Firestore
+            // Sync to Firestore with merge for idempotency
             firestore.collection("users")
                 .document(userId)
                 .collection("essentials")
                 .document(expenseId)
-                .set(updatedExpense.toFirestoreMap())
+                .set(updatedExpense.toFirestoreMap(), SetOptions.merge())
                 .await()
             
             Result.Success(Unit)
@@ -773,11 +806,12 @@ class BudgetOverviewRepository @Inject constructor(
     // Firebase sync methods
     private suspend fun syncEssentialToFirebase(expense: EssentialExpenseEntity) {
         try {
+            // Use merge to be idempotent - multiple syncs won't cause issues
             firestore.collection("users")
                 .document(expense.userId)
                 .collection("essentials")
                 .document(expense.id)
-                .set(expense.toFirestoreMap())
+                .set(expense.toFirestoreMap(), SetOptions.merge())
                 .await()
         } catch (e: Exception) {
             // Keep as pending sync

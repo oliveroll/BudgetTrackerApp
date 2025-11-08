@@ -8,8 +8,20 @@ import java.util.UUID
 
 /**
  * Enhanced Room entity for Essential Expenses with monthly tracking
+ * 
+ * UNIQUENESS CONSTRAINT: Each user can have only ONE essential expense per category per period.
+ * This prevents duplicate Rent, Groceries, etc. when rolling over to a new month.
  */
-@Entity(tableName = "essential_expenses")
+@Entity(
+    tableName = "essential_expenses",
+    indices = [
+        androidx.room.Index(
+            value = ["userId", "category", "period"], 
+            unique = true,
+            name = "index_essential_expenses_unique_category_period"
+        )
+    ]
+)
 @TypeConverters(Converters::class)
 data class EssentialExpenseEntity(
     @PrimaryKey

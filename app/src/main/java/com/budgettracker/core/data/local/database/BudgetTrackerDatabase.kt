@@ -47,7 +47,7 @@ import com.budgettracker.core.data.local.entities.*
         com.budgettracker.features.settings.data.models.EmploymentSettings::class,
         com.budgettracker.features.settings.data.models.CustomCategory::class
     ],
-    version = 7, // Add Settings tables
+    version = 8, // Fix essential expenses duplication with unique constraint
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -347,6 +347,66 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * Migration from version 7 to 8: Add unique constraint on essential_expenses
+         * to prevent duplicate categories per user per period
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Step 1: Create a new table with the unique constraint
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `essential_expenses_new` (
+                        `id` TEXT NOT NULL,
+                        `userId` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `category` TEXT NOT NULL,
+                        `plannedAmount` REAL NOT NULL,
+                        `actualAmount` REAL,
+                        `dueDay` INTEGER,
+                        `paid` INTEGER NOT NULL DEFAULT 0,
+                        `period` TEXT NOT NULL,
+                        `reminderDaysBefore` TEXT,
+                        `fcmReminderEnabled` INTEGER NOT NULL DEFAULT 1,
+                        `notes` TEXT,
+                        `createdAt` INTEGER NOT NULL,
+                        `updatedAt` INTEGER NOT NULL,
+                        `syncedAt` INTEGER,
+                        `pendingSync` INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(`id`)
+                    )
+                """)
+                
+                // Step 2: Copy data, removing duplicates (keep most recent by createdAt)
+                database.execSQL("""
+                    INSERT INTO essential_expenses_new 
+                    SELECT * FROM essential_expenses e1
+                    WHERE e1.id = (
+                        SELECT e2.id FROM essential_expenses e2
+                        WHERE e2.userId = e1.userId 
+                        AND e2.category = e1.category 
+                        AND e2.period = e1.period
+                        ORDER BY e2.createdAt DESC
+                        LIMIT 1
+                    )
+                """)
+                
+                // Step 3: Drop old table
+                database.execSQL("DROP TABLE essential_expenses")
+                
+                // Step 4: Rename new table to original name
+                database.execSQL("ALTER TABLE essential_expenses_new RENAME TO essential_expenses")
+                
+                // Step 5: Create unique index
+                database.execSQL("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS 
+                    `index_essential_expenses_unique_category_period` 
+                    ON `essential_expenses` (`userId`, `category`, `period`)
+                """)
+                
+                android.util.Log.d("Migration", "Successfully migrated to version 8: Added unique constraint to essential_expenses")
+            }
+        }
+        
         fun getDatabase(context: Context): BudgetTrackerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -354,7 +414,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7) // Add migrations
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8) // Add migrations
                 .fallbackToDestructiveMigration() // Allow database recreation on schema changes (dev mode)
                 .build()
                 INSTANCE = instance

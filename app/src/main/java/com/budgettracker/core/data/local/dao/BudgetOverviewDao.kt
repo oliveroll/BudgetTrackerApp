@@ -39,8 +39,13 @@ interface BudgetOverviewDao {
     @Query("SELECT SUM(actualAmount) FROM essential_expenses WHERE userId = :userId AND period = :period AND paid = 1")
     suspend fun getTotalPaidExpenses(userId: String, period: String): Double?
     
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertEssentialExpense(expense: EssentialExpenseEntity)
+    /**
+     * Insert essential expense with IGNORE strategy to prevent duplicates.
+     * If a record with same (userId, category, period) exists, the insert is silently ignored.
+     * This prevents duplicate expenses during month rollover.
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertEssentialExpense(expense: EssentialExpenseEntity): Long
     
     @Query("DELETE FROM essential_expenses WHERE id = :expenseId")
     suspend fun deleteEssentialExpense(expenseId: String)
