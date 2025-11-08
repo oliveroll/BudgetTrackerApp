@@ -23,10 +23,7 @@ class EmergencyFundViewModel @Inject constructor(
     val uiState: StateFlow<EmergencyFundUiState> = _uiState.asStateFlow()
     
     init {
-        // Initialize from Firebase first to restore data after database wipe
-        viewModelScope.launch {
-            repository.initializeFromFirebase()
-        }
+        android.util.Log.d("EmergencyFundVM", "🔄 ViewModel initialized, loading funds...")
         loadFunds()
     }
     
@@ -34,14 +31,26 @@ class EmergencyFundViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
+            android.util.Log.d("EmergencyFundVM", "⏳ Loading funds from repository...")
+            
+            // FIXED: Initialize from Firebase FIRST, then load from Room
+            repository.initializeFromFirebase()
+            android.util.Log.d("EmergencyFundVM", "✅ Firebase initialization complete, now loading from Room...")
+            
             repository.getActiveFundsFlow()
                 .catch { e ->
+                    android.util.Log.e("EmergencyFundVM", "❌ Error loading funds: ${e.message}", e)
                     _uiState.update { it.copy(
                         isLoading = false,
                         error = "Failed to load emergency funds: ${e.message}"
                     )}
                 }
                 .collect { funds ->
+                    android.util.Log.d("EmergencyFundVM", "📊 Received ${funds.size} funds from Room")
+                    funds.forEachIndexed { index, fund ->
+                        android.util.Log.d("EmergencyFundVM", "  Fund $index: ${fund.bankName} | Balance: ${fund.currentBalance} | Active: ${fund.isActive}")
+                    }
+                    
                     // Select first fund if available
                     val selectedFund = funds.firstOrNull()
                     
@@ -55,6 +64,12 @@ class EmergencyFundViewModel @Inject constructor(
                         isLoading = false,
                         error = null
                     )}
+                    
+                    if (funds.isEmpty()) {
+                        android.util.Log.w("EmergencyFundVM", "⚠️ No funds loaded - showing empty state")
+                    } else {
+                        android.util.Log.d("EmergencyFundVM", "✅ UI updated with ${funds.size} funds")
+                    }
                 }
         }
     }

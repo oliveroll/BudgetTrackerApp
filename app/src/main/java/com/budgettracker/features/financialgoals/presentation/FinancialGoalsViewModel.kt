@@ -180,10 +180,7 @@ class RothIRAViewModel @Inject constructor(
     val uiState: StateFlow<RothIRAUiState> = _uiState.asStateFlow()
     
     init {
-        // Initialize from Firebase first to restore data after database wipe
-        viewModelScope.launch {
-            repository.initializeFromFirebase()
-        }
+        android.util.Log.d("RothIRAVM", "🔄 ViewModel initialized, loading IRAs...")
         loadIRAs()
     }
     
@@ -191,17 +188,31 @@ class RothIRAViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
+            android.util.Log.d("RothIRAVM", "⏳ Loading IRAs from repository...")
+            
+            // FIXED: Initialize from Firebase FIRST, then load from Room
+            repository.initializeFromFirebase()
+            android.util.Log.d("RothIRAVM", "✅ Firebase initialization complete, now loading from Room...")
+            
             repository.getActiveIRAsFlow()
                 .catch { e ->
+                    android.util.Log.e("RothIRAVM", "❌ Error loading IRAs: ${e.message}", e)
                     _uiState.update { it.copy(
                         isLoading = false,
                         error = "Failed to load IRAs: ${e.message}"
                     )}
                 }
                 .collect { iras ->
+                    android.util.Log.d("RothIRAVM", "📊 Received ${iras.size} IRAs from Room")
+                    iras.forEachIndexed { index, ira ->
+                        android.util.Log.d("RothIRAVM", "  IRA $index: ${ira.brokerageName} | Year: ${ira.taxYear} | Contributed: ${ira.contributionsThisYear} | Active: ${ira.isActive}")
+                    }
+                    
                     // Get current year IRA
                     val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                     val currentIRA = iras.firstOrNull { it.taxYear == currentYear }
+                    
+                    android.util.Log.d("RothIRAVM", "Current year: $currentYear, Current IRA: ${currentIRA?.brokerageName ?: "None"}")
                     
                     // Calculate helpful metrics
                     val calculation = currentIRA?.let { ira ->
@@ -226,6 +237,12 @@ class RothIRAViewModel @Inject constructor(
                         isLoading = false,
                         error = null
                     )}
+                    
+                    if (iras.isEmpty()) {
+                        android.util.Log.w("RothIRAVM", "⚠️ No IRAs loaded - showing empty state")
+                    } else {
+                        android.util.Log.d("RothIRAVM", "✅ UI updated with ${iras.size} IRAs, current year IRA: ${currentIRA != null}")
+                    }
                 }
         }
     }
