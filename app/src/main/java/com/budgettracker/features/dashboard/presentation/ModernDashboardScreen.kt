@@ -123,7 +123,8 @@ fun ModernDashboardScreen(
         
         // Log all transactions for this month
         filteredTransactions.forEach { txn ->
-            val dateStr = SimpleDateFormat("MMM dd, yyyy", Locale.US).format(txn.date)
+            // FIXED: Use DateTimeFormatter for LocalDate instead of SimpleDateFormat
+            val dateStr = txn.date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.US))
             Log.d(TAG, "  Transaction: ${txn.type} | ${txn.description} | $${txn.amount} | $dateStr | Category: ${txn.category.displayName}")
         }
         

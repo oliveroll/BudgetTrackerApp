@@ -222,7 +222,8 @@ settingsViewModel: SettingsViewModel = hiltViewModel()
                 }
                 
                 val groupedTransactions = filteredTransactions.groupBy { 
-                    SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(it.date)
+                    // FIXED: Use DateTimeFormatter for LocalDate
+                    it.date.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault()))
                 }
                 
                 groupedTransactions.forEach { (date, dayTransactions) ->
@@ -533,7 +534,8 @@ private fun TransactionCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 
                 Text(
-                    text = SimpleDateFormat("h:mm a", Locale.getDefault()).format(transaction.date),
+                    // FIXED: LocalDate has no time component, showing date instead
+                    text = transaction.date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd", Locale.getDefault())),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End
@@ -1265,7 +1267,8 @@ private fun ModernDeleteConfirmationDialog(
                                 )
                                 // Date
                                 Text(
-                                    text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(transaction.date),
+                                    // FIXED: Use DateTimeFormatter for LocalDate
+                                    text = transaction.date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.getDefault())),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

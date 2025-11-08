@@ -541,7 +541,8 @@ private fun ModernTransactionItem(
                 )
                 
                     Text(
-                        text = "${transaction.category.displayName} • ${java.text.SimpleDateFormat("MMM dd", java.util.Locale.getDefault()).format(transaction.date)}",
+                        // FIXED: Use DateTimeFormatter for LocalDate
+                        text = "${transaction.category.displayName} • ${transaction.date.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd", java.util.Locale.getDefault()))}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
