@@ -173,8 +173,8 @@ class EmergencyFundRepository @Inject constructor(
             android.util.Log.d("EmergencyFundRepo", "📦 Found ${fundsSnapshot.documents.size} Emergency Fund documents in Firestore")
             
             fundsSnapshot.documents.forEach { doc ->
-                val entity = doc.toEmergencyFundEntity()
-                android.util.Log.d("EmergencyFundRepo", "  • Fund: ${entity.bankName} | Balance: ${entity.currentBalance} | Goal: ${entity.targetGoal} | isActive: ${entity.isActive}")
+                val entity = doc.toEmergencyFundEntity().copy(userId = userId) // CRITICAL FIX: Set userId explicitly
+                android.util.Log.d("EmergencyFundRepo", "  • Fund: ${entity.bankName} | Balance: ${entity.currentBalance} | Goal: ${entity.targetGoal} | userId: ${entity.userId} | isActive: ${entity.isActive}")
                 emergencyFundDao.insertFund(entity)
             }
             

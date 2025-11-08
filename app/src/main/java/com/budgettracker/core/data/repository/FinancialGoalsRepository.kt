@@ -361,8 +361,8 @@ class RothIRARepository @Inject constructor(
             android.util.Log.d("RothIRARepo", "📦 Found ${irasSnapshot.documents.size} Roth IRA documents in Firestore")
             
             irasSnapshot.documents.forEach { doc ->
-                val entity = doc.toRothIRAEntity()
-                android.util.Log.d("RothIRARepo", "  • IRA: ${entity.brokerageName} | Tax Year: ${entity.taxYear} | Contributed: ${entity.contributionsThisYear} | Balance: ${entity.currentBalance} | isActive: ${entity.isActive}")
+                val entity = doc.toRothIRAEntity().copy(userId = userId) // CRITICAL FIX: Set userId explicitly
+                android.util.Log.d("RothIRARepo", "  • IRA: ${entity.brokerageName} | Tax Year: ${entity.taxYear} | Contributed: ${entity.contributionsThisYear} | Balance: ${entity.currentBalance} | userId: ${entity.userId} | isActive: ${entity.isActive}")
                 rothIRADao.insertIRA(entity)
             }
             
