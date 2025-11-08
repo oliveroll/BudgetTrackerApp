@@ -57,15 +57,27 @@ class EmergencyFundRepository @Inject constructor(
     
     suspend fun addFund(fund: EmergencyFund): Result<String> {
         return try {
-            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            val userId = currentUserId ?: run {
+                android.util.Log.e("EmergencyFundRepo", "❌ Cannot add fund: User not authenticated")
+                return Result.Error("User not authenticated")
+            }
+            
+            android.util.Log.d("EmergencyFundRepo", "➕ Adding Emergency Fund: ${fund.bankName} | Balance: ${fund.currentBalance} | Goal: ${fund.targetGoal}")
+            
             val fundWithUser = fund.copy(userId = userId)
             val entity = EmergencyFundEntity.fromDomain(fundWithUser, pendingSync = true)
             
+            // Save to Room database
             emergencyFundDao.insertFund(entity)
+            android.util.Log.d("EmergencyFundRepo", "💾 Saved to local database")
+            
+            // Sync to Firebase
             syncFundToFirebase(entity)
+            android.util.Log.d("EmergencyFundRepo", "☁️ Synced to Firebase at /users/$userId/emergencyFunds/${fund.id}")
             
             Result.Success(fund.id)
         } catch (e: Exception) {
+            android.util.Log.e("EmergencyFundRepo", "❌ Failed to add fund: ${e.message}", e)
             Result.Error("Failed to add fund: ${e.message}")
         }
     }
@@ -145,7 +157,12 @@ class EmergencyFundRepository @Inject constructor(
     
     suspend fun initializeFromFirebase() {
         try {
-            val userId = currentUserId ?: return
+            val userId = currentUserId ?: run {
+                android.util.Log.w("EmergencyFundRepo", "❌ No user ID, cannot initialize from Firebase")
+                return
+            }
+            
+            android.util.Log.d("EmergencyFundRepo", "🔍 Initializing Emergency Funds from Firebase for user: $userId")
             
             val fundsSnapshot = firestore.collection("users")
                 .document(userId)
@@ -153,12 +170,17 @@ class EmergencyFundRepository @Inject constructor(
                 .get()
                 .await()
             
+            android.util.Log.d("EmergencyFundRepo", "📦 Found ${fundsSnapshot.documents.size} Emergency Fund documents in Firestore")
+            
             fundsSnapshot.documents.forEach { doc ->
                 val entity = doc.toEmergencyFundEntity()
+                android.util.Log.d("EmergencyFundRepo", "  • Fund: ${entity.bankName} | Balance: ${entity.currentBalance} | Goal: ${entity.targetGoal} | isActive: ${entity.isActive}")
                 emergencyFundDao.insertFund(entity)
             }
+            
+            android.util.Log.d("EmergencyFundRepo", "✅ Successfully initialized ${fundsSnapshot.documents.size} Emergency Funds from Firebase")
         } catch (e: Exception) {
-            // Fail silently
+            android.util.Log.e("EmergencyFundRepo", "❌ Failed to initialize from Firebase: ${e.message}", e)
         }
     }
     

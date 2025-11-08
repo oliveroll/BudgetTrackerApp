@@ -268,15 +268,27 @@ class RothIRARepository @Inject constructor(
     
     suspend fun addIRA(ira: RothIRA): Result<String> {
         return try {
-            val userId = currentUserId ?: return Result.Error("User not authenticated")
+            val userId = currentUserId ?: run {
+                android.util.Log.e("RothIRARepo", "❌ Cannot add IRA: User not authenticated")
+                return Result.Error("User not authenticated")
+            }
+            
+            android.util.Log.d("RothIRARepo", "➕ Adding Roth IRA: ${ira.brokerageName} | Tax Year: ${ira.taxYear} | Balance: ${ira.currentBalance}")
+            
             val iraWithUser = ira.copy(userId = userId)
             val entity = RothIRAEntity.fromDomain(iraWithUser, pendingSync = true)
             
+            // Save to Room database
             rothIRADao.insertIRA(entity)
+            android.util.Log.d("RothIRARepo", "💾 Saved to local database")
+            
+            // Sync to Firebase
             syncIRAToFirebase(entity)
+            android.util.Log.d("RothIRARepo", "☁️ Synced to Firebase at /users/$userId/rothIRAs/${ira.id}")
             
             Result.Success(ira.id)
         } catch (e: Exception) {
+            android.util.Log.e("RothIRARepo", "❌ Failed to add IRA: ${e.message}", e)
             Result.Error("Failed to add IRA: ${e.message}")
         }
     }
@@ -333,7 +345,12 @@ class RothIRARepository @Inject constructor(
     
     suspend fun initializeFromFirebase() {
         try {
-            val userId = currentUserId ?: return
+            val userId = currentUserId ?: run {
+                android.util.Log.w("RothIRARepo", "❌ No user ID, cannot initialize from Firebase")
+                return
+            }
+            
+            android.util.Log.d("RothIRARepo", "🔍 Initializing Roth IRAs from Firebase for user: $userId")
             
             val irasSnapshot = firestore.collection("users")
                 .document(userId)
@@ -341,12 +358,17 @@ class RothIRARepository @Inject constructor(
                 .get()
                 .await()
             
+            android.util.Log.d("RothIRARepo", "📦 Found ${irasSnapshot.documents.size} Roth IRA documents in Firestore")
+            
             irasSnapshot.documents.forEach { doc ->
                 val entity = doc.toRothIRAEntity()
+                android.util.Log.d("RothIRARepo", "  • IRA: ${entity.brokerageName} | Tax Year: ${entity.taxYear} | Contributed: ${entity.contributionsThisYear} | Balance: ${entity.currentBalance} | isActive: ${entity.isActive}")
                 rothIRADao.insertIRA(entity)
             }
+            
+            android.util.Log.d("RothIRARepo", "✅ Successfully initialized ${irasSnapshot.documents.size} Roth IRAs from Firebase")
         } catch (e: Exception) {
-            // Fail silently
+            android.util.Log.e("RothIRARepo", "❌ Failed to initialize from Firebase: ${e.message}", e)
         }
     }
     
@@ -374,16 +396,25 @@ class RothIRARepository @Inject constructor(
     
     private suspend fun syncIRAToFirebase(ira: RothIRAEntity) {
         try {
-            val userId = currentUserId ?: return
+            val userId = currentUserId ?: run {
+                android.util.Log.w("RothIRARepo", "❌ Cannot sync to Firebase: No user ID")
+                return
+            }
+            
+            val firestoreData = ira.toFirestoreMap()
+            android.util.Log.d("RothIRARepo", "☁️ Syncing IRA to Firebase: ${ira.brokerageName} (${ira.id})")
+            
             firestore.collection("users")
                 .document(userId)
                 .collection("rothIRAs")
                 .document(ira.id)
-                .set(ira.toFirestoreMap())
+                .set(firestoreData)
                 .await()
             
             rothIRADao.markSynced(ira.id, System.currentTimeMillis())
+            android.util.Log.d("RothIRARepo", "✅ Successfully synced IRA to /users/$userId/rothIRAs/${ira.id}")
         } catch (e: Exception) {
+            android.util.Log.e("RothIRARepo", "❌ Failed to sync IRA to Firebase: ${e.message}", e)
             // Keep as pending sync
         }
     }
