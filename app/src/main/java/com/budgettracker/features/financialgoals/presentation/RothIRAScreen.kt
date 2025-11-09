@@ -16,7 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.RothIRA
 import com.budgettracker.core.utils.rememberCurrencyFormatter
@@ -51,7 +54,8 @@ fun RothIRAScreen(
                     IRAProgressCard(
                         ira = uiState.currentYearIRA!!,
                         calculation = uiState.calculation,
-                        onDelete = { viewModel.toggleDeleteDialog() }
+                        onDelete = { viewModel.toggleDeleteDialog() },
+                        onEditContribution = { viewModel.toggleEditContributionDialog() }
                     )
                 }
                 
@@ -108,6 +112,18 @@ fun RothIRAScreen(
         )
     }
     
+    // Edit Contribution Amount Dialog
+    if (uiState.showEditContributionDialog && uiState.currentYearIRA != null) {
+        EditContributionAmountDialog(
+            currentAmount = uiState.currentYearIRA!!.contributionsThisYear,
+            limit = uiState.currentYearIRA!!.annualContributionLimit,
+            onDismiss = { viewModel.toggleEditContributionDialog() },
+            onConfirm = { newAmount ->
+                viewModel.updateContributionAmount(newAmount)
+            }
+        )
+    }
+    
     // Delete Confirmation Dialog
     if (uiState.showDeleteDialog && uiState.currentYearIRA != null) {
         AlertDialog(
@@ -142,7 +158,8 @@ fun RothIRAScreen(
 fun IRAProgressCard(
     ira: RothIRA,
     calculation: com.budgettracker.core.domain.model.IRACalculation?,
-    onDelete: () -> Unit = {}
+    onDelete: () -> Unit = {},
+    onEditContribution: () -> Unit = {}
 ) {
     val currencyFormatter = rememberCurrencyFormatter()
     val progressPercentage = ira.getProgressPercentage()
@@ -221,18 +238,36 @@ fun IRAProgressCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
-                    Text(
-                        "Contributed",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                    Text(
-                        currencyFormatter.format(ira.contributionsThisYear),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF28a745)
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Column {
+                        Text(
+                            "Contributed",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            currencyFormatter.format(ira.contributionsThisYear),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF28a745)
+                        )
+                    }
+                    
+                    // Edit button for contributed amount
+                    IconButton(
+                        onClick = onEditContribution,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Contribution",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 
                 Column(horizontalAlignment = Alignment.End) {
@@ -568,5 +603,77 @@ fun EmptyIRAState(onAddClick: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+fun EditContributionAmountDialog(
+    currentAmount: Double,
+    limit: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var amount by remember { mutableStateOf(currentAmount.toString()) }
+    val currencyFormatter = rememberCurrencyFormatter()
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Contributed Amount") },
+        text = {
+            Column {
+                Text(
+                    "Update your total contributions for this tax year",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { amount = it },
+                    label = { Text("Contributed Amount") },
+                    leadingIcon = {
+                        Text(
+                            "$",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Text(
+                    "Annual Limit: ${currencyFormatter.format(limit)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val newAmount = amount.toDoubleOrNull()
+                    if (newAmount != null && newAmount >= 0) {
+                        onConfirm(newAmount)
+                        onDismiss()
+                    }
+                },
+                enabled = amount.toDoubleOrNull() != null && amount.toDoubleOrNull()!! >= 0
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
