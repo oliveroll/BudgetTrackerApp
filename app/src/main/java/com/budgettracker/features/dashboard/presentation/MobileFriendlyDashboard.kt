@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
 import com.budgettracker.core.data.local.TransactionDataStore
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Mobile-friendly modern dashboard with beautiful design
@@ -38,13 +39,19 @@ fun MobileFriendlyDashboard(
     onNavigateToGoals: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {}
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("Dashboard")
+        AnalyticsTracker.trackDashboardViewed()
+    }
+    
     // Use persistent data that matches transactions tab
     var transactions by remember { mutableStateOf(TransactionDataStore.getTransactions()) }
     val savingsGoals = remember { getSampleSavingsGoals() }
     val fixedExpenses = remember { getSampleFixedExpenses() }
     
     // Load data from Firebase on dashboard load
-    LaunchedEffect(Unit) {
+    LaunchedEffect("data_load") {
         TransactionDataStore.initializeFromFirebase()
         transactions = TransactionDataStore.getTransactions()
     }

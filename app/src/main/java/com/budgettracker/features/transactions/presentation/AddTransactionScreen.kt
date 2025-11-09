@@ -25,6 +25,7 @@ import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.core.utils.AnalyticsTracker
 import com.budgettracker.features.settings.data.models.CategoryType
 import com.budgettracker.features.settings.presentation.SettingsViewModel
 import kotlinx.coroutines.launch
@@ -44,6 +45,11 @@ fun AddTransactionScreen(
     onSaveTransaction: (String, String, String, String, String) -> Unit = { _, _, _, _, _ -> },
     settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("AddTransaction")
+    }
+    
     val currencyFormatter = rememberCurrencyFormatter()
     val scope = rememberCoroutineScope()
     var amount by remember { mutableStateOf("") }

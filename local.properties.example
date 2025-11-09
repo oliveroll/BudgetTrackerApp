@@ -1,0 +1,20 @@
+# Sample configuration file for Budget Tracker App
+# Copy this file to 'local.properties' and add your actual API keys
+# IMPORTANT: local.properties is git-ignored for security
+
+# Android SDK location (required)
+sdk.dir=/path/to/your/Android/Sdk
+
+# PostHog Analytics Configuration
+# Get your API key from: https://us.i.posthog.com/project/settings
+POSTHOG_API_KEY=phc_HWRak0mzarW9KmIAKjLzD1BfbGNXFUZKStmlzWPguY
+POSTHOG_HOST=https://us.i.posthog.com
+
+# Notes:
+# - Never commit your actual API keys to version control
+# - This template file (local.properties.example) is safe to commit
+# - The actual local.properties file is git-ignored
+
+
+
+

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.budgettracker.features.auth.data.HybridAuthManager
 import com.budgettracker.ui.theme.Primary40
 import com.budgettracker.ui.theme.Secondary40
+import com.budgettracker.core.utils.AnalyticsTracker
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.launch
@@ -35,6 +36,11 @@ fun LoginScreen(
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {}
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("Login")
+    }
+    
     val context = LocalContext.current
     val authManager = remember { HybridAuthManager(context) }
     val scope = rememberCoroutineScope()

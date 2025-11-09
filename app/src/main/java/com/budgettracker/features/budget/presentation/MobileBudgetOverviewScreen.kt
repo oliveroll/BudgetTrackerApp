@@ -28,6 +28,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.data.local.entities.*
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.core.utils.AnalyticsTracker
 import com.budgettracker.ui.components.MonthSwitcher
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,6 +45,11 @@ import java.util.*
 fun MobileBudgetOverviewScreen(
     viewModel: BudgetOverviewViewModel = hiltViewModel()
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("BudgetOverview")
+    }
+    
     val uiState by viewModel.uiState.collectAsState()
     val showEditBalanceDialog by viewModel.showEditBalanceDialog.collectAsState()
     

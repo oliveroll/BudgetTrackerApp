@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Reports screen for analytics and insights
@@ -16,6 +17,11 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen() {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("Reports")
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

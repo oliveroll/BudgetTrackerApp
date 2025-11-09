@@ -26,12 +26,18 @@ import com.budgettracker.core.utils.rememberCurrencyFormatter
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import com.budgettracker.core.utils.AnalyticsTracker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DebtJourneyScreen(
     viewModel: DebtJourneyViewModel = hiltViewModel()
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("DebtJourney")
+    }
+    
     val uiState by viewModel.uiState.collectAsState()
     
     Column(

@@ -150,3 +150,6 @@ firebase-debug.log
 # Local configuration
 config.properties
 secrets.properties
+
+# MCP Configuration (contains API keys)
+.mcp-config.json

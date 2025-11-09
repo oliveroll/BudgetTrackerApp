@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.core.domain.model.RothIRA
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.core.utils.AnalyticsTracker
 import java.text.NumberFormat
 import java.util.Calendar
 
@@ -31,6 +32,11 @@ import java.util.Calendar
 fun RothIRAScreen(
     viewModel: RothIRAViewModel = hiltViewModel()
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("RothIRA")
+    }
+    
     val uiState by viewModel.uiState.collectAsState()
     
     Column(

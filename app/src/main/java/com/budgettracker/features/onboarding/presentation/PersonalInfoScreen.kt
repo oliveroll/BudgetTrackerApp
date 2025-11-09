@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.budgettracker.features.onboarding.domain.models.Currency
 import com.budgettracker.features.onboarding.domain.models.EmploymentStatus
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Screen 1: Personal Info
@@ -36,6 +37,11 @@ fun PersonalInfoScreen(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("PersonalInfo")
+    }
+    
     val scrollState = rememberScrollState()
     var showEmploymentMenu by remember { mutableStateOf(false) }
     var showCurrencyMenu by remember { mutableStateOf(false) }

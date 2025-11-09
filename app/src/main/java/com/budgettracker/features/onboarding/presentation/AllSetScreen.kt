@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Confetti particle data
@@ -50,6 +51,11 @@ fun AllSetScreen(
     onReviewInfo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("AllSet")
+    }
+    
     // Animation states
     var visible by remember { mutableStateOf(false) }
     

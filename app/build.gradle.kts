@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -7,6 +10,13 @@ plugins {
     id("com.google.gms.google-services")
     id("com.google.firebase.crashlytics")
     id("kotlin-parcelize")
+}
+
+// Load properties from local.properties (git-ignored for security)
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
 }
 
 android {
@@ -24,6 +34,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+        
+        // Securely inject API keys from local.properties into BuildConfig
+        buildConfigField("String", "POSTHOG_API_KEY", "\"${localProperties.getProperty("POSTHOG_API_KEY", "")}\"")
+        buildConfigField("String", "POSTHOG_HOST", "\"${localProperties.getProperty("POSTHOG_HOST", "https://us.i.posthog.com")}\"")
     }
 
     buildTypes {
@@ -47,6 +61,7 @@ android {
     
     buildFeatures {
         compose = true
+        buildConfig = true  // Enable BuildConfig generation
     }
     
     // composeOptions removed - using Kotlin Compose Compiler plugin
@@ -133,6 +148,9 @@ dependencies {
     
     // Document Picker
     implementation("androidx.activity:activity-compose:1.9.3")
+    
+    // PostHog Analytics
+    implementation("com.posthog:posthog-android:3.+")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

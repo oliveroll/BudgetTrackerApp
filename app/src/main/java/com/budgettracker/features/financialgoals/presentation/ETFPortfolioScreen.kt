@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * ETF Portfolio Placeholder Screen
@@ -19,6 +20,11 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun ETFPortfolioScreen() {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("ETFPortfolio")
+    }
+
     ETFPortfolioPlaceholder()
 }
 

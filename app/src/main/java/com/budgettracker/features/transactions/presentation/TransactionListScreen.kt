@@ -35,6 +35,7 @@ import com.budgettracker.core.domain.model.Transaction
 import com.budgettracker.core.domain.model.TransactionCategory
 import com.budgettracker.core.domain.model.TransactionType
 import com.budgettracker.core.utils.rememberCurrencyFormatter
+import com.budgettracker.core.utils.AnalyticsTracker
 import com.budgettracker.features.settings.data.models.CategoryType
 import com.budgettracker.features.settings.presentation.SettingsViewModel
 import com.budgettracker.ui.components.MonthSwitcher
@@ -49,6 +50,11 @@ fun TransactionListScreen(
 onNavigateToAddTransaction: () -> Unit = {},
 settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("Transactions")
+    }
+    
     var transactions by remember { mutableStateOf(emptyList<Transaction>()) }
     var selectedMonth by remember { mutableStateOf(Calendar.getInstance().get(Calendar.MONTH)) }
     var selectedYear by remember { mutableStateOf(Calendar.getInstance().get(Calendar.YEAR)) }

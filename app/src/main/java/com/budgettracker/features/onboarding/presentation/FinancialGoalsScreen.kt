@@ -21,6 +21,7 @@ import com.budgettracker.features.onboarding.domain.models.Currency
 import com.budgettracker.features.onboarding.domain.models.FinancialGoal
 import java.text.NumberFormat
 import java.util.Locale
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Screen 2: Financial Goals
@@ -40,6 +41,11 @@ fun FinancialGoalsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("OnboardingFinancialGoals")
+    }
+    
     val scrollState = rememberScrollState()
     var budgetText by remember { mutableStateOf(monthlyBudget?.toInt()?.toString() ?: "") }
     var savingsText by remember { mutableStateOf(monthlySavingsGoal?.toInt()?.toString() ?: "") }

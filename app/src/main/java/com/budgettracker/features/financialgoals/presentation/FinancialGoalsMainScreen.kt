@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgettracker.core.utils.AnalyticsTracker
 
 /**
  * Main Financial Goals screen with 4 tabs:
@@ -23,6 +24,11 @@ import androidx.compose.ui.unit.dp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinancialGoalsMainScreen() {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("FinancialGoals")
+    }
+
     var selectedTabIndex by remember { mutableStateOf(0) }
     
     Column(

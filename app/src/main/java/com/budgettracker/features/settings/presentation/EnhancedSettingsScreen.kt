@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.budgettracker.features.auth.data.HybridAuthManager
 import com.budgettracker.features.settings.data.models.*
+import com.budgettracker.core.utils.AnalyticsTracker
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,6 +52,11 @@ fun EnhancedSettingsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {}
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("Settings")
+    }
+    
     val context = LocalContext.current
     val authManager = remember { HybridAuthManager(context) }
     val scope = rememberCoroutineScope()

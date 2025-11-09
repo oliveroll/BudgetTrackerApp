@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.budgettracker.core.utils.AnalyticsTracker
 import androidx.compose.ui.unit.sp
 import com.budgettracker.core.data.repository.FirebaseRepository
 import com.budgettracker.core.domain.model.SavingsGoal
@@ -30,6 +31,11 @@ import com.budgettracker.ui.theme.Primary40
 fun SavingsGoalsScreen(
     onNavigateToAddGoal: () -> Unit = {}
 ) {
+    // Track screen view
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenViewed("SavingsGoals")
+    }
+
     val context = LocalContext.current
     val repository = remember { FirebaseRepository(context) }
     val savingsGoals by repository.getSavingsGoalsFlow().collectAsState(initial = emptyList())
