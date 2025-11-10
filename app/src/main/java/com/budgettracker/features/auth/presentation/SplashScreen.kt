@@ -22,7 +22,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun SplashScreen(
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToDashboard: () -> Unit = {}
+    onNavigateToDashboard: () -> Unit = {},
+    onNavigateToOnboarding: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val authManager = remember { HybridAuthManager(context) }
@@ -32,7 +33,47 @@ fun SplashScreen(
         delay(2000) // Show splash for 2 seconds
         
         if (authManager.isSignedIn()) {
-            onNavigateToDashboard()
+            // Wait for Firebase Auth to fully initialize
+            var retries = 0
+            val maxRetries = 10
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            
+            android.util.Log.d("SplashScreen", "User reported as signed in, waiting for Firebase Auth...")
+            
+            // Wait until Firebase Auth currentUser is available
+            while (auth.currentUser == null && retries < maxRetries) {
+                android.util.Log.d("SplashScreen", "Firebase Auth not ready yet, waiting... (attempt ${retries + 1})")
+                delay(200) // Wait 200ms between checks
+                retries++
+            }
+            
+            if (auth.currentUser == null) {
+                android.util.Log.e("SplashScreen", "❌ Firebase Auth failed to initialize after ${maxRetries} attempts")
+                onNavigateToLogin()
+                return@LaunchedEffect
+            }
+            
+            android.util.Log.d("SplashScreen", "✅ Firebase Auth ready! User: ${auth.currentUser?.uid}")
+            
+            // FIXED: Check if onboarding is completed
+            val database = com.budgettracker.core.data.local.database.BudgetTrackerDatabase.getDatabase(context)
+            val settingsRepository = com.budgettracker.features.settings.data.repository.SettingsRepository(
+                userSettingsDao = database.userSettingsDao(),
+                employmentSettingsDao = database.employmentSettingsDao(),
+                customCategoryDao = database.customCategoryDao(),
+                firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance(),
+                auth = auth
+            )
+            
+            val isOnboardingComplete = settingsRepository.isOnboardingCompleted()
+            android.util.Log.d("SplashScreen", "User signed in. Onboarding complete: $isOnboardingComplete")
+            
+            if (isOnboardingComplete) {
+                onNavigateToDashboard()
+            } else {
+                // User is authenticated but hasn't completed onboarding
+                onNavigateToOnboarding()
+            }
         } else {
             onNavigateToLogin()
         }

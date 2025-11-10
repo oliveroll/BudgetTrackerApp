@@ -47,7 +47,7 @@ import com.budgettracker.core.data.local.entities.*
         com.budgettracker.features.settings.data.models.EmploymentSettings::class,
         com.budgettracker.features.settings.data.models.CustomCategory::class
     ],
-    version = 9, // Fix date picker timezone bug: Long → LocalDate (TEXT)
+    version = 10, // Add isOnboardingCompleted to UserSettings
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -474,6 +474,18 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
             }
         }
         
+        private val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add isOnboardingCompleted column to user_settings table
+                database.execSQL("""
+                    ALTER TABLE user_settings 
+                    ADD COLUMN isOnboardingCompleted INTEGER NOT NULL DEFAULT 0
+                """)
+                
+                android.util.Log.d("Migration", "Successfully migrated to version 10: Added isOnboardingCompleted to UserSettings")
+            }
+        }
+        
         fun getDatabase(context: Context): BudgetTrackerDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -481,7 +493,7 @@ abstract class BudgetTrackerDatabase : RoomDatabase() {
                     BudgetTrackerDatabase::class.java,
                     DATABASE_NAME
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9) // Add migrations
+                .addMigrations(MIGRATION_1_2, MIGRATION_3_4, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10) // Add migrations
                 .fallbackToDestructiveMigration() // Allow database recreation on schema changes (dev mode)
                 .build()
                 INSTANCE = instance

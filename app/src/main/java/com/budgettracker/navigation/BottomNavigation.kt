@@ -1,17 +1,19 @@
 package com.budgettracker.navigation
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalView
 // import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 
 /**
- * Bottom navigation bar for main app screens
+ * Bottom navigation bar for main app screens with haptic feedback
  */
 @Composable
 fun BudgetTrackerBottomNavigation(
@@ -20,6 +22,9 @@ fun BudgetTrackerBottomNavigation(
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+    
+    // Get the current view for haptic feedback
+    val view = LocalView.current
     
     NavigationBar {
         items.forEach { item ->
@@ -33,7 +38,10 @@ fun BudgetTrackerBottomNavigation(
                 label = { Text(item.label) },
                 selected = currentRoute == item.route,
                 onClick = {
-                    // Simple navigation - just navigate to the route
+                    // Provide haptic feedback for tab selection
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    
+                    // Navigate to the selected route
                     navController.navigate(item.route) {
                         // Clear back stack to avoid building up destinations
                         popUpTo(BudgetTrackerDestinations.DASHBOARD_ROUTE) {

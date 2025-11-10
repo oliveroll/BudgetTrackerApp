@@ -203,6 +203,10 @@ class OnboardingViewModel @Inject constructor(
 
                 settingsRepository.saveEmploymentSettings(employmentToSave)
 
+                // FIXED: Mark onboarding as completed
+                settingsRepository.markOnboardingComplete()
+                android.util.Log.d("OnboardingViewModel", "✅ Onboarding completed and marked")
+
                 _isLoading.value = false
                 onSuccess()
             } catch (e: Exception) {

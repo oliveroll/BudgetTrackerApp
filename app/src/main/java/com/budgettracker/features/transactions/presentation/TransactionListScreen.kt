@@ -823,9 +823,18 @@ private fun ModernEditTransactionDialog(
     var showCategoryDropdown by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     
-    // FIXED: Convert LocalDate to UTC millis for DatePicker
+    // FIXED: Safely compute date millis for DatePicker
+    val initialDateMillis = remember {
+        try {
+            selectedDate.atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
+        } catch (e: Exception) {
+            android.util.Log.e("EditDialog", "Error initializing date: ${e.message}")
+            java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
+        }
+    }
+    
     val datePickerState = rememberDatePickerState(
-        initialSelectedDateMillis = selectedDate.atStartOfDay(java.time.ZoneId.of("UTC")).toInstant().toEpochMilli()
+        initialSelectedDateMillis = initialDateMillis
     )
     
     Dialog(onDismissRequest = onDismiss) {
@@ -1054,10 +1063,16 @@ private fun ModernEditTransactionDialog(
                     
                     // Date Picker
                     OutlinedTextField(
-                        value = SimpleDateFormat("MMM dd, yyyy - h:mm a", Locale.getDefault()).format(selectedDate),
+                        value = try {
+                            // FIXED: LocalDate has no time component, just show date
+                            selectedDate.format(java.time.format.DateTimeFormatter.ofPattern("MMM dd, yyyy", Locale.getDefault()))
+                        } catch (e: Exception) {
+                            android.util.Log.e("EditDialog", "Error formatting date: ${e.message}")
+                            "Select date"
+                        },
                         onValueChange = { },
                         readOnly = true,
-                        label = { Text("Date & Time") },
+                        label = { Text("Date") },
                         leadingIcon = {
                             Icon(Icons.Default.Event, contentDescription = null)
                         },
@@ -1097,16 +1112,22 @@ private fun ModernEditTransactionDialog(
                         Button(
                             onClick = {
                                 if (amount.isNotBlank() && description.isNotBlank()) {
-                                    val updatedTransaction = transaction.copy(
-                                        amount = amount.toDoubleOrNull() ?: transaction.amount,
-                                        description = description,
-                                        category = selectedCategory,
-                                        type = selectedType,
-                                        notes = notes.ifBlank { null },
-                                        date = selectedDate,
-                                        updatedAt = Date()
-                                    )
-                                    onSave(updatedTransaction)
+                                    try {
+                                        val updatedTransaction = transaction.copy(
+                                            amount = amount.toDoubleOrNull() ?: transaction.amount,
+                                            description = description,
+                                            category = selectedCategory,
+                                            type = selectedType,
+                                            notes = notes.ifBlank { null },
+                                            date = selectedDate,
+                                            updatedAt = Date()
+                                        )
+                                        onSave(updatedTransaction)
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("EditDialog", "Error saving transaction: ${e.message}")
+                                        // Still dismiss dialog even if save fails
+                                        onDismiss()
+                                    }
                                 }
                             },
                             enabled = amount.isNotBlank() && description.isNotBlank(),

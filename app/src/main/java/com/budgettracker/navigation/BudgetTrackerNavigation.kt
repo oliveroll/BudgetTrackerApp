@@ -1,6 +1,13 @@
 package com.budgettracker.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,7 +38,77 @@ import com.budgettracker.features.settings.presentation.EnhancedSettingsScreen
 import com.budgettracker.features.onboarding.presentation.OnboardingFlow
 
 /**
- * Main navigation component for Budget Tracker app
+ * Tab routes in order for determining animation direction
+ */
+private val tabRoutes = listOf(
+    BudgetTrackerDestinations.DASHBOARD_ROUTE,
+    BudgetTrackerDestinations.TRANSACTIONS_ROUTE,
+    BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE,
+    BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE
+)
+
+/**
+ * Get enter transition for tab navigation
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.getTabEnterTransition(): EnterTransition {
+    val initialRoute = initialState.destination.route
+    val targetRoute = targetState.destination.route
+    
+    val initialIndex = tabRoutes.indexOf(initialRoute)
+    val targetIndex = tabRoutes.indexOf(targetRoute)
+    
+    // Only animate if both routes are tabs
+    if (initialIndex == -1 || targetIndex == -1) {
+        return fadeIn(animationSpec = tween(300))
+    }
+    
+    return if (targetIndex > initialIndex) {
+        // Moving forward (right to left)
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+            animationSpec = tween(400)
+        ) + fadeIn(animationSpec = tween(300))
+    } else {
+        // Moving backward (left to right)
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+            animationSpec = tween(400)
+        ) + fadeIn(animationSpec = tween(300))
+    }
+}
+
+/**
+ * Get exit transition for tab navigation
+ */
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.getTabExitTransition(): ExitTransition {
+    val initialRoute = initialState.destination.route
+    val targetRoute = targetState.destination.route
+    
+    val initialIndex = tabRoutes.indexOf(initialRoute)
+    val targetIndex = tabRoutes.indexOf(targetRoute)
+    
+    // Only animate if both routes are tabs
+    if (initialIndex == -1 || targetIndex == -1) {
+        return fadeOut(animationSpec = tween(300))
+    }
+    
+    return if (targetIndex > initialIndex) {
+        // Moving forward (right to left)
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+            animationSpec = tween(400)
+        ) + fadeOut(animationSpec = tween(300))
+    } else {
+        // Moving backward (left to right)
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+            animationSpec = tween(400)
+        ) + fadeOut(animationSpec = tween(300))
+    }
+}
+
+/**
+ * Main navigation component for Budget Tracker app with animated transitions
  */
 @Composable
 fun BudgetTrackerNavigation(
@@ -56,6 +133,12 @@ fun BudgetTrackerNavigation(
                     navController.navigate(BudgetTrackerDestinations.DASHBOARD_ROUTE) {
                         popUpTo(BudgetTrackerDestinations.SPLASH_ROUTE) { inclusive = true }
                     }
+                },
+                onNavigateToOnboarding = {
+                    // FIXED: Resume onboarding if incomplete
+                    navController.navigate(BudgetTrackerDestinations.ONBOARDING_ROUTE) {
+                        popUpTo(BudgetTrackerDestinations.SPLASH_ROUTE) { inclusive = true }
+                    }
                 }
             )
         }
@@ -69,6 +152,12 @@ fun BudgetTrackerNavigation(
                 },
                 onNavigateToRegister = {
                     navController.navigate(BudgetTrackerDestinations.REGISTER_ROUTE)
+                },
+                onNavigateToOnboarding = {
+                    // FIXED: New Google users go to onboarding
+                    navController.navigate(BudgetTrackerDestinations.ONBOARDING_ROUTE) {
+                        popUpTo(BudgetTrackerDestinations.LOGIN_ROUTE) { inclusive = true }
+                    }
                 }
             )
         }
@@ -97,8 +186,12 @@ fun BudgetTrackerNavigation(
             )
         }
         
-        // Main App Flow
-        composable(BudgetTrackerDestinations.DASHBOARD_ROUTE) {
+        // Main App Flow - Tab screens with animations
+        composable(
+            route = BudgetTrackerDestinations.DASHBOARD_ROUTE,
+            enterTransition = { getTabEnterTransition() },
+            exitTransition = { getTabExitTransition() }
+        ) {
             ModernDashboardScreen(
                 onNavigateToAddTransaction = {
                     navController.navigate(BudgetTrackerDestinations.ADD_TRANSACTION_ROUTE)
@@ -121,7 +214,11 @@ fun BudgetTrackerNavigation(
             )
         }
         
-        composable(BudgetTrackerDestinations.TRANSACTIONS_ROUTE) {
+        composable(
+            route = BudgetTrackerDestinations.TRANSACTIONS_ROUTE,
+            enterTransition = { getTabEnterTransition() },
+            exitTransition = { getTabExitTransition() }
+        ) {
             TransactionListScreen(
                 onNavigateToAddTransaction = {
                     navController.navigate(BudgetTrackerDestinations.ADD_TRANSACTION_ROUTE)
@@ -157,7 +254,11 @@ fun BudgetTrackerNavigation(
             // TODO: EditTransactionScreen(transactionId)
         }
         
-        composable(BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE) {
+        composable(
+            route = BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE,
+            enterTransition = { getTabEnterTransition() },
+            exitTransition = { getTabExitTransition() }
+        ) {
             MobileBudgetOverviewScreen()
         }
         
@@ -210,7 +311,11 @@ fun BudgetTrackerNavigation(
         }
         
         // Financial Goals - New Feature
-        composable(BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE) {
+        composable(
+            route = BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE,
+            enterTransition = { getTabEnterTransition() },
+            exitTransition = { getTabExitTransition() }
+        ) {
             FinancialGoalsMainScreen()
         }
         

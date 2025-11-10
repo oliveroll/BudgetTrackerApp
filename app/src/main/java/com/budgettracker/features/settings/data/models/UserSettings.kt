@@ -32,6 +32,9 @@ data class UserSettings(
     // Biometric Settings (placeholder)
     val biometricEnabled: Boolean = false,
     
+    // Onboarding status
+    val isOnboardingCompleted: Boolean = false,
+    
     // Sync metadata
     val lastSyncedAt: Long? = null,
     val updatedAt: Long = System.currentTimeMillis(),
@@ -178,6 +181,7 @@ fun UserSettings.toFirestoreMap(): Map<String, Any?> {
         "currencySymbol" to currencySymbol,
         "themeMode" to themeMode,
         "biometricEnabled" to biometricEnabled,
+        "isOnboardingCompleted" to isOnboardingCompleted,
         "updatedAt" to Timestamp.now(),
         "createdAt" to Timestamp(java.util.Date(createdAt))
     )

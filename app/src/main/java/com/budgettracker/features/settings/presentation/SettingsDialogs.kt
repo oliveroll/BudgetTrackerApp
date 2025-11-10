@@ -456,7 +456,9 @@ fun CategoryDialog(
 @Composable
 fun DeleteAccountDialog(
     onDismiss: () -> Unit,
-    onConfirm: (password: String) -> Unit
+    onConfirm: (password: String) -> Unit,
+    onConfirmGoogle: () -> Unit,
+    isGoogleUser: Boolean
 ) {
     var password by remember { mutableStateOf("") }
     var confirmText by remember { mutableStateOf("") }
@@ -519,18 +521,45 @@ fun DeleteAccountDialog(
                     isError = error != null
                 )
                 
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { 
-                        password = it
-                        error = null
-                    },
-                    label = { Text("Password") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = error != null
-                )
+                // Only show password field for email/password users
+                if (!isGoogleUser) {
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { 
+                            password = it
+                            error = null
+                        },
+                        label = { Text("Password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = error != null
+                    )
+                } else {
+                    // Info for Google users
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "You signed in with Google. You'll be asked to sign in with Google again to confirm account deletion.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
                 
                 if (error != null) {
                     Text(
@@ -546,9 +575,13 @@ fun DeleteAccountDialog(
                 onClick = {
                     when {
                         confirmText != "DELETE" -> error = "Please type DELETE to confirm"
-                        password.isEmpty() -> error = "Password is required"
+                        !isGoogleUser && password.isEmpty() -> error = "Password is required"
                         else -> {
-                            onConfirm(password)
+                            if (isGoogleUser) {
+                                onConfirmGoogle()
+                            } else {
+                                onConfirm(password)
+                            }
                         }
                     }
                 },
@@ -556,7 +589,7 @@ fun DeleteAccountDialog(
                     containerColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete Account")
+                Text(if (isGoogleUser) "Continue with Google" else "Delete Account")
             }
         },
         dismissButton = {

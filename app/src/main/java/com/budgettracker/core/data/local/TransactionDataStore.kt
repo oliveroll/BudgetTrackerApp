@@ -21,12 +21,14 @@ import com.budgettracker.core.utils.Result as RepositoryResult
 
 /**
  * Singleton data store with Firebase persistence
+ * FIXED: Proper account scoping - data is cleared on user change
  */
 object TransactionDataStore {
     
     private var _transactions = mutableListOf<Transaction>()
     private val parsedDocuments = mutableSetOf<String>()
     private var isInitialized = false
+    private var currentUserId: String? = null // Track current user
     
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -41,8 +43,52 @@ object TransactionDataStore {
         budgetRepository = repository
     }
     
+    /**
+     * Get current user ID from Firebase Auth
+     * FIXED: Throws exception if no user logged in (prevents data leaks)
+     */
     private fun getCurrentUserId(): String {
-        return auth.currentUser?.uid ?: "demo_user"
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            android.util.Log.e("TransactionDataStore", "❌ No user logged in! Cannot access transactions.")
+            throw IllegalStateException("User must be logged in to access transactions")
+        }
+        return userId
+    }
+    
+    /**
+     * Check if user has changed and clear data if necessary
+     * Returns true if user changed (data was cleared)
+     */
+    private fun checkUserChanged(): Boolean {
+        val newUserId = auth.currentUser?.uid
+        
+        // If user changed (including logout -> null)
+        if (newUserId != currentUserId) {
+            android.util.Log.d("TransactionDataStore", "🔄 User changed: $currentUserId -> $newUserId")
+            
+            // Clear all local data
+            _transactions.clear()
+            parsedDocuments.clear()
+            isInitialized = false
+            currentUserId = newUserId
+            
+            android.util.Log.d("TransactionDataStore", "✅ Cleared local data for user switch")
+            return true
+        }
+        
+        return false
+    }
+    
+    /**
+     * Clear all local data (call on sign-out)
+     */
+    fun clearLocalData() {
+        android.util.Log.d("TransactionDataStore", "🗑️ Clearing all local data (sign-out)")
+        _transactions.clear()
+        parsedDocuments.clear()
+        isInitialized = false
+        currentUserId = null
     }
     
     /**
@@ -50,12 +96,16 @@ object TransactionDataStore {
      * Set forceReload = true to bypass initialization check
      * 
      * MIGRATION STRATEGY: Read from BOTH legacy root collection AND new user subcollection
+     * FIXED: Auto-detects user changes and clears old data
      */
     suspend fun initializeFromFirebase(forceReload: Boolean = false) {
-        if (isInitialized && !forceReload) return
+        // Check if user changed - if so, data was already cleared
+        val userChanged = checkUserChanged()
+        
+        if (isInitialized && !forceReload && !userChanged) return
         
         try {
-            val userId = getCurrentUserId()
+            val userId = getCurrentUserId() // Will throw if no user logged in
             android.util.Log.d("TransactionDataStore", "Loading transactions from Firebase for user: $userId")
             
             // 1. Load from NEW user subcollection (preferred)
@@ -130,8 +180,12 @@ object TransactionDataStore {
     
     /**
      * Get all transactions sorted by date (newest first)
+     * FIXED: Checks for user changes before returning data
      */
     fun getTransactions(): List<Transaction> {
+        // Check if user changed
+        checkUserChanged()
+        
         return _transactions.sortedByDescending { it.date }
     }
     
@@ -333,8 +387,12 @@ object TransactionDataStore {
     
     /**
      * Get transactions for specific month/year sorted by date (newest first)
+     * FIXED: Checks for user changes before returning data
      */
     fun getTransactionsForMonth(month: Int, year: Int): List<Transaction> {
+        // Check if user changed
+        checkUserChanged()
+        
         return _transactions.filter { transaction ->
             // FIXED: Use LocalDate methods instead of Calendar
             transaction.date.monthValue == (month + 1) && transaction.date.year == year

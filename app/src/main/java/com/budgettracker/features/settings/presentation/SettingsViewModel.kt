@@ -95,6 +95,14 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(showDeleteAccountDialog = false) }
     }
     
+    fun showDeleteSuccessDialog() {
+        _uiState.update { it.copy(showDeleteSuccessDialog = true) }
+    }
+    
+    fun hideDeleteSuccessDialog() {
+        _uiState.update { it.copy(showDeleteSuccessDialog = false) }
+    }
+    
     fun setMessage(message: String) {
         _uiState.update { it.copy(message = message) }
     }
@@ -275,7 +283,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
     
-    fun deleteAccount(password: String, onSuccess: () -> Unit) {
+    /**
+     * Get the sign-in provider (email or google.com)
+     */
+    fun getSignInProvider(): String? {
+        return repository.getSignInProvider()
+    }
+    
+    /**
+     * Delete account (for email/password users)
+     */
+    fun deleteAccount(password: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             
@@ -283,9 +301,35 @@ class SettingsViewModel @Inject constructor(
                 is Result.Success -> {
                     _uiState.update { it.copy(
                         isLoading = false,
-                        showDeleteAccountDialog = false
+                        showDeleteAccountDialog = false,
+                        showDeleteSuccessDialog = true
                     )}
-                    onSuccess()
+                }
+                is Result.Error -> {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        error = result.message
+                    )}
+                }
+            }
+        }
+    }
+    
+    /**
+     * Delete account (for Google Sign-In users)
+     * Requires Google Sign-In ID token for re-authentication
+     */
+    fun deleteAccountGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            
+            when (val result = repository.deleteAccountWithGoogleReauth(idToken)) {
+                is Result.Success -> {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        showDeleteAccountDialog = false,
+                        showDeleteSuccessDialog = true
+                    )}
                 }
                 is Result.Error -> {
                     _uiState.update { it.copy(
@@ -311,6 +355,7 @@ data class SettingsUiState(
     val showEmploymentDialog: Boolean = false,
     val showCategoryDialog: Boolean = false,
     val showDeleteAccountDialog: Boolean = false,
+    val showDeleteSuccessDialog: Boolean = false,
     
     // Editing state
     val editingCategory: CustomCategory? = null

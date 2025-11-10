@@ -85,6 +85,94 @@ class SettingsRepository @Inject constructor(
         }
     }
     
+    /**
+     * Mark onboarding as completed for current user
+     */
+    suspend fun markOnboardingComplete(): Result<Unit> {
+        return try {
+            val userId = currentUserId ?: return Result.Error("Not authenticated")
+            Log.d(TAG, "🟢 Marking onboarding complete for user: $userId")
+            
+            // First, ensure user settings exist
+            val existingSettings = userSettingsDao.getUserSettings(userId)
+            if (existingSettings == null) {
+                Log.d(TAG, "⚠️ No user settings found, initializing first...")
+                initializeUserSettings()
+            }
+            
+            val settings = userSettingsDao.getUserSettings(userId) 
+                ?: return Result.Error("User settings not found even after initialization")
+            
+            Log.d(TAG, "📝 Current onboarding status: ${settings.isOnboardingCompleted}")
+            
+            val updatedSettings = settings.copy(
+                isOnboardingCompleted = true,
+                updatedAt = System.currentTimeMillis()
+            )
+            
+            userSettingsDao.updateUserSettings(updatedSettings)
+            Log.d(TAG, "💾 Saved to database")
+            
+            syncUserSettingsToFirestore(updatedSettings)
+            Log.d(TAG, "☁️ Synced to Firestore")
+            
+            // Verify it was saved
+            val verified = userSettingsDao.getUserSettings(userId)
+            Log.d(TAG, "✅ Onboarding marked as complete. Verified: ${verified?.isOnboardingCompleted}")
+            
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to mark onboarding complete", e)
+            Result.Error("Failed to complete onboarding: ${e.message}")
+        }
+    }
+    
+    /**
+     * Check if user has completed onboarding
+     */
+    suspend fun isOnboardingCompleted(): Boolean {
+        return try {
+            val userId = currentUserId
+            Log.d(TAG, "🔍 Checking onboarding status for user: $userId")
+            
+            if (userId == null) {
+                Log.d(TAG, "❌ No user ID - returning false")
+                return false
+            }
+            
+            // First, try Room database
+            val settings = userSettingsDao.getUserSettings(userId)
+            Log.d(TAG, "📋 User settings from Room: ${settings != null}")
+            
+            if (settings != null) {
+                val completed = settings.isOnboardingCompleted
+                Log.d(TAG, "✅ Room says onboarding completed: $completed")
+                return completed
+            }
+            
+            // If not in Room, check Firestore as fallback
+            Log.d(TAG, "⚠️ No settings in Room, checking Firestore...")
+            val firestoreDoc = firestore.collection("users")
+                .document(userId)
+                .collection("settings")
+                .document("user_settings")
+                .get()
+                .await()
+            
+            if (firestoreDoc.exists()) {
+                val completed = firestoreDoc.getBoolean("isOnboardingCompleted") ?: false
+                Log.d(TAG, "✅ Firestore says onboarding completed: $completed")
+                return completed
+            }
+            
+            Log.d(TAG, "❌ No settings found in Room or Firestore - returning false")
+            false
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to check onboarding status", e)
+            false
+        }
+    }
+    
     private suspend fun syncUserSettingsToFirestore(settings: UserSettings) {
         try {
             val userId = currentUserId ?: return
@@ -336,6 +424,42 @@ class SettingsRepository @Inject constructor(
         }
     }
     
+    /**
+     * Get the sign-in provider for the current user
+     * Returns "google.com" for Google Sign-In, "password" for email/password
+     */
+    fun getSignInProvider(): String? {
+        val user = auth.currentUser ?: return null
+        
+        // Log all providers for debugging
+        user.providerData.forEach { userInfo ->
+            Log.d(TAG, "Provider: ${userInfo.providerId}")
+        }
+        
+        // Check if user has Google Sign-In provider
+        // Note: providerData includes "firebase" as first item, so we need to filter
+        val googleProvider = user.providerData.find { it.providerId == "google.com" }
+        if (googleProvider != null) {
+            Log.d(TAG, "✅ User signed in with Google")
+            return "google.com"
+        }
+        
+        // Check if user has email/password provider
+        val passwordProvider = user.providerData.find { it.providerId == "password" }
+        if (passwordProvider != null) {
+            Log.d(TAG, "✅ User signed in with email/password")
+            return "password"
+        }
+        
+        // Fallback: return first non-firebase provider
+        val provider = user.providerData.firstOrNull { it.providerId != "firebase" }?.providerId
+        Log.d(TAG, "Provider detected: $provider")
+        return provider
+    }
+    
+    /**
+     * Delete account with password (for email/password users)
+     */
     suspend fun deleteAccount(password: String): Result<Unit> {
         return try {
             val user = auth.currentUser ?: return Result.Error("Not authenticated")
@@ -355,6 +479,7 @@ class SettingsRepository @Inject constructor(
             // Delete Firebase Auth user
             user.delete().await()
             
+            Log.d(TAG, "✅ Account deleted successfully (email/password)")
             Result.Success(Unit)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to delete account", e)
@@ -363,6 +488,43 @@ class SettingsRepository @Inject constructor(
                     "Incorrect password."
                 e.message?.contains("requires-recent-login") == true -> 
                     "Please sign out and sign in again before deleting your account."
+                else -> "Failed to delete account: ${e.message}"
+            }
+            Result.Error(errorMessage)
+        }
+    }
+    
+    /**
+     * Re-authenticate with Google and delete account
+     * This handles the "requires-recent-login" error by re-authenticating first
+     */
+    suspend fun deleteAccountWithGoogleReauth(idToken: String): Result<Unit> {
+        return try {
+            val user = auth.currentUser ?: return Result.Error("Not authenticated")
+            val userId = user.uid
+            
+            // Re-authenticate with Google first
+            Log.d(TAG, "Re-authenticating with Google before account deletion...")
+            val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+            user.reauthenticate(credential).await()
+            Log.d(TAG, "✅ Re-authentication successful")
+            
+            // Now delete Firestore data
+            deleteUserDataFromFirestore(userId)
+            
+            // Delete Room data
+            userSettingsDao.deleteUserSettings(userId)
+            
+            // Delete Firebase Auth user
+            user.delete().await()
+            
+            Log.d(TAG, "✅ Account deleted successfully (Google Sign-In)")
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete account", e)
+            val errorMessage = when {
+                e.message?.contains("requires-recent-login") == true -> 
+                    "Re-authentication failed. Please try again."
                 else -> "Failed to delete account: ${e.message}"
             }
             Result.Error(errorMessage)

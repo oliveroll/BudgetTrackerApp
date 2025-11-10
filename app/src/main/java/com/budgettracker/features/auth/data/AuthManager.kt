@@ -62,12 +62,17 @@ class AuthManager(private val context: Context) {
     
     /**
      * Sign in with Google credential
+     * Returns Pair<FirebaseUser, isNewUser> to indicate if this is first-time sign-in
      */
-    suspend fun signInWithGoogle(idToken: String): Result<FirebaseUser> {
+    suspend fun signInWithGoogle(idToken: String): Result<Pair<FirebaseUser, Boolean>> {
         return try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             val result = firebaseAuth.signInWithCredential(credential).await()
-            Result.success(result.user!!)
+            val user = result.user!!
+            // Check if this is a new user (first time signing in)
+            val isNewUser = result.additionalUserInfo?.isNewUser ?: false
+            android.util.Log.d("AuthManager", "Google Sign-In: isNewUser = $isNewUser")
+            Result.success(Pair(user, isNewUser))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -77,6 +82,18 @@ class AuthManager(private val context: Context) {
      * Get Google Sign-In client for activity result
      */
     fun getGoogleSignInClient(): GoogleSignInClient = googleSignInClient
+    
+    /**
+     * Sign out from Google to force account picker on next sign-in
+     */
+    suspend fun signOutFromGoogle() {
+        try {
+            googleSignInClient.signOut().await()
+            android.util.Log.d("AuthManager", "✅ Signed out from Google - account picker will show")
+        } catch (e: Exception) {
+            android.util.Log.e("AuthManager", "Failed to sign out from Google: ${e.message}")
+        }
+    }
     
     /**
      * Sign out

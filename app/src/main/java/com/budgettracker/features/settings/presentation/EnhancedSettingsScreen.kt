@@ -70,6 +70,35 @@ fun EnhancedSettingsScreen(
     // Snackbar
     val snackbarHostState = remember { SnackbarHostState() }
     
+    // Google Sign-In launcher for re-authentication before account deletion
+    val googleSignInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        android.util.Log.d("EnhancedSettingsScreen", "🔵 Google Sign-In result received, resultCode: ${result.resultCode}")
+        
+        // Hide dialog first
+        viewModel.hideDeleteAccountDialog()
+        
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
+                android.util.Log.d("EnhancedSettingsScreen", "✅ Got Google account: ${account.email}")
+                account.idToken?.let { idToken ->
+                    android.util.Log.d("EnhancedSettingsScreen", "✅ Got ID token, proceeding with account deletion")
+                    // Re-authenticate and delete account
+                    viewModel.deleteAccountGoogle(idToken)
+                } ?: run {
+                    android.util.Log.e("EnhancedSettingsScreen", "❌ No ID token received")
+                }
+            } catch (e: com.google.android.gms.common.api.ApiException) {
+                android.util.Log.e("EnhancedSettingsScreen", "❌ Google Sign-In failed: ${e.statusCode} - ${e.message}")
+            }
+        } else {
+            android.util.Log.d("EnhancedSettingsScreen", "Google Sign-In cancelled by user")
+        }
+    }
+    
     // Handle messages and errors
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
@@ -250,11 +279,81 @@ fun EnhancedSettingsScreen(
     }
     
     if (uiState.showDeleteAccountDialog) {
+        val signInProvider = viewModel.getSignInProvider()
+        val isGoogleUser = signInProvider == "google.com"
+        
+        android.util.Log.d("EnhancedSettingsScreen", "🔍 Sign-in provider: $signInProvider")
+        android.util.Log.d("EnhancedSettingsScreen", "🔍 Is Google user: $isGoogleUser")
+        
         DeleteAccountDialog(
             onDismiss = { viewModel.hideDeleteAccountDialog() },
             onConfirm = { password ->
-                viewModel.deleteAccount(password) {
-                    onNavigateToLogin()
+                viewModel.deleteAccount(password)
+            },
+            onConfirmGoogle = {
+                // Trigger Google Sign-In for re-authentication
+                android.util.Log.d("EnhancedSettingsScreen", "🔵 Google delete triggered - launching Google Sign-In")
+                try {
+                    val googleSignInClient = authManager.getGoogleSignInClient()
+                    android.util.Log.d("EnhancedSettingsScreen", "🔵 Got Google Sign-In client")
+                    val signInIntent = googleSignInClient.signInIntent
+                    android.util.Log.d("EnhancedSettingsScreen", "🔵 Launching Google Sign-In intent")
+                    googleSignInLauncher.launch(signInIntent)
+                    // Don't hide dialog yet - let launcher handle it
+                } catch (e: Exception) {
+                    android.util.Log.e("EnhancedSettingsScreen", "❌ Failed to launch Google Sign-In: ${e.message}")
+                    viewModel.hideDeleteAccountDialog()
+                }
+            },
+            isGoogleUser = isGoogleUser
+        )
+    }
+    
+    // Success Dialog after account deletion
+    if (uiState.showDeleteSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = Color(0xFF28a745),
+                    modifier = Modifier.size(64.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "✅ Account Deleted",
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Your account and all associated data have been permanently deleted.",
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Thank you for using Kinova!",
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.hideDeleteSuccessDialog()
+                        onNavigateToLogin()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("OK")
                 }
             }
         )

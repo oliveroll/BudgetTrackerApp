@@ -3,8 +3,11 @@ package com.budgettracker.features.auth.presentation
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,16 +15,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.budgettracker.R
+import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.features.auth.data.HybridAuthManager
-import com.budgettracker.ui.theme.Primary40
-import com.budgettracker.ui.theme.Secondary40
 import com.budgettracker.core.utils.AnalyticsTracker
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
@@ -34,7 +38,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(
     onNavigateToDashboard: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {},
+    onNavigateToOnboarding: () -> Unit = {}
 ) {
     // Track screen view
     LaunchedEffect(Unit) {
@@ -63,7 +68,25 @@ fun LoginScreen(
                     scope.launch {
                         val authResult = authManager.signInWithGoogle(idToken)
                         if (authResult.isSuccess) {
-                            onNavigateToDashboard()
+                            val (user, isNewUser) = authResult.getOrNull()!!
+                            android.util.Log.d("LoginScreen", "Google Sign-In success: user=${user.email}, isNewUser=$isNewUser")
+                            
+                            // FIXED: Initialize TransactionDataStore
+                            try {
+                                TransactionDataStore.initializeFromFirebase(forceReload = true)
+                                android.util.Log.d("LoginScreen", "✅ Initialized data for user (Google)")
+                            } catch (e: Exception) {
+                                android.util.Log.e("LoginScreen", "Failed to initialize: ${e.message}")
+                            }
+                            
+                            // FIXED: Route to onboarding for new users, dashboard for existing
+                            if (isNewUser) {
+                                android.util.Log.d("LoginScreen", "🆕 New user → Navigating to onboarding")
+                                onNavigateToOnboarding()
+                            } else {
+                                android.util.Log.d("LoginScreen", "👤 Existing user → Navigating to dashboard")
+                                onNavigateToDashboard()
+                            }
                         } else {
                             errorMessage = "Google Sign-In failed: ${authResult.exceptionOrNull()?.message}"
                         }
@@ -82,77 +105,66 @@ fun LoginScreen(
         }
     }
     
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Primary40, Secondary40)
-                )
-            )
+            .background(MaterialTheme.colorScheme.surface)
+            .verticalScroll(rememberScrollState())
     ) {
+        // Top section with logo and title
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth()
+                .padding(top = 32.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // App Logo and Title
-            Card(
-                modifier = Modifier.size(80.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
-                )
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "💰",
-                        style = MaterialTheme.typography.headlineMedium
-                    )
-                }
-            }
+            Image(
+                painter = painterResource(id = R.drawable.app_logo),
+                contentDescription = "KINOVA Logo",
+                modifier = Modifier.size(90.dp),
+                contentScale = ContentScale.Fit
+            )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
-                text = "Budget Tracker",
+                text = "KINOVA",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.surface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             )
             
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(2.dp))
             
             Text(
                 text = "Welcome back!",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             )
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            // Login Form
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-                )
+        }
+        
+        // Login Form Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "Sign In",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
+                Text(
+                    text = "Sign In",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
                     
                     // Error Message
                     if (errorMessage.isNotEmpty()) {
@@ -217,6 +229,13 @@ fun LoginScreen(
                             scope.launch {
                                 val result = authManager.signInWithEmailAndPassword(email, password)
                                 if (result.isSuccess) {
+                                    // FIXED: Initialize TransactionDataStore for new user
+                                    try {
+                                        TransactionDataStore.initializeFromFirebase(forceReload = true)
+                                        android.util.Log.d("LoginScreen", "✅ Initialized data for user")
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("LoginScreen", "Failed to initialize: ${e.message}")
+                                    }
                                     onNavigateToDashboard()
                                 } else {
                                     errorMessage = result.exceptionOrNull()?.message ?: "Login failed"
@@ -243,8 +262,13 @@ fun LoginScreen(
                             // Launch real Google Sign-In with account selection
                             isLoading = true
                             errorMessage = ""
-                            val signInIntent = authManager.getGoogleSignInClient().signInIntent
-                            googleSignInLauncher.launch(signInIntent)
+                            scope.launch {
+                                // Sign out from Google first to force account picker
+                                authManager.signOutFromGoogle()
+                                // Now launch sign-in
+                                val signInIntent = authManager.getGoogleSignInClient().signInIntent
+                                googleSignInLauncher.launch(signInIntent)
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isLoading
@@ -257,41 +281,53 @@ fun LoginScreen(
                         Text("Sign in with Google")
                     }
                     
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // Register Link
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "Don't have an account? ",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        TextButton(
-                            onClick = onNavigateToRegister
-                        ) {
-                            Text("Sign Up")
-                        }
-                    }
-                }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            // Demo credentials info
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Register Link - Outside card for better visibility
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Don't have an account?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = onNavigateToRegister,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "Demo: Enter any email and password to continue",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(12.dp),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    text = "Sign Up",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
             }
+        }
+        
+        // Demo credentials info
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Text(
+                text = "Demo: Enter any email and password to continue",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(12.dp),
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
         }
     }
 }

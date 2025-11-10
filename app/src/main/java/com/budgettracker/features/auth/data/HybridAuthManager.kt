@@ -1,6 +1,7 @@
 package com.budgettracker.features.auth.data
 
 import android.content.Context
+import com.budgettracker.core.data.local.TransactionDataStore
 import com.budgettracker.core.data.repository.FirebaseRepository
 import com.budgettracker.features.auth.data.LocalAuthManager
 import com.budgettracker.features.auth.data.AuthManager
@@ -106,30 +107,43 @@ class HybridAuthManager(private val context: Context) {
     
     /**
      * Sign in with Google using ID token (tries Firebase first, falls back to local)
+     * Returns Pair<User, isNewUser> to indicate if this is first-time sign-in
      */
-    suspend fun signInWithGoogle(idToken: String): Result<User> {
+    suspend fun signInWithGoogle(idToken: String): Result<Pair<User, Boolean>> {
         return try {
             // Try Firebase Google Sign-In first
             val firebaseResult = firebaseAuthManager.signInWithGoogle(idToken)
             if (firebaseResult.isSuccess) {
-                val firebaseUser = firebaseResult.getOrNull()!!
+                val (firebaseUser, isNewUser) = firebaseResult.getOrNull()!!
                 val user = User(
                     id = firebaseUser.uid,
                     email = firebaseUser.email ?: "",
                     name = firebaseUser.displayName ?: ""
                 )
+                android.util.Log.d("HybridAuthManager", "Google Sign-In: User = ${user.email}, isNewUser = $isNewUser")
+                
                 // Also save to local for offline access
                 localAuthManager.signInWithGoogle(user.email, user.name)
                 // Initialize user data and sync
                 firebaseRepository.initializeUserData(firebaseUser)
-                Result.success(user)
+                Result.success(Pair(user, isNewUser))
             } else {
-                // Fall back to local with demo data
-                localAuthManager.signInWithGoogle("ollesch.oliver@gmail.com", "Oliver Ollesch")
+                // Fall back to local with demo data (consider as existing user)
+                val result = localAuthManager.signInWithGoogle("ollesch.oliver@gmail.com", "Oliver Ollesch")
+                if (result.isSuccess) {
+                    Result.success(Pair(result.getOrNull()!!, false))
+                } else {
+                    Result.failure(result.exceptionOrNull()!!)
+                }
             }
         } catch (e: Exception) {
-            // Fall back to local with demo data
-            localAuthManager.signInWithGoogle("ollesch.oliver@gmail.com", "Oliver Ollesch")
+            // Fall back to local with demo data (consider as existing user)
+            val result = localAuthManager.signInWithGoogle("ollesch.oliver@gmail.com", "Oliver Ollesch")
+            if (result.isSuccess) {
+                Result.success(Pair(result.getOrNull()!!, false))
+            } else {
+                Result.failure(e)
+            }
         }
     }
     
@@ -139,17 +153,37 @@ class HybridAuthManager(private val context: Context) {
     fun getGoogleSignInClient() = firebaseAuthManager.getGoogleSignInClient()
     
     /**
+     * Sign out from Google to force account picker on next sign-in
+     */
+    suspend fun signOutFromGoogle() {
+        firebaseAuthManager.signOutFromGoogle()
+    }
+    
+    /**
      * Sign out (from both Firebase and local)
+     * FIXED: Clears all local cached data on sign-out
      */
     suspend fun signOut(): Result<Unit> {
         return try {
+            android.util.Log.d("HybridAuthManager", "🚪 Signing out...")
+            
+            // Clear all cached transaction data FIRST (before auth logout)
+            TransactionDataStore.clearLocalData()
+            android.util.Log.d("HybridAuthManager", "✅ Cleared TransactionDataStore")
+            
             // Sign out from Firebase (includes Google Sign-In)
             firebaseAuthManager.signOut()
+            android.util.Log.d("HybridAuthManager", "✅ Signed out from Firebase")
+            
             // Sign out from local
             localAuthManager.signOut()
+            android.util.Log.d("HybridAuthManager", "✅ Signed out from local storage")
+            
             Result.success(Unit)
         } catch (e: Exception) {
-            // At least sign out locally
+            android.util.Log.e("HybridAuthManager", "Error during sign-out: ${e.message}")
+            // At least clear local data and sign out locally
+            TransactionDataStore.clearLocalData()
             localAuthManager.signOut()
         }
     }

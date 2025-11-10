@@ -28,6 +28,7 @@ import com.budgettracker.core.utils.rememberCurrencyFormatter
 import com.budgettracker.core.utils.AnalyticsTracker
 import com.budgettracker.features.settings.data.models.CategoryType
 import com.budgettracker.features.settings.presentation.SettingsViewModel
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -87,18 +88,24 @@ fun AddTransactionScreen(
                     IconButton(
                         onClick = {
                             if (amount.isNotBlank() && description.isNotBlank()) {
-                                val transaction = Transaction(
-                                    id = UUID.randomUUID().toString(),
-                                    userId = "demo_user",
-                                    amount = amount.toDoubleOrNull() ?: 0.0,
-                                    description = description,
-                                    category = selectedCategory,
-                                    type = selectedType,
-                                    notes = notes.ifBlank { null },
-                                    date = selectedDate
-                                )
-                                TransactionDataStore.addTransaction(transaction)
-                                onNavigateBack()
+                                // FIXED: Use actual Firebase Auth UID
+                                val userId = FirebaseAuth.getInstance().currentUser?.uid
+                                if (userId != null) {
+                                    val transaction = Transaction(
+                                        id = UUID.randomUUID().toString(),
+                                        userId = userId,
+                                        amount = amount.toDoubleOrNull() ?: 0.0,
+                                        description = description,
+                                        category = selectedCategory,
+                                        type = selectedType,
+                                        notes = notes.ifBlank { null },
+                                        date = selectedDate
+                                    )
+                                    TransactionDataStore.addTransaction(transaction)
+                                    onNavigateBack()
+                                } else {
+                                    android.util.Log.e("AddTransaction", "Cannot save: No user logged in")
+                                }
                             }
                         }
                     ) {
@@ -302,18 +309,24 @@ fun AddTransactionScreen(
             Button(
                 onClick = {
                     if (amount.isNotBlank() && description.isNotBlank()) {
-                        val transaction = Transaction(
-                            id = UUID.randomUUID().toString(),
-                            userId = "demo_user",
-                            amount = amount.toDoubleOrNull() ?: 0.0,
-                            description = description,
-                            category = selectedCategory,
-                            type = selectedType,
-                            notes = notes.ifBlank { null },
-                            date = selectedDate
-                        )
-                        TransactionDataStore.addTransaction(transaction)
-                        onNavigateBack()
+                        // FIXED: Use actual Firebase Auth UID
+                        val userId = FirebaseAuth.getInstance().currentUser?.uid
+                        if (userId != null) {
+                            val transaction = Transaction(
+                                id = UUID.randomUUID().toString(),
+                                userId = userId,
+                                amount = amount.toDoubleOrNull() ?: 0.0,
+                                description = description,
+                                category = selectedCategory,
+                                type = selectedType,
+                                notes = notes.ifBlank { null },
+                                date = selectedDate
+                            )
+                            TransactionDataStore.addTransaction(transaction)
+                            onNavigateBack()
+                        } else {
+                            android.util.Log.e("AddTransaction", "Cannot save: No user logged in")
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),

@@ -9,6 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.navigation.compose.rememberNavController
@@ -152,7 +159,7 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Main app composable
+ * Main app composable with animated tab transitions
  */
 @Composable
 fun BudgetTrackerApp() {
@@ -160,13 +167,18 @@ fun BudgetTrackerApp() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     
+    // Define tab order for animation direction
+    val tabRoutes = remember {
+        listOf(
+            BudgetTrackerDestinations.DASHBOARD_ROUTE,
+            BudgetTrackerDestinations.TRANSACTIONS_ROUTE,
+            BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE,
+            BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE
+        )
+    }
+    
     // Show bottom navigation only for main app screens
-    val showBottomNav = currentRoute in listOf(
-        BudgetTrackerDestinations.DASHBOARD_ROUTE,
-        BudgetTrackerDestinations.TRANSACTIONS_ROUTE,
-        BudgetTrackerDestinations.BUDGET_OVERVIEW_ROUTE,
-        BudgetTrackerDestinations.FINANCIAL_GOALS_ROUTE
-    )
+    val showBottomNav = currentRoute in tabRoutes
     
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -182,7 +194,7 @@ fun BudgetTrackerApp() {
             BudgetTrackerNavigation(
                 navController = navController,
                 modifier = Modifier.padding(paddingValues),
-                startDestination = BudgetTrackerDestinations.SPLASH_ROUTE // Start with splash screen
+                startDestination = BudgetTrackerDestinations.SPLASH_ROUTE
             )
         }
     }
